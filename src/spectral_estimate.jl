@@ -1,0 +1,96 @@
+function check_spatial_data(data::NTuple{N, Union{GeoTable, PointSet}}) where {N}
+	_getdims = x -> x isa PointSet ? embeddim(x) : embeddim(domain(x))
+	dim = _getdims(first(data))
+	@assert all(_getdims.(data) .== dim) "data should all be the same spatial dimension"
+	copied_data = deepcopy(data)
+	for proc in copied_data
+		if proc isa GeoTable
+			if length(values(proc)) > 1
+				@warn "more than one random field provided to a geotable, currently we only process the first of these!"
+			end
+			if any(x->abs(x)==Inf, values(proc)[1])
+				error("Some fields have infinite values!")
+			end
+			if any(isnan, values(proc)[1])
+				replace!(values(proc)[1], NaN => zero(eltype(values(proc)[1])))
+			end
+		end
+	end
+	return copied_data, dim
+end
+
+function check_mean_method(mean_method::MeanEstimationMethod, data::NTuple{N, Union{GeoTable, PointSet}}) where {N}
+    return ntuple(i -> mean_method, Val{N}())
+end
+
+function check_mean_method(mean_method::NTuple{P, MeanEstimationMethod}, data::NTuple{N, Union{GeoTable, PointSet}}) where {P,N}
+    P === N || throw(ArgumentError("Number of mean methods should match number of processes"))
+    return mean_method
+end
+
+struct SpectralEstimate{F, P, J <: Union{Nothing, Vector{P}}}
+	freq::F
+	power::P
+	power_jackknifed::J
+end
+
+"""
+	multitaper_estimate(data, tapers; nfreq, fmax, region, jackknife=false, mean_method = DefaultMean())
+
+Computes the multitaper spectral estimate from a tapered dft.
+
+# Arguments:
+- `data`: The data to estimate the spectrum from.
+- `tapers`: A tuple of taper functions.
+- `nfreq::NTuple{D,Int}`: The number of frequencies in each dimension.
+- `fmax::NTuple{D,Real}`: The maximum frequency in each dimension.
+- `region`: The region to estimate the spectrum from.
+- `jackknife`: If true, jackknife (leave one out) replicates returned.
+- `mean_method`: The method to estimate the mean. Default is `DefaultMean`, but can use `KnownMean(x)` to specify this if known.
+
+# Output:
+If the data has P processes, and nfreq = (n_1,...,n_D), the output is a named tuple with
+- freq: a tuple of array of frequencies in each dimension (note this is ordered in increasing frequency).
+- power: the P x P x n_1 x ... x n_D array.
+
+"""
+function multitaper_estimate(data::Union{GeoTable, PointSet}, tapers; nfreq, fmax, region, jackknife = false, mean_method::MeanEstimationMethod = DefaultMean())
+	mt_est = multitaper_estimate((data,), tapers, nfreq = nfreq, fmax = fmax, region = region, jackknife = jackknife, mean_method = mean_method)
+	if jackknife
+		return SpectralEstimate(mt_est.freq, reshape(mt_est.power, size(mt_est.power)[3:end]), reshape.(mt_est.power_jackknifed, size(mt_est.power)[3:end]))
+	else
+		return SpectralEstimate(mt_est.freq, reshape(mt_est.power, size(mt_est.power)[3:end]), nothing)
+	end
+end
+function multitaper_estimate(data::NTuple{N, Union{GeoTable, PointSet}}, tapers; nfreq, fmax, region, jackknife = false, mean_method = DefaultMean()) where {N}
+	data, dim = check_spatial_data(data)
+    mean_method = check_mean_method(mean_method, data)
+	J_n = tapered_dft(data, tapers, nfreq, fmax, region, mean_method)
+	freq = make_freq(nfreq, fmax, dim)
+	power = mapslices(spectral_matrix, J_n, dims = (1, 2))
+	if jackknife
+		jk_weights = [make_jk_weight(size(J_n, 1), m) for m in axes(J_n, 1)] # weight vector which zeros out mth entry
+		power_jackknifed = [mapslices(x -> spectral_matrix(x, jk_weights[m]), J_n, dims = (1, 2)) for m in axes(J_n, 1)]
+		return SpectralEstimate(freq, power, power_jackknifed)
+	else
+		return SpectralEstimate(freq, power, nothing)
+	end
+end
+
+function make_jk_weight(M, m)
+	x = fill(1 / sqrt(M - 1), M)
+	x[m] = 0
+	return x
+end
+
+function spectral_matrix(x, weight = 1 / sqrt(size(x, 1)))
+	xw = conj.(x) .* weight
+	return xw' * xw
+end
+
+make_freq(nfreq::Int, fmax::Number, dim::Int) = ntuple(d->choose_freq_1d(nfreq, fmax), dim)
+function make_freq(nfreq, fmax, dim::Int)
+	freq = choose_freq_1d.(nfreq, fmax)
+	@assert length(freq) == dim "error in passing function, dim should be equal to length of freq"
+	return freq
+end

@@ -1,0 +1,3 @@
+[deps]
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+SpatialMultitaper = "9e2dbb0b-aeb4-47f9-9d40-f5da6e8cc913"

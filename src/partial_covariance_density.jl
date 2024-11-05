@@ -4,7 +4,7 @@ function partial_covariance_density(mt_est::SpectralEstimate; filter = nothing)
     partial_cov_jackknifed = if isnothing(p_spectra.partial_spectra_jackknifed)
         nothing
     else
-        spectra_to_cov.(Ref(p_spectra.freq), p_spectra.partial_spectra_jackknifed, filter)
+        spectra_to_cov.(Ref(p_spectra.freq), p_spectra.partial_spectra_jackknifed, Ref(filter))
     end
     lag = fftshift.(fftfreq.(length.(p_spectra.freq), inv.(step.(p_spectra.freq))))
     return (lag = lag, partial_cov = partial_cov, partial_cov_jackknifed = partial_cov_jackknifed)

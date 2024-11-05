@@ -12,6 +12,7 @@ end
 
 spectra_to_cov(freq, power, ::Nothing) = (length(power) * prod(step.(freq))) .* fftshift(ifft(ifftshift(power, 3:ndims(power)), 3:ndims(power)), 3:ndims(power))
 function spectra_to_cov(freq, power, filter)
-    filtered_power = filter.(Iterators.ProductIterator(freq)) .* power
+    filter_values = filter.(Iterators.ProductIterator(freq))
+    filtered_power = reshape(filter_values, (1, 1, size(filter_values)...)) .* power
     spectra_to_cov(freq, filtered_power, nothing)
 end

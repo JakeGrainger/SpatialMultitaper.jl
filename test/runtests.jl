@@ -22,4 +22,5 @@ end
 
     include("SlepianSolver/runtests.jl")
     include("spectral_matrix_transforms.jl")
+    include("K_function.jl")
 end

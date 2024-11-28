@@ -16,6 +16,6 @@ function mean_estimate(grid::CartesianGrid, rf, region, mean_method::DefaultMean
     mean(rf[i] for i in eachindex(rf) if centroid(grid,i) ∈ region)
 end
 
-function mean_estimate(data, domain, region, mean_method::KnownMean)
+function mean_estimate(domain, data, region, mean_method::KnownMean)
     mean_method.value
 end

@@ -1,7 +1,7 @@
 name = "SpatialMultitaper"
 uuid = "9e2dbb0b-aeb4-47f9-9d40-f5da6e8cc913"
 authors = ["Jake Grainger"]
-version = "0.0.1"
+version = "0.0.2"
 
 [deps]
 Arpack = "7d9fca2a-8960-54d3-9f78-7d1dccf2cb97"

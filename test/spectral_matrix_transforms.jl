@@ -2,11 +2,12 @@ import SpatialMultitaper: Box, Point
 @testset "spectral_matrix_transforms.jl" begin
     region = Box(Point(0,0), Point(3,3))
     pattern = georef((marks=[1,2.4],), PointSet([Point(0,0), Point(1,1)]))
+    pattern2 = PointSet([Point(0,0.3), Point(0.2,0.2), Point(0.1,1)])
     griddata = georef((rf=rand(6*6),), CartesianGrid((0,0), (3,3), dims=(6,6)))
     tapers = sin_taper_family((3,3), region)
     nfreq = (10,10)
     fmax = (2,2)
-    mt_est = multitaper_estimate((pattern,griddata), tapers, nfreq=nfreq, fmax=fmax, region=region)
+    mt_est = multitaper_estimate((pattern,pattern2,griddata), tapers, nfreq=nfreq, fmax=fmax, region=region)
 
     x = complex_coherence(mt_est)
     @test x isa NamedTuple
@@ -49,4 +50,8 @@ import SpatialMultitaper: Box, Point
     @test x.partial_group_delay isa Array{<:Real, 4}
     @test size(x.partial_group_delay) == size(mt_est.power)
     @test x.partial_group_delay_jackknifed === nothing
+
+    x = partial_spectra(mt_est)
+    x_alt = partial_spectra(mt_est, 1, 1, 2:3, 2:3)
+    @test x.partial_spectra[1,1,:,:] ≈ x_alt.partial_spectra[1,1,:,:]
 end

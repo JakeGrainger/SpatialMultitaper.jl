@@ -1,6 +1,7 @@
 module SpatialMultitaper
 
-using Meshes, FFTW, FINUFFT, Interpolations, StatsBase, GeoTables, LinearAlgebra, SpecialFunctions
+using Meshes,
+    FFTW, FINUFFT, Interpolations, StatsBase, GeoTables, LinearAlgebra, SpecialFunctions
 
 include("SlepianSolver/SlepianSolver.jl")
 using .SlepianSolver
@@ -21,13 +22,32 @@ include("partial_covariance_density.jl")
 include("K_function.jl")
 include("resampling.jl")
 
-export multitaper_estimate, sin_taper_family, interpolated_taper_family, partial_covariance_density, DefaultMean, KnownMean
-export georef, Point, CartesianGrid, PointSet
-export pad, downsample, grid2side, side2grid
-export optimaltapers
-export complex_coherence, magnitude_coherence, magnitude_sq_coherence, group_delay, 
-        partial_complex_coherence, partial_magnitude_coherence, partial_magnitude_sq_coherence, partial_group_delay
-export partial_K
-export marginal_shift, ToroidalShift
+export multitaper_estimate,
+    sin_taper_family,
+    interpolated_taper_family,
+    partial_covariance_density,
+    DefaultMean,
+    KnownMean,
+    georef,
+    Point,
+    CartesianGrid,
+    PointSet,
+    pad,
+    downsample,
+    grid2side,
+    side2grid,
+    optimaltapers,
+    complex_coherence,
+    magnitude_coherence,
+    magnitude_sq_coherence,
+    group_delay,
+    partial_spectra,
+    partial_complex_coherence,
+    partial_magnitude_coherence,
+    partial_magnitude_sq_coherence,
+    partial_group_delay,
+    partial_K,
+    marginal_shift,
+    ToroidalShift
 
 end

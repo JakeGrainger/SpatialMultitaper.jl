@@ -48,7 +48,7 @@ function partial_K(
 end
 
 function check_K_indices(indices, data)
-    @assert indices isa AbstractVector{Tuple{Int,Int,AbstractVector{Int},AbstractVector{Int}}} || indices isa AbstractVector{Tuple{Int,Int}}
+    @assert indices isa AbstractVector{<:Tuple{Int,Int,AbstractVector{Int},AbstractVector{Int}}} || indices isa AbstractVector{Tuple{Int,Int}}
     @assert all(
         all(index[i] ⊆ eachindex(data) for i in eachindex(index)) for
         index in indices

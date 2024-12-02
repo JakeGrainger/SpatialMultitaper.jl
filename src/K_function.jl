@@ -24,7 +24,7 @@ function sphere_weight(r, u, ::Val{D}) where {D}
 end
 
 """
-    partial_K(data, radii, tapers; region, nfreq, fmax, indices = [(i, j) for i in eachindex(data), j in eachindex(data) if i <= j])
+    partial_K(data, region; radii, nfreq, fmax, tapers, indices)
 
 Computes the partial K function from the `data` at radii `radii`.
 Default is to compute this for all pairs of indices conditional on any index not included.
@@ -34,11 +34,11 @@ The residual of `index[1]` partial `index[3]` with `index[2]` partial `index[4]`
 """
 function partial_K(
     data,
+    region;
     radii,
-    tapers;
-    region,
     nfreq,
     fmax,
+    tapers,
     indices = [(i, j) for i in eachindex(data), j in eachindex(data) if i <= j],
 )
     check_K_indices(indices, data)
@@ -84,13 +84,13 @@ function partial_K(
 )
     K = Dict(
         index => [
-            sdf2partialK(fhat, zero_atom, index, r) for r in radii
+            sdf2partialK(fhat, zero_atom, r, index) for r in radii
         ] for index in indices
     )
     return (radii = radii, partial_K = K)
 end
 
-function sdf2partialK(fhat, zero_atom, index, r)
+function sdf2partialK(fhat, zero_atom, r, index)
     pspec = partial_spectra(fhat, index[1], index[2], index[3], index[4])
     sdf2K(
         pspec.freq,

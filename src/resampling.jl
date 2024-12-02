@@ -43,8 +43,8 @@ marginal_shift(pp::PointSet, shift_method::ToroidalShift) =
 ##
 function shift_resample(
     data::NTuple{P,S},
-    groups,
     region,
+    groups,
     statistic,
     shift_method::ShiftMethod,
 ) where {P,S}
@@ -71,10 +71,10 @@ end
 
 function partial_K_resample(
     data::NTuple,
-    radii,
-    tapers,
-    shift_method::ShiftMethod;
     region,
+    radii;
+    shift_method::ShiftMethod,
+    tapers,
     nfreq,
     fmax,
 )
@@ -85,7 +85,7 @@ function partial_K_resample(
         (x, y, view(firsthalf, Not(SVector(i, j))), view(secondhalf, Not(SVector(i, j)))) for (i, x) in enumerate(firsthalf), (j, y) in enumerate(secondhalf) if i <= j
     ]
     function wrapped_partial_K(_data, _region)
-        partial_K(_data, radii, tapers; region = _region, nfreq = nfreq, fmax = fmax, indices = indices)
+        partial_K(_data, _region, radii, tapers = tapers, nfreq = nfreq, fmax = fmax, indices = indices)
     end
     resampled = partial_shift_resample(data, region, wrapped_partial_K, shift_method)
     return (radii = resampled.radii, partial_K = Dict((key[1], key[2] - p) => val for (key, val) in resampled.partial_K))

@@ -23,22 +23,75 @@ function sphere_weight(r, u, ::Val{D}) where {D}
     end
 end
 
-function partial_K(data, R, tapers; region, nfreq, fmax, indices = [[i, j] for i in eachindex(data), j in eachindex(data) if i <= j])
-    @assert all(length(index)==2 && 1 ≤ index[1] ≤ length(data) && 1 ≤ index[2] ≤ length(data) for index in indices)
+"""
+    partial_K(data, radii, tapers; region, nfreq, fmax, indices = [(i, j) for i in eachindex(data), j in eachindex(data) if i <= j])
+
+Computes the partial K function from the `data` at radii `radii`.
+Default is to compute this for all pairs of indices conditional on any index not included.
+Alternatively, pass a vector of indices. If this is a vector of `Tuple{Int,Int}`, then this is computed partial on every other index.
+If this is a `Tuple{Int,Int,AbstractVector{Int},AbstractVector{Int}}`, then this is computed partial on the specified indices, i.e.
+The residual of `index[1]` partial `index[3]` with `index[2]` partial `index[4]`.
+"""
+function partial_K(
+    data,
+    radii,
+    tapers;
+    region,
+    nfreq,
+    fmax,
+    indices = [(i, j) for i in eachindex(data), j in eachindex(data) if i <= j],
+)
+    @assert all(
+        length(index) == 2 && 1 ≤ index[1] ≤ length(data) && 1 ≤ index[2] ≤ length(data) for
+        index in indices
+    )
     fhat = multitaper_estimate(data, tapers; region = region, nfreq = nfreq, fmax = fmax)
     zero_atom = atom_estimate.(data, Ref(region))
-    return partial_K(fhat, zero_atom, R, indices)
+    return partial_K(fhat, zero_atom, radii, indices)
 end
 
-function partial_K(fhat::SpectralEstimate, zero_atom, R, indices)
+function partial_K(
+    fhat::SpectralEstimate,
+    zero_atom,
+    radii,
+    indices::AbstractVector{Tuple{Int,Int}},
+)
     partial = partial_spectra(fhat)
-    return R, Dict(index => [
-        sdf2K(partial.freq, partial.partial_spectra[index[1], index[2], :, :] .- (index[1]==index[2]) * zero_atom[index[1]], r) for r in R
-    ] for index in indices)
+    K = Dict(
+        index => [
+            sdf2K(
+                partial.freq,
+                partial.partial_spectra[index[1], index[2], :, :] .-
+                (index[1] == index[2]) * zero_atom[index[1]],
+                r,
+            ) for r in radii
+        ] for index in indices
+    )
+    return (radii = radii, partial_K = K)
+end
+
+function partial_K(
+    fhat::SpectralEstimate,
+    zero_atom,
+    radii,
+    indices::AbstractVector{Tuple{Int,Int,AbstractVector{Int},AbstractVector{Int}}},
+)
+    K = Dict(
+        index => [
+            sdf2K(
+                partial.freq,
+                partial_spectra(fhat, index[1], index[2], index[3], index[4]) .-
+                (index[1] == index[2]) * zero_atom[index[1]],
+                r,
+            ) for r in R
+        ] for index in indices
+    )
+    return (radii = radii, partial_K = K)
 end
 
 ##
-atom_estimate(data::PointSet, region) = length(data)/unitless_measure(region)
+atom_estimate(data::PointSet, region) = length(data) / unitless_measure(region)
 atom_estimate(data::GeoTable, region) = atom_estimate(domain(data), values(data)[1], region)
 atom_estimate(domain::CartesianGrid, rf, region) = 0.0
-atom_estimate(domain::PointSet, marks, region) =  error("Atom for the marked case is not yet implemented")
+atom_estimate(domain::PointSet, marks, region) =
+    error("Atom for the marked case is not yet implemented")

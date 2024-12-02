@@ -10,7 +10,7 @@ abstract type ShiftMethod end
 struct NoShift <: ShiftMethod end
 marginal_shift(pp::PointSet, ::NoShift) = pp
 
-struct ToroidalShift{R<:Box,S<:Union{<:SpatialShift, <:NTuple}} <: ShiftMethod
+struct ToroidalShift{R<:Box,S<:Union{<:SpatialShift,<:NTuple}} <: ShiftMethod
     region::R
     shift::S
 end
@@ -34,14 +34,55 @@ function toroidal_shift(x, side, v)
     b = side[2]
     return a + mod(x - a + v, b - a)
 end
-marginal_shift(pp::PointSet, shift_method::ToroidalShift) = toroidal_shift(pp, shift_method.region, shift_method.shift)
+marginal_shift(pp::PointSet, shift_method::ToroidalShift) =
+    toroidal_shift(pp, shift_method.region, shift_method.shift)
 
 ##
-function shift_resample(data::NTuple{P,S}, groups, region, statistic, shift_method::ShiftMethod) where {P,S}
-    @assert sort(reduce(vcat,groups)) == 1:P "groups of shifts should partition the space"
+function shift_resample(
+    data::NTuple{P,S},
+    groups,
+    region,
+    statistic,
+    shift_method::ShiftMethod,
+) where {P,S}
+    @assert sort(reduce(vcat, groups)) == 1:P "groups of shifts should partition the space"
     group_shifts = Dict(group => rand(shift_method) for group in groups)
-    shifted_processes = (p->marginal_shift(data[p], group_shifts[findgroup[p, groups]]), Val{P}())
+    shifted_processes =
+        (p -> marginal_shift(data[p], group_shifts[findgroup[p, groups]]), Val{P}())
     statistic(shifted_processes, region)
 end
 
-findgroup(p, groups) = findfirst(g->p ∈ g, groups)
+findgroup(p, groups) = findfirst(g -> p ∈ g, groups)
+
+##
+function partial_shift_resample(
+    data::NTuple{P,S},
+    region,
+    statistic,
+    shift_method::ShiftMethod,
+) where {P,S}
+    groups = [1:P, P+1:2P]
+    augmented_data = (data..., deepcopy(data)...)
+    return shift_resample(augmented_data, groups, region, statistic, shift_method)
+end
+
+function partial_K_resample(
+    data::NTuple,
+    radii,
+    tapers,
+    shift_method::ShiftMethod;
+    region,
+    nfreq,
+    fmax,
+)
+    p = length(data)
+    firsthalf = 1:p
+    secondhalf = p+1:2p
+    indices = [
+        (x, y, view(firsthalf, Not(SVector(i, j))), view(secondhalf, Not(SVector(i, j)))) for (i, x) in enumerate(firsthalf), (j, y) in enumerate(secondhalf) if i <= j
+    ]
+    function wrapped_partial_K(data, region)
+        partial_K(data, radii, tapers; region = region, nfreq, fmax, indices)
+    end
+    partial_shift_resample(data, region, wrapped_partial_K, shift_method)
+end

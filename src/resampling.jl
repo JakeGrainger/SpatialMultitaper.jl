@@ -16,7 +16,10 @@ struct ToroidalShift{R<:Box,S<:Union{<:SpatialShift,<:NTuple}} <: ShiftMethod
 end
 function ToroidalShift(box::Box)
     centered_box = inverse(Translate(to(centroid(box))...))(box)
-    ToroidalShift(box, UniformShift(unitless_coords(centered_box.min), unitless_coords(centered_box.max)))
+    ToroidalShift(
+        box,
+        UniformShift(unitless_coords(centered_box.min), unitless_coords(centered_box.max)),
+    )
 end
 Base.rand(shift::ToroidalShift) = ToroidalShift(shift.region, rand(shift.shift))
 
@@ -48,11 +51,11 @@ function shift_resample(
     @assert sort(reduce(vcat, groups)) == 1:P "groups of shifts should partition the space"
     group_shifts = Dict(group => rand(shift_method) for group in groups)
     shifted_processes =
-        (p -> marginal_shift(data[p], group_shifts[findgroup[p, groups]]), Val{P}())
+        ntuple(p -> marginal_shift(data[p], group_shifts[findgroup(p, groups)]), Val{P}())
     statistic(shifted_processes, region)
 end
 
-findgroup(p, groups) = findfirst(g -> p ∈ g, groups)
+findgroup(p, groups) = groups[findfirst(g -> p ∈ g, groups)]
 
 ##
 function partial_shift_resample(
@@ -81,8 +84,9 @@ function partial_K_resample(
     indices = [
         (x, y, view(firsthalf, Not(SVector(i, j))), view(secondhalf, Not(SVector(i, j)))) for (i, x) in enumerate(firsthalf), (j, y) in enumerate(secondhalf) if i <= j
     ]
-    function wrapped_partial_K(data, region)
-        partial_K(data, radii, tapers; region = region, nfreq, fmax, indices)
+    function wrapped_partial_K(_data, _region)
+        partial_K(_data, radii, tapers; region = _region, nfreq = nfreq, fmax = fmax, indices = indices)
     end
-    partial_shift_resample(data, region, wrapped_partial_K, shift_method)
+    resampled = partial_shift_resample(data, region, wrapped_partial_K, shift_method)
+    return (radii = resampled.radii, partial_K = Dict((key[1], key[2] - p) => val for (key, val) in resampled.partial_K))
 end

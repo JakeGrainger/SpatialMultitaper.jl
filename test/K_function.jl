@@ -7,8 +7,8 @@
     nfreq = (10,10)
     fmax = (2,2)
     data = (pattern, pattern2, griddata)
-    R = 0.1:0.5
-    results = partial_K(data, R, tapers; region, nfreq, fmax)
+    R = 0.3:0.1:0.5
+    results = partial_K(data, R, tapers; region=region, nfreq=nfreq, fmax=fmax)
     @test results[1] == R
     @test results[2] isa Dict
 end

@@ -49,10 +49,11 @@ end
 
 function check_K_indices(indices, data)
     @assert indices isa AbstractVector{<:Tuple{Int,Int,AbstractVector{Int},AbstractVector{Int}}} || indices isa AbstractVector{Tuple{Int,Int}}
-    @assert all(
-        all(index[i] ⊆ eachindex(data) for i in eachindex(index)) for
-        index in indices
-    )
+    for index in indices
+        for i in eachindex(index)
+            @assert index[i] ⊆ eachindex(data) "problem with the indices, should all be subsets of $(eachindex(data)), but got $(index)"
+        end
+    end
 end
 
 function partial_K(
@@ -79,16 +80,16 @@ function partial_K(
     fhat::SpectralEstimate,
     zero_atom,
     radii,
-    indices::AbstractVector{Tuple{Int,Int,AbstractVector{Int},AbstractVector{Int}}},
+    indices::AbstractVector{<:Tuple{Int,Int,AbstractVector{Int},AbstractVector{Int}}},
 )
     K = Dict(
         index => [
             sdf2K(
-                partial.freq,
-                partial_spectra(fhat, index[1], index[2], index[3], index[4]) .-
+                fhat.freq,
+                partial_spectra(fhat, index[1], index[2], index[3], index[4]).partial_spectra .-
                 (index[1] == index[2]) * zero_atom[index[1]],
                 r,
-            ) for r in R
+            ) for r in radii
         ] for index in indices
     )
     return (radii = radii, partial_K = K)

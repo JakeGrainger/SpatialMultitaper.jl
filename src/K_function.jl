@@ -41,13 +41,18 @@ function partial_K(
     fmax,
     indices = [(i, j) for i in eachindex(data), j in eachindex(data) if i <= j],
 )
-    @assert all(
-        length(index) == 2 && 1 ≤ index[1] ≤ length(data) && 1 ≤ index[2] ≤ length(data) for
-        index in indices
-    )
+    check_K_indices(indices, data)
     fhat = multitaper_estimate(data, tapers; region = region, nfreq = nfreq, fmax = fmax)
     zero_atom = atom_estimate.(data, Ref(region))
     return partial_K(fhat, zero_atom, radii, indices)
+end
+
+function check_K_indices(indices, data)
+    @assert indices isa AbstractVector{Tuple{Int,Int,AbstractVector{Int},AbstractVector{Int}}} || indices isa AbstractVector{Tuple{Int,Int}}
+    @assert all(
+        all(index[i] ⊆ eachindex(data) for i in eachindex(index)) for
+        index in indices
+    )
 end
 
 function partial_K(

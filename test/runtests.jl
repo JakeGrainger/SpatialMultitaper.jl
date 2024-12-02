@@ -7,7 +7,7 @@ function slow_dft(u,f,freq,iflag)
     return [sum(f[i]*exp(pm*2pi*1im*sum(u[i].*k)) for i in eachindex(u,f)) for k in freq]
 end
 
-@testset "SpatialMultitaper.jl" failfast = true begin
+@testset "SpatialMultitaper.jl" begin
     include("utils.jl")
     include("tapers.jl")
     
@@ -23,4 +23,5 @@ end
     include("SlepianSolver/runtests.jl")
     include("spectral_matrix_transforms.jl")
     include("K_function.jl")
+    include("resampling.jl")
 end

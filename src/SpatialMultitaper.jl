@@ -1,7 +1,16 @@
 module SpatialMultitaper
 
-using Meshes,
-    FFTW, FINUFFT, Interpolations, StatsBase, GeoTables, LinearAlgebra, SpecialFunctions
+using Reexport
+@reexport using Meshes, GeoTables
+
+using FFTW,
+    FINUFFT,
+    Interpolations,
+    InvertedIndices,
+    LinearAlgebra,
+    SpecialFunctions,
+    StaticArrays,
+    StatsBase
 
 include("SlepianSolver/SlepianSolver.jl")
 using .SlepianSolver
@@ -48,6 +57,7 @@ export multitaper_estimate,
     partial_group_delay,
     partial_K,
     shift_resample,
-    ToroidalShift
+    ToroidalShift,
+    partial_K_resample
 
 end

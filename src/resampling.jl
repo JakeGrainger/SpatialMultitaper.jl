@@ -16,7 +16,7 @@ struct ToroidalShift{R<:Box,S<:Union{<:SpatialShift,<:NTuple}} <: ShiftMethod
 end
 function ToroidalShift(box::Box)
     centered_box = inverse(Translate(to(centroid(box))...))(box)
-    ToroidalShift(box, UniformShift(centered_box.min, centered_box.max))
+    ToroidalShift(box, UniformShift(unitless_coords(centered_box.min), unitless_coords(centered_box.max)))
 end
 Base.rand(shift::ToroidalShift) = ToroidalShift(shift.region, rand(shift.shift))
 

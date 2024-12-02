@@ -1,5 +1,5 @@
 function check_spatial_data(data::NTuple{N, Union{GeoTable, PointSet}}) where {N}
-	_getdims = x -> x isa PointSet ? embeddim(x) : embeddim(domain(x))
+	_getdims(x) = x isa PointSet ? embeddim(x) : embeddim(domain(x))
 	dim = _getdims(first(data))
 	@assert all(_getdims.(data) .== dim) "data should all be the same spatial dimension"
 	copied_data = deepcopy(data)
@@ -54,15 +54,15 @@ If the data has P processes, and nfreq = (n_1,...,n_D), the output is a named tu
 - power: the P x P x n_1 x ... x n_D array.
 
 """
-function multitaper_estimate(data::Union{GeoTable, PointSet}, tapers; nfreq, fmax, region, jackknife = false, mean_method::MeanEstimationMethod = DefaultMean())
-	mt_est = multitaper_estimate((data,), tapers, nfreq = nfreq, fmax = fmax, region = region, jackknife = jackknife, mean_method = mean_method)
+function multitaper_estimate(data::Union{GeoTable, PointSet}, region; nfreq, fmax, tapers, jackknife = false, mean_method::MeanEstimationMethod = DefaultMean())
+	mt_est = multitaper_estimate((data,), region, nfreq = nfreq, fmax = fmax, tapers = tapers, jackknife = jackknife, mean_method = mean_method)
 	if jackknife
 		return SpectralEstimate(mt_est.freq, reshape(mt_est.power, size(mt_est.power)[3:end]), reshape.(mt_est.power_jackknifed, size(mt_est.power)[3:end]))
 	else
 		return SpectralEstimate(mt_est.freq, reshape(mt_est.power, size(mt_est.power)[3:end]), nothing)
 	end
 end
-function multitaper_estimate(data::NTuple{N, Union{GeoTable, PointSet}}, tapers; nfreq, fmax, region, jackknife = false, mean_method = DefaultMean()) where {N}
+function multitaper_estimate(data::NTuple{N, Union{GeoTable, PointSet}}, region; nfreq, fmax, tapers, jackknife = false, mean_method = DefaultMean()) where {N}
 	data, dim = check_spatial_data(data)
     mean_method = check_mean_method(mean_method, data)
 	J_n = tapered_dft(data, tapers, nfreq, fmax, region, mean_method)

@@ -7,7 +7,7 @@ import SpatialMultitaper: Box, Point
     tapers = sin_taper_family((3,3), region)
     nfreq = (10,10)
     fmax = (2,2)
-    mt_est = multitaper_estimate((pattern,pattern2,griddata), tapers, nfreq=nfreq, fmax=fmax, region=region)
+    mt_est = multitaper_estimate((pattern,pattern2,griddata), region, nfreq=nfreq, fmax=fmax, tapers=tapers)
 
     x = complex_coherence(mt_est)
     @test x isa NamedTuple

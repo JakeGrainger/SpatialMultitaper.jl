@@ -8,7 +8,7 @@ function check_spatial_data(data::NTuple{N, Union{GeoTable, PointSet}}) where {N
 			if length(values(proc)) > 1
 				@warn "more than one random field provided to a geotable, currently we only process the first of these!"
 			end
-			if any(x->abs(x)==Inf, values(proc)[1])
+			if any(x -> abs(x) == Inf, values(proc)[1])
 				error("Some fields have infinite values!")
 			end
 			if any(isnan, values(proc)[1])
@@ -19,13 +19,20 @@ function check_spatial_data(data::NTuple{N, Union{GeoTable, PointSet}}) where {N
 	return copied_data, dim
 end
 
-function check_mean_method(mean_method::MeanEstimationMethod, data::NTuple{N, Union{GeoTable, PointSet}}) where {N}
-    return ntuple(i -> mean_method, Val{N}())
+function check_mean_method(
+	mean_method::MeanEstimationMethod,
+	data::NTuple{N, Union{GeoTable, PointSet}},
+) where {N}
+	return ntuple(i -> mean_method, Val{N}())
 end
 
-function check_mean_method(mean_method::NTuple{P, MeanEstimationMethod}, data::NTuple{N, Union{GeoTable, PointSet}}) where {P,N}
-    P === N || throw(ArgumentError("Number of mean methods should match number of processes"))
-    return mean_method
+function check_mean_method(
+	mean_method::NTuple{P, MeanEstimationMethod},
+	data::NTuple{N, Union{GeoTable, PointSet}},
+) where {P, N}
+	P === N ||
+		throw(ArgumentError("Number of mean methods should match number of processes"))
+	return mean_method
 end
 
 struct SpectralEstimate{F, P, J <: Union{Nothing, Vector{P}}}
@@ -54,23 +61,58 @@ If the data has P processes, and nfreq = (n_1,...,n_D), the output is a named tu
 - power: the P x P x n_1 x ... x n_D array.
 
 """
-function multitaper_estimate(data::Union{GeoTable, PointSet}, region; nfreq, fmax, tapers, jackknife = false, mean_method::MeanEstimationMethod = DefaultMean())
-	mt_est = multitaper_estimate((data,), region, nfreq = nfreq, fmax = fmax, tapers = tapers, jackknife = jackknife, mean_method = mean_method)
+function multitaper_estimate(
+	data::Union{GeoTable, PointSet},
+	region;
+	nfreq,
+	fmax,
+	tapers,
+	jackknife = false,
+	mean_method::MeanEstimationMethod = DefaultMean(),
+)
+	mt_est = multitaper_estimate(
+		(data,),
+		region,
+		nfreq = nfreq,
+		fmax = fmax,
+		tapers = tapers,
+		jackknife = jackknife,
+		mean_method = mean_method,
+	)
 	if jackknife
-		return SpectralEstimate(mt_est.freq, reshape(mt_est.power, size(mt_est.power)[3:end]), reshape.(mt_est.power_jackknifed, size(mt_est.power)[3:end]))
+		return SpectralEstimate(
+			mt_est.freq,
+			reshape(mt_est.power, size(mt_est.power)[3:end]),
+			reshape.(mt_est.power_jackknifed, size(mt_est.power)[3:end]),
+		)
 	else
-		return SpectralEstimate(mt_est.freq, reshape(mt_est.power, size(mt_est.power)[3:end]), nothing)
+		return SpectralEstimate(
+			mt_est.freq,
+			reshape(mt_est.power, size(mt_est.power)[3:end]),
+			nothing,
+		)
 	end
 end
-function multitaper_estimate(data::NTuple{N, Union{GeoTable, PointSet}}, region; nfreq, fmax, tapers, jackknife = false, mean_method = DefaultMean()) where {N}
+function multitaper_estimate(
+	data::NTuple{N, Union{GeoTable, PointSet}},
+	region;
+	nfreq,
+	fmax,
+	tapers,
+	jackknife = false,
+	mean_method = DefaultMean(),
+) where {N}
 	data, dim = check_spatial_data(data)
-    mean_method = check_mean_method(mean_method, data)
+	mean_method = check_mean_method(mean_method, data)
 	J_n = tapered_dft(data, tapers, nfreq, fmax, region, mean_method)
 	freq = make_freq(nfreq, fmax, dim)
 	power = mapslices(spectral_matrix, J_n, dims = (1, 2))
 	if jackknife
 		jk_weights = [make_jk_weight(size(J_n, 1), m) for m in axes(J_n, 1)] # weight vector which zeros out mth entry
-		power_jackknifed = [mapslices(x -> spectral_matrix(x, jk_weights[m]), J_n, dims = (1, 2)) for m in axes(J_n, 1)]
+		power_jackknifed = [
+			mapslices(x -> spectral_matrix(x, jk_weights[m]), J_n, dims = (1, 2)) for
+			m in axes(J_n, 1)
+		]
 		return SpectralEstimate(freq, power, power_jackknifed)
 	else
 		return SpectralEstimate(freq, power, nothing)
@@ -88,7 +130,8 @@ function spectral_matrix(x, weight = 1 / sqrt(size(x, 1)))
 	return xw' * xw
 end
 
-make_freq(nfreq::Int, fmax::Number, dim::Int) = ntuple(d->choose_freq_1d(nfreq, fmax), dim)
+make_freq(nfreq::Int, fmax::Number, dim::Int) =
+	ntuple(d -> choose_freq_1d(nfreq, fmax), dim)
 function make_freq(nfreq, fmax, dim::Int)
 	freq = choose_freq_1d.(nfreq, fmax)
 	@assert length(freq) == dim "error in passing function, dim should be equal to length of freq"

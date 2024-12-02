@@ -1,6 +1,13 @@
 using SpatialMultitaper
 using Test
 
+function slow_dft(u, f, freq, iflag)
+	pm = iflag ≥ 0 ? 1 : -1
+	return [
+		sum(f[i] * exp(pm * 2pi * 1im * sum(u[i] .* k)) for i in eachindex(u, f)) for
+		k in freq
+	]
+end
 #=
 Don't add your tests to runtests.jl. Instead, create files named
 

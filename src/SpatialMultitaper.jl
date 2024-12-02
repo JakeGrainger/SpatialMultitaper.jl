@@ -3,7 +3,8 @@ module SpatialMultitaper
 using Reexport
 @reexport using Meshes, GeoTables
 
-using FFTW,
+using Distributions,
+    FFTW,
     FINUFFT,
     Interpolations,
     InvertedIndices,

@@ -47,7 +47,7 @@ export multitaper_estimate,
     partial_magnitude_sq_coherence,
     partial_group_delay,
     partial_K,
-    marginal_shift,
+    shift_resample,
     ToroidalShift
 
 end

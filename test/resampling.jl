@@ -8,7 +8,7 @@
         @test all(x->-50≤x≤50, shift_0)
     end
 
-    @testset begin
+    @testset "partial K resampling" begin
         region = Box(Point(0,0), Point(3,3))
         pattern = PointSet([Point(0,0), Point(1,1)])
         pattern2 = PointSet([Point(0.3,0.2), Point(0.8,0.4), Point(0.5,0.5)])

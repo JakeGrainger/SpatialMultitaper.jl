@@ -84,15 +84,20 @@ function partial_K(
 )
     K = Dict(
         index => [
-            sdf2K(
-                fhat.freq,
-                partial_spectra(fhat, index[1], index[2], index[3], index[4]).partial_spectra .-
-                (index[1] == index[2]) * zero_atom[index[1]],
-                r,
-            ) for r in radii
+            sdf2partialK(fhat, zero_atom, index, r) for r in radii
         ] for index in indices
     )
     return (radii = radii, partial_K = K)
+end
+
+function sdf2partialK(fhat, zero_atom, index, r)
+    pspec = partial_spectra(fhat, index[1], index[2], index[3], index[4])
+    sdf2K(
+        pspec.freq,
+        reshape(pspec.partial_spectra, size(pspec.partial_spectra)[3:end]) .-
+        (index[1] == index[2]) * zero_atom[index[1]],
+        r,
+    )
 end
 
 ##

@@ -39,7 +39,7 @@ marginal_shift(pp::PointSet, shift_method::ToroidalShift) = toroidal_shift(pp, s
 ##
 function shift_resample(data::NTuple{P,S}, groups, region, statistic, shift_method::ShiftMethod) where {P,S}
     @assert sort(reduce(vcat,groups)) == 1:P "groups of shifts should partition the space"
-    group_shifts = Dict(group => rand(shift) for group in groups)
+    group_shifts = Dict(group => rand(shift_method) for group in groups)
     shifted_processes = (p->marginal_shift(data[p], group_shifts[findgroup[p, groups]]), Val{P}())
     statistic(shifted_processes, region)
 end

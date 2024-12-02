@@ -42,7 +42,7 @@ function partial_K(
     indices = [(i, j) for i in eachindex(data), j in eachindex(data) if i <= j],
 )
     check_K_indices(indices, data)
-    fhat = multitaper_estimate(data, tapers; region = region, nfreq = nfreq, fmax = fmax)
+    fhat = multitaper_estimate(data, region; tapers = tapers, nfreq = nfreq, fmax = fmax)
     zero_atom = atom_estimate.(data, Ref(region))
     return partial_K(fhat, zero_atom, radii, indices)
 end

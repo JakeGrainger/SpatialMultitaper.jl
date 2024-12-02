@@ -16,9 +16,9 @@
         nfreq = (10,10)
         fmax = (2,2)
         data = (pattern, pattern2)
-        R = 0.3:0.1:0.5
-        results = partial_K_resample(data, R, tapers, ToroidalShift(region); region=region, nfreq=nfreq, fmax=fmax)
-        @test results.radii == R
+        radii = 0.3:0.1:0.5
+        results = partial_K_resample(data, region; radii=radii, shift_method=ToroidalShift(region), tapers=tapers, nfreq=nfreq, fmax=fmax)
+        @test results.radii == radii
         @test results.partial_K isa Dict
         @test all(x->haskey(results.partial_K, x), [(1,1), (1,2), (2,2)])
     end

@@ -35,15 +35,15 @@ import SpatialMultitaper: Box, spectral_matrix, make_jk_weight,
             tapers = interpolated_taper_family([ones(3), ones(3), ones(3)], CartesianGrid((0,), (3,), dims=(3,))) 
             nfreq = (10,)
             fmax = (2,)
-            mt_est = multitaper_estimate((pattern, griddata), tapers, nfreq=nfreq, fmax=fmax, region=region)
+            mt_est = multitaper_estimate((pattern, griddata), region, nfreq=nfreq, fmax=fmax, tapers=tapers)
             @test size(mt_est.power) == (2,2,10)
-            mt_est_jk = multitaper_estimate((pattern, griddata), tapers, nfreq=nfreq, fmax=fmax, region=region, jackknife=true)
+            mt_est_jk = multitaper_estimate((pattern, griddata), region, nfreq=nfreq, fmax=fmax, tapers=tapers, jackknife=true)
             @test size(mt_est_jk.power_jackknifed) == (3,)
             all(size.(mt_est_jk.power_jackknifed) .== (2,2,10))
             @test true
 
-            mt_est_1 = multitaper_estimate(pattern, tapers, nfreq=nfreq, fmax=fmax, region=region)
-            @test mt_est_1.power == multitaper_estimate((pattern,), tapers, nfreq=nfreq, fmax=fmax, region=region).power[1,1,:]
+            mt_est_1 = multitaper_estimate(pattern, region, nfreq=nfreq, fmax=fmax, tapers=tapers)
+            @test mt_est_1.power == multitaper_estimate((pattern,), region, nfreq=nfreq, fmax=fmax, tapers=tapers).power[1,1,:]
             @test size(mt_est_1.power) == (10,)
         end
         @testset "2d" begin
@@ -53,7 +53,7 @@ import SpatialMultitaper: Box, spectral_matrix, make_jk_weight,
             tapers = interpolated_taper_family([ones(3,3), ones(3,3), ones(3,3)], CartesianGrid((0,0), (3,3), dims=(3,3))) 
             nfreq = (10,10)
             fmax = (2,2)
-            mt_est = multitaper_estimate((pattern,griddata), tapers, nfreq=nfreq, fmax=fmax, region=region)
+            mt_est = multitaper_estimate((pattern,griddata), region, nfreq=nfreq, fmax=fmax, tapers=tapers)
             @test size(mt_est.power) == (2,2,10,10)
             
             dft = tapered_dft((pattern,griddata), tapers, nfreq, fmax, region, (DefaultMean(), DefaultMean()))
@@ -71,7 +71,7 @@ import SpatialMultitaper: Box, spectral_matrix, make_jk_weight,
         nfreq = (10,10)
         fmax = (2,2)
         
-        @test multitaper_estimate(griddata, tapers, nfreq=nfreq, fmax=fmax, region=region).power ≈ multitaper_estimate(multi_grid, tapers, nfreq=nfreq, fmax=fmax, region=region).power
-        @test multitaper_estimate(nan_grid, tapers, nfreq=nfreq, fmax=fmax, region=region).power == zeros(10,10)
+        @test multitaper_estimate(griddata, region, nfreq=nfreq, fmax=fmax, tapers=tapers).power ≈ multitaper_estimate(multi_grid, region, nfreq=nfreq, fmax=fmax, tapers=tapers).power
+        @test multitaper_estimate(nan_grid, region, nfreq=nfreq, fmax=fmax, tapers=tapers).power == zeros(10,10)
     end
 end 

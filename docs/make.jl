@@ -11,7 +11,7 @@ const numbered_pages = [
 
 makedocs(;
     modules = [SpatialMultitaper],
-    authors = "Jake Grainger",
+    authors = "Jake P Grainger",
     repo = "https://github.com/JakeGrainger/SpatialMultitaper.jl/blob/{commit}{path}#{line}",
     sitename = "SpatialMultitaper.jl",
     format = Documenter.HTML(; canonical = "https://JakeGrainger.github.io/SpatialMultitaper.jl"),

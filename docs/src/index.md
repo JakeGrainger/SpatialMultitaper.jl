@@ -6,9 +6,15 @@ CurrentModule = SpatialMultitaper
 
 Documentation for [SpatialMultitaper](https://github.com/JakeGrainger/SpatialMultitaper.jl).
 
-```@index
-```
+## Contributors
 
-```@autodocs
-Modules = [SpatialMultitaper]
+```@raw html
+<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+<!-- prettier-ignore-start -->
+<!-- markdownlint-disable -->
+
+<!-- markdownlint-restore -->
+<!-- prettier-ignore-end -->
+
+<!-- ALL-CONTRIBUTORS-LIST:END -->
 ```

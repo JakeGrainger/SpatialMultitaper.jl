@@ -190,6 +190,12 @@ Construct the sin tapers for a given region and gridsize.
 # Arguments:
 - `ntapers`: The number of tapers.
 - `region`: The region to construct the tapers on. Must be a box.
+
+# Background:
+The sin tapers on a unit interval are defined as:
+```math
+h_m(x) = sqrt(2) * sin(π * x * m)
+```
 """
 function sin_taper_family(ntapers, region::Box)
 	tapers =
@@ -199,11 +205,13 @@ end
 
 function make_sin_taper(m, region)
 	region_sides = getfield.(sides(region), :val)
+	region_start = unitless_coords(minimum(region))
+	phase = exp(-2π*1im*sum(region_start))
 	function _single_sin_taper(x)
-		prod(sin_taper(x[d], m[d], region_sides[d]) for d in 1:embeddim(region))
+		prod(sin_taper(x[d]-region_start[d], m[d], region_sides[d]) for d in 1:embeddim(region))
 	end
 	function _single_sin_taper_ft(k)
-		prod(sin_ft(k[d], m[d], region_sides[d]) for d in 1:embeddim(region))
+		prod(sin_ft(k[d], m[d], region_sides[d]) for d in 1:embeddim(region))*phase
 	end
 	return Taper(_single_sin_taper, _single_sin_taper_ft)
 end

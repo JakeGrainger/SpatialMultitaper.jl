@@ -8,6 +8,9 @@
 		  sin(π * 3 * 0.4 / 10) * sin(π * 2 * 3.4 / 5) * 2 / sqrt(50)
 	@test tapers[6](0.4, 3.4) ≈ tapers.tapers[6](0.4, 3.4)
 
+	tapers_alt = sin_taper_family((3, 3), Box(Point(2.3, 0), Point(12.3, 5)))
+	@test tapers_alt[3](2.7,1.4) ≈ tapers[3](0.4, 1.4)
+
 	# TODO: check quality of interpolation methods
 
 end

@@ -56,6 +56,10 @@ Computes the multitaper spectral estimate from a tapered dft.
 - `mean_method`: The method to estimate the mean. Default is `DefaultMean`, but can use `KnownMean(x)` to specify this if known.
 
 # Output:
+If data is a single process, and nfreq = (n_1,...,n_D), the output is a named tuple with
+- freq: a tuple of array of frequencies in each dimension (note this is ordered in increasing frequency).
+- power: a n_1 x ... x n_D array.
+
 If the data has P processes, and nfreq = (n_1,...,n_D), the output is a named tuple with
 - freq: a tuple of array of frequencies in each dimension (note this is ordered in increasing frequency).
 - power: the P x P x n_1 x ... x n_D array.

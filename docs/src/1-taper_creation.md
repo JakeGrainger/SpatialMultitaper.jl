@@ -1,14 +1,14 @@
 # Tapers
 
-Tapers are obviously and important part of multitapering. They are used both to reduce bias from edge effects, and to reduce variance by providing "pseudo-replications".
+Tapers are an important part of multitapering. They are used both to reduce bias from edge effects, and to reduce variance by providing "pseudo-replications".
 In `SpatialMultitaper`, there are a number of dedicated structs to represent the notion of a taper, as well as many convnience functions to create them.
 It is important to distinguish between tapers for continuous processes, and tapers for discrete processes. However, we shall begin the description for the continuous case, as one can often subsample these to obtain legitimate discrete tapers. See the [mathematical background](#mathematical-background) and [developer notes](#developer-notes) for more information.
 
 ## Creating tapers on a box
 
 If the region of interest is a box, then one can easily extend a family of univariate tapers by taking the family of their cross products.
-One dimensional families on the unit interval are easily extended to a general interval. In particular, say that we have a taper ``\tilde h:[0,1]\rightarrow \RR``, then we may define ``h:[a,b]\rightarrow \RR`` by ``h(x) = \tilde h((x-a)/(b-a)) / \sqrt{b-a}``.
-The simplest family of continuous tapers on a box are the sin tapers.
+One dimensional families on the unit interval are easily extended to a general interval. In particular, say that we have a taper ``\tilde h:[0,1]\rightarrow \mathbb{R}``, then we may define ``h:[a,b]\rightarrow \mathbb{R}`` by ``h(x) = \tilde h((x-a)/(b-a)) / \sqrt{b-a}``.
+The simplest family of continuous tapers on a box are the sin tapers [riedel1995minimum](@citep).
 ```@docs 
 sin_taper_family
 ```
@@ -20,7 +20,7 @@ using SpatialMultitaper # hide
 import CairoMakie as Mke # hide
 ```
 
-We can also construction families of tapers for other regions of interest.
+We can also construction families of tapers for other regions of interest, using the methodology proposed by [simons2011spatiospectral](@cite).
 For example, say we are interested in an octagonal region
 
 ```@example octogon_taper
@@ -58,3 +58,7 @@ make_tapers
 ## Developer notes
 
 ## References
+
+```@bibliography
+Pages = ["1-taper_creation.md"]
+```

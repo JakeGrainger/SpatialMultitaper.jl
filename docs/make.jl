@@ -1,5 +1,11 @@
 using SpatialMultitaper
 using Documenter
+using DocumenterCitations
+
+bib = CitationBibliography(
+    joinpath(@__DIR__, "src", "citation.bib");
+    style=:numeric
+)
 
 DocMeta.setdocmeta!(SpatialMultitaper, :DocTestSetup, :(using SpatialMultitaper); recursive = true)
 
@@ -15,6 +21,7 @@ makedocs(;
     repo = "https://github.com/JakeGrainger/SpatialMultitaper.jl/blob/{commit}{path}#{line}",
     sitename = "SpatialMultitaper.jl",
     format = Documenter.HTML(; canonical = "https://JakeGrainger.github.io/SpatialMultitaper.jl"),
+    plugins = [bib],
     pages = ["index.md"; numbered_pages],
 )
 

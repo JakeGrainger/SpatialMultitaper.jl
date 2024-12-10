@@ -35,10 +35,14 @@ function check_mean_method(
 	return mean_method
 end
 
-struct SpectralEstimate{F, P, J <: Union{Nothing, Vector{P}}}
+struct SpectralEstimate{P, F, N, J <: Union{Nothing, Vector{N}}}
 	freq::F
-	power::P
+	power::N
 	power_jackknifed::J
+	function SpectralEstimate(freq::F, power::N, power_jackknifed::J, ::Val{P}) where {P, F, N, J}
+		
+		new{P, F, N, J}(freq, power, power_jackknifed)
+	end
 end
 
 """
@@ -88,24 +92,26 @@ function multitaper_estimate(
 			mt_est.freq,
 			reshape(mt_est.power, size(mt_est.power)[3:end]),
 			reshape.(mt_est.power_jackknifed, size(mt_est.power)[3:end]),
+			Val{1}(),
 		)
 	else
 		return SpectralEstimate(
 			mt_est.freq,
 			reshape(mt_est.power, size(mt_est.power)[3:end]),
 			nothing,
+			Val{1}(),
 		)
 	end
 end
 function multitaper_estimate(
-	data::NTuple{N, Union{GeoTable, PointSet}},
+	data::NTuple{P, Union{GeoTable, PointSet}},
 	region;
 	nfreq,
 	fmax,
 	tapers,
 	jackknife = false,
 	mean_method = DefaultMean(),
-) where {N}
+) where {P}
 	data, dim = check_spatial_data(data)
 	mean_method = check_mean_method(mean_method, data)
 	J_n = tapered_dft(data, tapers, nfreq, fmax, region, mean_method)
@@ -117,9 +123,9 @@ function multitaper_estimate(
 			mapslices(x -> spectral_matrix(x, jk_weights[m]), J_n, dims = (1, 2)) for
 			m in axes(J_n, 1)
 		]
-		return SpectralEstimate(freq, power, power_jackknifed)
+		return SpectralEstimate(freq, power, power_jackknifed, Val{P}())
 	else
-		return SpectralEstimate(freq, power, nothing)
+		return SpectralEstimate(freq, power, nothing, Val{P}())
 	end
 end
 

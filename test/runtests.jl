@@ -1,4 +1,5 @@
 using SpatialMultitaper
+import SpatialMultitaper as Spmt
 using Test
 
 function slow_dft(u, f, freq, iflag)

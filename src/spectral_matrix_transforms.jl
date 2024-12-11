@@ -1,6 +1,7 @@
 function apply_transform(transform, power, ::Val{P}) where {P}
     static_power = ssquarematrixscopy(power, Val{P}())
     return postprocess_transform(transform.(static_power))
+    # return transform.(power)
 end
 function apply_transform(transform, power, ::Val{nothing})
     mapslices(transform, power, dims = (1, 2))
@@ -25,7 +26,6 @@ function _transform_spectral_estimate(
     mt_est::SpectralEstimate{P,F,N,Nothing},
 ) where {T,P,F,N}
     transformed_power = apply_transform(transform, mt_est.power, Val{P}())
-    transformed_power = mapslices(transform, mt_est.power, dims = (1, 2))
     return (
         freq = mt_est.freq,
         transformed_power = transformed_power,

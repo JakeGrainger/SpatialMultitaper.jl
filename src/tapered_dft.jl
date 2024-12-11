@@ -16,8 +16,8 @@ function tapered_dft(
 		ntuple(
 			p -> single_tapered_dft(data[p], tapers, nfreq, fmax, region, mean_method[p]),
 			Val{P}(),
-		),
-	)
+	))
+	# return dfts
 	return permutedims(dfts, (ndims(dfts) - 1, ndims(dfts), 1:ndims(dfts)-2...))
 end
 

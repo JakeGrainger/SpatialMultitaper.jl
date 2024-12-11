@@ -116,7 +116,7 @@ function multitaper_estimate(
 	mean_method = check_mean_method(mean_method, data)
 	J_n = tapered_dft(data, tapers, nfreq, fmax, region, mean_method)
 	freq = make_freq(nfreq, fmax, dim)
-    power = mapslices(x -> spectral_matrix(x), J_n, dims = (1, 2))
+    power = dft2spectralmatrix(J_n)
 	if jackknife
 		jk_weights = [make_jk_weight(size(J_n, 1), m) for m in axes(J_n, 1)] # weight vector which zeros out mth entry
 		power_jackknifed = [
@@ -142,15 +142,12 @@ function dft2spectralmatrix!(S_mat::Array{SMatrix{P,P,T,L}, D}, J_n::NTuple{P, A
     # at this point J_n is a P-tuple of DFTs of dimension n_1 x ... x n_D x M
     # we want to return a n_1 x ... x n_D array of static P x P matrices (maybe even hermitian symmetric ones later)
     @assert all(size(S_mat) == size(J)[1:end-1] for J in J_n) "S_mat should have the same size as the first N-1 dimensions of each J_n"
-    for J in J_n
-        for (i,sl) in enumerate(eachslice(J, dims = ntuple(i -> i, Val{N-1}())))
-            J = SVector{P,T}(sl)
-            S[i] = J*J'
-        end
+    for i in CartesianIndices(S_mat)
+        S_mat[i] = mean(outerprod(SVector(ntuple(j -> J_n[j][i, m], Val{P}()))) for m in axes(J_n[1], N))
     end
-    S_mat ./ P
-    return S
+    return S_mat
 end
+outerprod(x) = x*x'
 
 dft2spectralmatrix(J_n) = mapslices(x -> spectral_matrix(x), J_n, dims = (1, 2))
 

@@ -4,6 +4,21 @@
 Compute the tapered discrete Fourier transform of a collection of data sets.
 If we have n_1,...,n_D frequencies, and M tapers and P processes, this returns an array of size M x P x n_1 x ... x n_D.
 """
+# function tapered_dft(
+# 	data::NTuple{P, Union{GeoTable, PointSet}},
+# 	tapers,
+# 	nfreq,
+# 	fmax,
+# 	region,
+# 	mean_method::NTuple{P, MeanEstimationMethod},
+# ) where {P}
+# 	dfts =
+# 		stack(ntuple(
+# 			p -> single_tapered_dft(data[p], tapers, nfreq, fmax, region, mean_method[p]),
+# 			Val{P}(),
+# 	))
+# 	return permutedims(dfts, (ndims(dfts) - 1, ndims(dfts), 1:ndims(dfts)-2...))
+# end
 function tapered_dft(
 	data::NTuple{P, Union{GeoTable, PointSet}},
 	tapers,
@@ -12,13 +27,12 @@ function tapered_dft(
 	region,
 	mean_method::NTuple{P, MeanEstimationMethod},
 ) where {P}
-	dfts = stack(
+	dfts =
 		ntuple(
 			p -> single_tapered_dft(data[p], tapers, nfreq, fmax, region, mean_method[p]),
 			Val{P}(),
-	))
-	# return dfts
-	return permutedims(dfts, (ndims(dfts) - 1, ndims(dfts), 1:ndims(dfts)-2...))
+	)
+	return dfts
 end
 
 # points (just adds marks with value 1 and proceeds)

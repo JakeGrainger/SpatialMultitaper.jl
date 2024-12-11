@@ -1,7 +1,7 @@
 function apply_transform(transform, power, ::Val{P}) where {P}
-    static_power = ssquarematrixscopy(power, Val{P}())
-    return postprocess_transform(transform.(static_power))
-    # return transform.(power)
+    # static_power = ssquarematrixscopy(power, Val{P}())
+    # return postprocess_transform(transform.(static_power))
+    return transform.(power)
 end
 function apply_transform(transform, power, ::Val{nothing})
     mapslices(transform, power, dims = (1, 2))

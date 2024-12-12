@@ -7,10 +7,10 @@ struct PartialMagnitudeCoherence2{P, F, N} <: FrequencyDomainEstimate{P}
 	end
 end
 getfreq(est::PartialMagnitudeCoherence2) = est.freq
-getestimate(est::PartialMagnitudeCoherence2) = est.coherence
+getestimate(est::PartialMagnitudeCoherence2) = est.partial_coherence
 
 function partial_magnitude_coherence2(x::AbstractMatrix)
-	abs.(partial_complex_coherence(x))
+	abs2.(partial_complex_coherence(x))
 end
 
 function partial_magnitude_coherence2(spectrum::SpectralEstimate)

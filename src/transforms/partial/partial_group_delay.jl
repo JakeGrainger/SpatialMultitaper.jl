@@ -14,5 +14,5 @@ function partial_group_delay(x::AbstractMatrix)
 end
 
 function partial_group_delay(spectrum::SpectralEstimate)
-	return GroupDelay(spectrum.freq, apply_transform(partial_group_delay, spectrum.power))
+	return PartialGroupDelay(spectrum.freq, apply_transform(partial_group_delay, spectrum.power))
 end

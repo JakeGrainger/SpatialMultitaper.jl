@@ -7,7 +7,7 @@ struct PartialSpectra{P, F, N} <: FrequencyDomainEstimate{P}
 	end
 end
 getfreq(est::PartialSpectra) = est.freq
-getestimate(est::PartialSpectra) = est.partial_coherence
+getestimate(est::PartialSpectra) = est.partial_spectra
 
 
 """

@@ -7,7 +7,7 @@ struct PartialMagnitudeCoherence{P, F, N} <: FrequencyDomainEstimate{P}
 	end
 end
 getfreq(est::PartialMagnitudeCoherence) = est.freq
-getestimate(est::PartialMagnitudeCoherence) = est.coherence
+getestimate(est::PartialMagnitudeCoherence) = est.partial_coherence
 
 function partial_magnitude_coherence(x::AbstractMatrix)
 	abs.(partial_complex_coherence(x))

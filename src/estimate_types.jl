@@ -9,7 +9,7 @@ end
 function Base.getindex(est::FrequencyDomainEstimate{P}, i::Int, j::Int) where {P}
     1 <= i <= P || throw(BoundsError("Index $i is out of bounds for estimate with $P processes"))
     1 <= j <= P || throw(BoundsError("Index $j is out of bounds for estimate with $P processes"))
-    return constructorof(est)(getfreq(est), getindex.(getestimate(est), i, j))
+    return constructorof(typeof(est))(getfreq(est), getindex.(getestimate(est), i, j))
 end
 
 function checkfreqdomaininputs(

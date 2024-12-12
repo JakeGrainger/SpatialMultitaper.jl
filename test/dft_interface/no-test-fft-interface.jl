@@ -1,8 +1,8 @@
 @testset "choose_freq_res" begin
-	@test SpatialMultitaper.choose_freq_res(10, 10) == 1
-	@test SpatialMultitaper.choose_freq_res(10, 12) == 1
-	@test SpatialMultitaper.choose_freq_res(10, 8) == 2
-	@test SpatialMultitaper.choose_freq_res(10, 4) == 3
+	@test Spmt.choose_freq_res(10, 10) == 1
+	@test Spmt.choose_freq_res(10, 12) == 1
+	@test Spmt.choose_freq_res(10, 8) == 2
+	@test Spmt.choose_freq_res(10, 4) == 3
 end
 
 @testset "unwrap_fft_output_1d" begin # nyquist set to n/2 for integer values
@@ -11,12 +11,12 @@ end
 	@testset "nfreq=$nfreq, fmaxrel=$fmaxrel" for nfreq in nfreqs, fmaxrel in fmaxrels
 		x =
 			Int.(
-				SpatialMultitaper.unwrap_fft_output(
-					SpatialMultitaper.choose_freq_1d(nfreq, nfreq / 2),
+				Spmt.unwrap_fft_output(
+					Spmt.choose_freq_1d(nfreq, nfreq / 2),
 					(fmaxrel,),
 				)
 			)
-		y = Int.(SpatialMultitaper.choose_freq_1d(nfreq, fmaxrel * (nfreq / 2)))
+		y = Int.(Spmt.choose_freq_1d(nfreq, fmaxrel * (nfreq / 2)))
 		@test mod.(x, nfreq) ≈ mod.(y, nfreq) atol = 1e-4
 	end
 end
@@ -27,24 +27,24 @@ end
 			y = [1, 2, 3, 4]
 			y_1_extra = hcat(y, y)
 			grid = CartesianGrid((-0.5,), (3.5,), dims = (4,))
-			@test SpatialMultitaper.fft_anydomain(y, grid, (4,), (1 / 2,)) ≈
+			@test Spmt.fft_anydomain(y, grid, (4,), (1 / 2,)) ≈
 				  [-2.0, -2.0 - 2.0im, 10.0, -2.0 + 2.0im]
-			@test SpatialMultitaper.fft_anydomain(y, grid, (8,), (1 / 2,)) ≈
-				  SpatialMultitaper.fftshift(
-				SpatialMultitaper.fft([1, 2, 3, 4, 0, 0, 0, 0]),
+			@test Spmt.fft_anydomain(y, grid, (8,), (1 / 2,)) ≈
+				  Spmt.fftshift(
+				Spmt.fft([1, 2, 3, 4, 0, 0, 0, 0]),
 			) # 8 is the smallest oversampling
-			@test SpatialMultitaper.fft_anydomain(y, grid, (8,), (1 / 2,)) ≈
-				  slow_dft(0:3, y, SpatialMultitaper.choose_freq_1d(8, 1 / 2), -1)
+			@test Spmt.fft_anydomain(y, grid, (8,), (1 / 2,)) ≈
+				  slow_dft(0:3, y, Spmt.choose_freq_1d(8, 1 / 2), -1)
 
-			@test SpatialMultitaper.fft_anydomain(y_1_extra, grid, (4,), (1 / 2,)) ≈
+			@test Spmt.fft_anydomain(y_1_extra, grid, (4,), (1 / 2,)) ≈
 				  hcat(
 				[-2.0, -2.0 - 2.0im, 10.0, -2.0 + 2.0im],
 				[-2.0, -2.0 - 2.0im, 10.0, -2.0 + 2.0im],
 			)
 
 			grid2 = CartesianGrid((1 - 0.5,), (1 + 3.5,), dims = (4,))
-			@test SpatialMultitaper.fft_anydomain(y, grid2, (8,), (1 / 2,)) ≈
-				  slow_dft(1:4, y, SpatialMultitaper.choose_freq_1d(8, 1 / 2), -1)
+			@test Spmt.fft_anydomain(y, grid2, (8,), (1 / 2,)) ≈
+				  slow_dft(1:4, y, Spmt.choose_freq_1d(8, 1 / 2), -1)
 		end
 
 		starts = [0, 2.4]
@@ -76,27 +76,27 @@ end
 
 			grid = CartesianGrid((start - 0.25,), (start + 4 - 0.25,), dims = (8,))
 			x = start:0.5:start+3.75
-			@test SpatialMultitaper.fft_anydomain(y, grid, (nfreq,), (fmax,)) ≈
-				  slow_dft(x, y, SpatialMultitaper.choose_freq_1d(nfreq, fmax), -1)
+			@test Spmt.fft_anydomain(y, grid, (nfreq,), (fmax,)) ≈
+				  slow_dft(x, y, Spmt.choose_freq_1d(nfreq, fmax), -1)
 			Y_1_extra =
-				SpatialMultitaper.fft_anydomain(y_1_extra, grid, (nfreq,), (fmax,))
+				Spmt.fft_anydomain(y_1_extra, grid, (nfreq,), (fmax,))
 			for i in axes(Y_1_extra, 2)
 				@test Y_1_extra[:, i] ≈
 					  slow_dft(
 					x,
 					y_1_extra[:, i],
-					SpatialMultitaper.choose_freq_1d(nfreq, fmax),
+					Spmt.choose_freq_1d(nfreq, fmax),
 					-1,
 				)
 			end
 			Y_2_extra =
-				SpatialMultitaper.fft_anydomain(y_2_extra, grid, (nfreq,), (fmax,))
+				Spmt.fft_anydomain(y_2_extra, grid, (nfreq,), (fmax,))
 			for i in axes(Y_2_extra, 2), j in axes(Y_2_extra, 3)
 				@test Y_2_extra[:, i, j] ≈
 					  slow_dft(
 					x,
 					y_2_extra[:, i, j],
-					SpatialMultitaper.choose_freq_1d(nfreq, fmax),
+					Spmt.choose_freq_1d(nfreq, fmax),
 					-1,
 				)
 			end
@@ -141,10 +141,10 @@ end
 				),
 			)
 			freq =
-				Iterators.ProductIterator(SpatialMultitaper.make_freq(nfreq, fmax, 2))
-			@test SpatialMultitaper.fft_anydomain(y, grid, nfreq, fmax) ≈
+				Iterators.ProductIterator(Spmt.make_freq(nfreq, fmax, 2))
+			@test Spmt.fft_anydomain(y, grid, nfreq, fmax) ≈
 				  slow_dft(x, y, freq, -1)
-			Y_1_extra = SpatialMultitaper.fft_anydomain(y_1_extra, grid, nfreq, fmax)
+			Y_1_extra = Spmt.fft_anydomain(y_1_extra, grid, nfreq, fmax)
 			for i in axes(Y_1_extra, 3)
 				@test Y_1_extra[:, :, i] ≈ slow_dft(x, y_1_extra[:, :, i], freq, -1)
 			end

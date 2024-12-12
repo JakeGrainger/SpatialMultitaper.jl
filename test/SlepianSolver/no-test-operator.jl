@@ -15,7 +15,7 @@
 	]
 
 	C, invV =
-		SpatialMultitaper.SlepianSolver.make_concentration_operator(R, L, Val{false}())
+		Spmt.SlepianSolver.make_concentration_operator(R, L, Val{false}())
 	@test eltype(C) == ComplexF64
 	@test size(C) == (length(R), length(L))
 	x = ones(eltype(C), size(C, 2))
@@ -27,7 +27,7 @@
 	@test C * (x .+ a .* y) ≈ (C * x) .+ (a .* (C * y))
 
 	@testset "1d case" begin
-		C, invV = SpatialMultitaper.SlepianSolver.make_concentration_operator(
+		C, invV = Spmt.SlepianSolver.make_concentration_operator(
 			ones(10),
 			[zeros(4); ones(2); zeros(4)],
 			Val{true}(),
@@ -40,8 +40,8 @@ end
 	x = rand(20)
 	y = rand(ComplexF64, 10, 2)
 	z = rand(5, 4)
-	@test SpatialMultitaper.SlepianSolver.fast_reshape!(y, x) == reshape(x, size(y))
-	@test SpatialMultitaper.SlepianSolver.fast_reshape!(z, x) == reshape(x, size(z))
-	@test SpatialMultitaper.SlepianSolver.fast_reshape!(x, z) == vec(z) ==
+	@test Spmt.SlepianSolver.fast_reshape!(y, x) == reshape(x, size(y))
+	@test Spmt.SlepianSolver.fast_reshape!(z, x) == reshape(x, size(z))
+	@test Spmt.SlepianSolver.fast_reshape!(x, z) == vec(z) ==
 		  reshape(z, size(x))
 end

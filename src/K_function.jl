@@ -96,7 +96,7 @@ function sdf2partialK(fhat, zero_atom, r, index)
 	pspec = partial_spectra(fhat, index[1], index[2], index[3], index[4])
 	sdf2K(
 		pspec.freq,
-		reshape(pspec.partial_spectra, size(pspec.partial_spectra)[3:end]) .-
+		pspec.partial_spectra .-
 		(index[1] == index[2]) * zero_atom[index[1]],
 		r,
 	)

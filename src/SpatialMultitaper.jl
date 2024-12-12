@@ -42,14 +42,12 @@ include("transforms/partial/partial_magnitude_coherence2.jl")
 include("transforms/partial/partial_group_delay.jl")
 include("transforms/partial/partial_spectra.jl")
 
-include("partial_covariance_density.jl")
 include("K_function.jl")
 include("resampling.jl")
 
 export multitaper_estimate,
     sin_taper_family,
     interpolated_taper_family,
-    partial_covariance_density,
     DefaultMean,
     KnownMean,
     georef,

@@ -69,7 +69,7 @@ function partial_K(
 		index => [
 			sdf2K(
 				partial.freq,
-				partial.partial_spectra[index[1], index[2], :, :] .-
+				partial[index[1], index[2]].partial_spectra .-
 				(index[1] == index[2]) * zero_atom[index[1]],
 				r,
 			) for r in radii

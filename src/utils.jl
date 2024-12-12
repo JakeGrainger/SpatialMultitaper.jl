@@ -8,10 +8,18 @@ unitless_measure(region) = measure(region).val
 """
 	points2coords(points::PointSet)
 
-Converts PointSet to a tuple of arrays, whose `j'th entry is the `j`th coordinate of each of the points.
+Converts PointSet to a tuple of view of reinterpreted arrays, whose `j'th entry is the `j`th coordinate of each of the points.
 """
 function points2coords(points::PointSet)
-	return ntuple(d -> getindex.(unitless_coords.(parent(points)), d), embeddim(points))
+    points2coords(parent(points), Val{typeof(to(points[1])[1].val)}(), Val{embeddim(points)}())
+end
+function points2coords(points, ::Val{T}, ::Val{D}) where {T, D}
+    points_re = reinterpret(reshape, T, points)
+	return ntuple(d -> view(points_re, d, :), Val{D}())
+end
+function points2coords(points, ::Val{T}, ::Val{1}) where {T}
+    points_re = reinterpret(reshape, T, points)
+	return (points_re,)
 end
 
 """

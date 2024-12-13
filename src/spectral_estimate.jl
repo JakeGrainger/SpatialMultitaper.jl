@@ -10,7 +10,7 @@ getfreq(est::SpectralEstimate) = est.freq
 getestimate(est::SpectralEstimate) = est.power
 
 """
-	multitaper_estimate(data, region; nfreq, fmax, tapers, jackknife=false, mean_method = DefaultMean())
+	multitaper_estimate(data, region; nfreq, fmax, tapers, mean_method = DefaultMean())
 
 Computes the multitaper spectral estimate from a tapered dft.
 
@@ -20,7 +20,6 @@ Computes the multitaper spectral estimate from a tapered dft.
 - `nfreq::NTuple{D,Int}`: The number of frequencies in each dimension.
 - `fmax::NTuple{D,Real}`: The maximum frequency in each dimension.
 - `tapers`: A tuple of taper functions.
-- `jackknife`: If true, jackknife (leave one out) replicates returned.
 - `mean_method`: The method to estimate the mean. Default is `DefaultMean`, but can use `KnownMean(x)` to specify this if known.
 
 # Output:

@@ -1,8 +1,8 @@
 abstract type FrequencyDomainEstimate{D,P} end
 # should be a struct implementing getfreq and getestimate
 
-function checkprocessbounds(est::FrequencyDomainEstimate{D,P}, p) where {D,P}
-    p ⊆ 1:P ||
+function checkprocessbounds(::FrequencyDomainEstimate{D,P}, p) where {D,P}
+    checkbounds(Bool, 1:P, p) ||
         throw(BoundsError("Index $p is out of bounds for estimate with $P processes"))
     nothing
 end
@@ -25,8 +25,8 @@ end
 
 function Base.getindex(
     est::FrequencyDomainEstimate{D,P},
-    p::Int,
-    q::Int,
+    p,
+    q,
     i::Vararg{Any,D},
 ) where {D,P}
     checkbounds(est, p, q, i...)

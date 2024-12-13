@@ -6,3 +6,4 @@ coh = complex_coherence(mt_est)
 @test coh[1,2].coherence[1] ≈ mt_est[1,2].power[1] / sqrt(mt_est[1,1].power[1] * mt_est[2,2].power[1])
 
 @test coh[1,2,:,:].coherence == coh[1,2].coherence
+@test coh[:,:,:,:].coherence == coh.coherence

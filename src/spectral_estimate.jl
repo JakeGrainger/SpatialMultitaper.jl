@@ -91,7 +91,7 @@ function dft2spectralmatrix!(
 	J_n::NTuple{P, Array{T, N}},
 ) where {P, T, N, L, D}
 	# at this point J_n is a P-tuple of DFTs of dimension n_1 x ... x n_D x M
-	# we want to return a n_1 x ... x n_D array of static P x P matrices (maybe even hermitian symmetric ones later)
+	# we want to return a n_1 x ... x n_D array of static P x P matrices (TODO maybe even hermitian symmetric ones later)
 	@assert all(size(S_mat) == size(J)[1:end-1] for J in J_n) "S_mat should have the same size as the first N-1 dimensions of each J_n"
 	for i in CartesianIndices(S_mat)
 		S_mat[i] = mean(

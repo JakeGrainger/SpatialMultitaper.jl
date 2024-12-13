@@ -1,4 +1,4 @@
-function check_spatial_data(data::NTuple{N, Union{GeoTable, PointSet}}) where {N}
+function check_spatial_data(data)
 	_getdims(x) = x isa PointSet ? embeddim(x) : embeddim(domain(x))
 	dim = _getdims(first(data))
 	@assert all(_getdims.(data) .== dim) "data should all be the same spatial dimension"
@@ -31,6 +31,22 @@ function check_mean_method(
 	data::NTuple{N, Union{GeoTable, PointSet}},
 ) where {P, N}
 	P === N ||
+		throw(ArgumentError("Number of mean methods should match number of processes"))
+	return mean_method
+end
+
+function check_mean_method(
+	mean_method::MeanEstimationMethod,
+	data::AbstractVector{<:Union{GeoTable, PointSet}},
+)
+	return fill(mean_method, length(data))
+end
+
+function check_mean_method(
+	mean_method::AbstractVector{MeanEstimationMethod},
+	data::AbstractVector{<:Union{GeoTable, PointSet}},
+)
+	length(mean_method) == length(data) ||
 		throw(ArgumentError("Number of mean methods should match number of processes"))
 	return mean_method
 end

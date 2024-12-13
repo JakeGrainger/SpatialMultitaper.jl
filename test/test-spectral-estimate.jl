@@ -58,6 +58,19 @@ end
         (DefaultMean(), DefaultMean()),
     )
     @test mt_est[1, 2].power[5, 2] ≈ sum(dft[1][5, 2, :] .* conj.(dft[2][5, 2, :])) / 3
+
+    mt_est_vec = multitaper_estimate(
+        [pattern, griddata],
+        region,
+        nfreq = nfreq,
+        fmax = fmax,
+        tapers = tapers,
+    )
+    @test mt_est[1, 1].power ≈ mt_est_vec.power[1,1,:,:]
+    @test mt_est[1, 2].power ≈ mt_est_vec.power[1,2,:,:]
+    @test mt_est[2, 1].power ≈ mt_est_vec.power[2,1,:,:]
+    @test mt_est[2, 2].power ≈ mt_est_vec.power[2,2,:,:]
+    @test mt_est[1, 1].power ≈ mt_est_vec[1,1].power
 end
 
 @testset "NaN handling" begin

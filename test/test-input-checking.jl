@@ -21,6 +21,10 @@
 		domain(pattern),
 		griddata,
 	))
+	@test_throws AssertionError Spmt.check_spatial_data([
+		domain(pattern),
+		griddata,
+	])
 	@test_warn "more than one random field provided to a geotable, currently we only process the first of these!" Spmt.check_spatial_data((
 		multi_grid,
 	))

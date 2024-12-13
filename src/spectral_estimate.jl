@@ -1,9 +1,9 @@
-struct SpectralEstimate{P, F, N} <: FrequencyDomainEstimate{P}
-	freq::F
-	power::N
-	function SpectralEstimate(freq, power)
+struct SpectralEstimate{D,F,P,N} <: FrequencyDomainEstimate{D,P}
+    freq::NTuple{D,F}
+    power::N
+    function SpectralEstimate(freq::NTuple{D,F}, power) where {D,F}
         P = checkfreqdomaininputs(freq, power)
-        new{P, typeof(freq), typeof(power)}(freq, power)
+        new{D,F,P,typeof(power)}(freq, power)
     end
 end
 getfreq(est::SpectralEstimate) = est.freq
@@ -33,36 +33,36 @@ Power can be in the following forms:
 In any case, indexing into a `SpectralEstimate` will provide a `SpectralEstimate` object with the same `freq` and a subset of the `power` array corresponding to the processes in the chosen index.
 """
 function multitaper_estimate(
-	data::Union{GeoTable, PointSet},
-	region;
-	nfreq,
-	fmax,
-	tapers,
-	mean_method::MeanEstimationMethod = DefaultMean(),
+    data::Union{GeoTable,PointSet},
+    region;
+    nfreq,
+    fmax,
+    tapers,
+    mean_method::MeanEstimationMethod = DefaultMean(),
 )
-	return multitaper_estimate(
-		(data,),
-		region,
-		nfreq = nfreq,
-		fmax = fmax,
-		tapers = tapers,
-		mean_method = mean_method,
-	)
+    return multitaper_estimate(
+        (data,),
+        region,
+        nfreq = nfreq,
+        fmax = fmax,
+        tapers = tapers,
+        mean_method = mean_method,
+    )
 end
 function multitaper_estimate(
-	data,
-	region;
-	nfreq,
-	fmax,
-	tapers,
-	mean_method::MeanEstimationMethod = DefaultMean(),
+    data,
+    region;
+    nfreq,
+    fmax,
+    tapers,
+    mean_method::MeanEstimationMethod = DefaultMean(),
 )
-	data, dim = check_spatial_data(data)
-	mean_method = check_mean_method(mean_method, data)
-	J_n = tapered_dft(data, tapers, nfreq, fmax, region, mean_method)
-	freq = make_freq(nfreq, fmax, dim)
-	power = dft2spectralmatrix(J_n)
-	return SpectralEstimate(freq, power)
+    data, dim = check_spatial_data(data)
+    mean_method = check_mean_method(mean_method, data)
+    J_n = tapered_dft(data, tapers, nfreq, fmax, region, mean_method)
+    freq = make_freq(nfreq, fmax, dim)
+    power = dft2spectralmatrix(J_n)
+    return SpectralEstimate(freq, power)
 end
 
 """
@@ -78,23 +78,21 @@ dft2spectralmatrix(J_n::Array) = mapslices(x -> spectral_matrix(x), J_n, dims = 
 
 Computes the spectral matrix from the DFTs, assuming that the DFTs are stored as a tuple of P arrays of size n_1 x ... x n_D x M.
 """
-function dft2spectralmatrix(J_n::NTuple{P, Array{T, N}}) where {P, T, N}
-	S_mat = preallocate_spectralmatrix(J_n)
-	dft2spectralmatrix!(S_mat, J_n)
-	return S_mat
+function dft2spectralmatrix(J_n::NTuple{P,Array{T,N}}) where {P,T,N}
+    S_mat = preallocate_spectralmatrix(J_n)
+    dft2spectralmatrix!(S_mat, J_n)
+    return S_mat
 end
 
 
-function preallocate_spectralmatrix(J_n::NTuple{1, Array{T, N}}) where {T, N}
-	return Array{T, N - 1}(undef, size(J_n[1])[1:end-1])
+function preallocate_spectralmatrix(J_n::NTuple{1,Array{T,N}}) where {T,N}
+    return Array{T,N - 1}(undef, size(J_n[1])[1:end-1])
 end
-function preallocate_spectralmatrix(J_n::NTuple{P, Array{T, N}}) where {P, T, N}
-	return Array{SMatrix{P, P, T, P * P}, N - 1}(undef, size(J_n[1])[1:end-1])
+function preallocate_spectralmatrix(J_n::NTuple{P,Array{T,N}}) where {P,T,N}
+    return Array{SMatrix{P,P,T,P * P},N - 1}(undef, size(J_n[1])[1:end-1])
 end
 
-function dft2spectralmatrix!(
-	S_mat::Array{T, D},
-	J_n::NTuple{1, Array{T, N}},) where {T, N, D}
+function dft2spectralmatrix!(S_mat::Array{T,D}, J_n::NTuple{1,Array{T,N}}) where {T,N,D}
     for i in CartesianIndices(S_mat)
         S_mat[i] = mean(abs2, @view J_n[1][i, :])
     end
@@ -102,19 +100,19 @@ function dft2spectralmatrix!(
 end
 
 function dft2spectralmatrix!(
-	S_mat::Array{SMatrix{P, P, T, L}, D},
-	J_n::NTuple{P, Array{T, N}},
-) where {P, T, N, L, D}
-	# at this point J_n is a P-tuple of DFTs of dimension n_1 x ... x n_D x M
-	# we want to return a n_1 x ... x n_D array of static P x P matrices (TODO maybe even hermitian symmetric ones later)
-	@assert all(size(S_mat) == size(J)[1:end-1] for J in J_n) "S_mat should have the same size as the first N-1 dimensions of each J_n"
-	for i in CartesianIndices(S_mat)
-		S_mat[i] = mean(
-			spectral_matrix(SVector(ntuple(j -> J_n[j][i, m], Val{P}()))) for
-			m in axes(J_n[1], N)
-		)
-	end
-	return S_mat
+    S_mat::Array{SMatrix{P,P,T,L},D},
+    J_n::NTuple{P,Array{T,N}},
+) where {P,T,N,L,D}
+    # at this point J_n is a P-tuple of DFTs of dimension n_1 x ... x n_D x M
+    # we want to return a n_1 x ... x n_D array of static P x P matrices (TODO maybe even hermitian symmetric ones later)
+    @assert all(size(S_mat) == size(J)[1:end-1] for J in J_n) "S_mat should have the same size as the first N-1 dimensions of each J_n"
+    for i in CartesianIndices(S_mat)
+        S_mat[i] = mean(
+            spectral_matrix(SVector(ntuple(j -> J_n[j][i, m], Val{P}()))) for
+            m in axes(J_n[1], N)
+        )
+    end
+    return S_mat
 end
 
 spectral_matrix(x::AbstractVector) = x * x'
@@ -122,9 +120,9 @@ spectral_matrix(x::AbstractMatrix) = (x * x') ./ size(x, 2)
 
 
 make_freq(nfreq::Int, fmax::Number, dim::Int) =
-	ntuple(d -> choose_freq_1d(nfreq, fmax), dim)
+    ntuple(d -> choose_freq_1d(nfreq, fmax), dim)
 function make_freq(nfreq, fmax, dim::Int)
-	freq = choose_freq_1d.(nfreq, fmax)
-	@assert length(freq) == dim "error in passing function, dim should be equal to length of freq"
-	return freq
+    freq = choose_freq_1d.(nfreq, fmax)
+    @assert length(freq) == dim "error in passing function, dim should be equal to length of freq"
+    return freq
 end

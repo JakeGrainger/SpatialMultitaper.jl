@@ -20,7 +20,8 @@
 
     mt_est_1 =
         multitaper_estimate(pattern, region, nfreq = nfreq, fmax = fmax, tapers = tapers)
-    @test mt_est_1.power == multitaper_estimate(
+    @test mt_est_1.power ==
+          multitaper_estimate(
         (pattern,),
         region,
         nfreq = nfreq,
@@ -47,7 +48,7 @@ end
         tapers = tapers,
     )
     @test size(mt_est.power) == (10, 10)
-	@test size(mt_est.power[1]) == (2, 2)
+    @test size(mt_est.power[1]) == (2, 2)
 
     dft = Spmt.tapered_dft(
         (pattern, griddata),
@@ -57,7 +58,7 @@ end
         region,
         (DefaultMean(), DefaultMean()),
     )
-    @test mt_est[1, 2].power[5, 2] ≈ sum(dft[1][5, 2, :] .* conj.(dft[2][5, 2, :])) / 3
+    @test mt_est[1, 2, :, :].power[5, 2] ≈ sum(dft[1][5, 2, :] .* conj.(dft[2][5, 2, :])) / 3
 
     mt_est_vec = multitaper_estimate(
         [pattern, griddata],
@@ -66,11 +67,11 @@ end
         fmax = fmax,
         tapers = tapers,
     )
-    @test mt_est[1, 1].power ≈ mt_est_vec.power[1,1,:,:]
-    @test mt_est[1, 2].power ≈ mt_est_vec.power[1,2,:,:]
-    @test mt_est[2, 1].power ≈ mt_est_vec.power[2,1,:,:]
-    @test mt_est[2, 2].power ≈ mt_est_vec.power[2,2,:,:]
-    @test mt_est[1, 1].power ≈ mt_est_vec[1,1].power
+    @test mt_est[1, 1, :, :].power ≈ mt_est_vec.power[1, 1, :, :]
+    @test mt_est[1, 2, :, :].power ≈ mt_est_vec.power[1, 2, :, :]
+    @test mt_est[2, 1, :, :].power ≈ mt_est_vec.power[2, 1, :, :]
+    @test mt_est[2, 2, :, :].power ≈ mt_est_vec.power[2, 2, :, :]
+    @test mt_est[1, 1, :, :].power ≈ mt_est_vec[1, 1, :, :].power
 end
 
 @testset "NaN handling" begin

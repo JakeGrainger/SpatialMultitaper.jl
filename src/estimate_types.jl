@@ -68,7 +68,7 @@ function _getestimateindex(
 end
 
 function _getestimateindex(est::AbstractArray{<:Number,N}, p, q) where {N}
-    collect(selectdim(est(selectdim(est, 1, p)), 2, q))
+    collect(selectdim(selectdim(est, 1, p), 1, q)) # once first is selected, second becomes first
 end
 
 function _getestimateindex(est::AbstractArray{<:Number,D}, p, q, i::Vararg{Any,D}) where {D} # one process case, p and q have been checked by this point but should be 1

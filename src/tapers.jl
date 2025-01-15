@@ -68,14 +68,14 @@ function L2_inner_product_interpolated(
     @assert size(h) == size(g) == size(grid)
 
     v_set = Iterators.product(ntuple(d -> 0:1, Val{D}())...)
-    g_padded = pad(g, size(g) .+ 1)
-    h_padded = pad(h, size(h) .+ 1)
+    g_padded = centerpad(g, 1)
+    h_padded = centerpad(h, 1)
 
     prod(unitless_spacing(grid)) * sum(
-        prod((-1)^(v[d] + v_prime[d]) / 3 + v[d] * v_prime[d] for d = 1:D) * sum(
-            hx * gx for (hx, gx) in zip(
-                view(g_padded, ntuple(d -> v[d]+1:size(g, d), Val{D}())...),
-                view(h_padded, ntuple(d -> v[d]+1:size(g, d), Val{D}())...),
+        prod((1 + (v[d] == v_prime[d])) / 6 for d = 1:D) * sum(
+            gx * hx for (gx, hx) in zip(
+                view(g_padded, ntuple(d -> v[d] .+ (1:size(g, d).+1), Val{D}())...),
+                view(h_padded, ntuple(d -> v_prime[d] .+ (1:size(h, d).+1), Val{D}())...),
             )
         ) for v in v_set, v_prime in v_set
     )
@@ -120,7 +120,7 @@ end
 (f::InterpolatedTaperFunc)(x::NTuple{3,Real}) = f.taper(x[1], x[2], x[3])
 
 (f::InterpolatedTaperFT)(k::NTuple{D,Real}) where {D,Real} =
-    f.taper_ft(k) * prod(sinc(π * unitless_spacing(f.grid)[d] * k[d])^2 for d = 1:D)
+    f.taper_ft(k) * prod(sinc(unitless_spacing(f.grid)[d] * k[d])^2 for d = 1:D)
 
 (f::DiscreteTaperTF)(x::NTuple{D,Real}) where {D,Real} = f.taper_ft(x...)
 (f::DiscreteTaperTF)(x::NTuple{1,Real}) = f.taper_ft(x[1])
@@ -147,7 +147,7 @@ Constructs a multitaper object from multiple taper discrete impulse responses on
 # Arguments
 - `raw_tapers`: A `Vector` of `AbstractArray`s containing the taper impulse response.
 - `grid`: The grid corresponding to the tapers.
-- `freq_res`: Optional named arguemnt specifying the upsampling for computing the transfer function.
+- `freq_res`: Optional named argument specifying the upsampling for computing the transfer function.
 
 # Frequency sampling
 - The frequency grid on which the transfer function will be sampled has:

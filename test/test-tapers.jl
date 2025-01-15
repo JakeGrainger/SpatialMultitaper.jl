@@ -10,11 +10,14 @@
 
 	tapers_alt = sin_taper_family((3, 3), Box(Point(2.3, 0), Point(12.3, 5)))
 	@test tapers_alt[3](2.7, 1.4) ≈ tapers[3](0.4, 1.4)
-
-	# TODO: check quality of interpolation methods
-
 end
 
+@testset "interpolation" begin
+	# TODO: check quality of interpolation methods
+	x = ones(100)
+	g = CartesianGrid((0,), (100,), dims = (100,))
+	@test Spmt.L2_inner_product_interpolated(x, x, g) ≈ 99+2/3
+end
 @testset "Taper" begin
 	grid = CartesianGrid((0, 0), (10, 10), dims = (10, 10))
 	disc_taper = Spmt.discretetaper(ones(10, 10), grid)

@@ -77,6 +77,18 @@ function pad(x::AbstractArray{T, D}, n::NTuple{D, Int}) where {T, D}
 end
 
 """
+    centerpad(x, i)
+
+Pads `x` with zeros on all sides by `i` elements.
+For example, if `x = 1:2` and `i = 1`, then the output is `[0, 1, 2, 0]`.
+"""
+function centerpad(x, i)
+    out = zeros(size(x) .+ 2 .* i)
+    out[range.(1 .+ i, size(out).-i)...] .= x
+    out
+end
+
+"""
 	downsample(x::AbstractArray{T,D}, spacing) where {D,T}
 
 Down sample an `AbstractArray`.

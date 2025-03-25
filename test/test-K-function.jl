@@ -11,3 +11,6 @@ results =
 	partial_K(data, region; radii = radii, tapers = tapers, nfreq = nfreq, fmax = fmax)
 @test results[1] == radii
 @test results[2] isa Dict
+
+results_scale = partial_K(data, region; radii = radii, tapers = tapers, nfreq = nfreq, fmax = fmax, upscalefactor = 1)
+@test results_scale == results

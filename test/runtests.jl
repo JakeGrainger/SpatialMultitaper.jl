@@ -1,13 +1,9 @@
 using SpatialMultitaper
+import SpatialMultitaper as Spmt
 using Test
+include("SpatialMultitaperTestingUtils.jl")
+using .SpatialMultitaperTestingUtils
 
-function slow_dft(u, f, freq, iflag)
-	pm = iflag ≥ 0 ? 1 : -1
-	return [
-		sum(f[i] * exp(pm * 2pi * 1im * sum(u[i] .* k)) for i in eachindex(u, f)) for
-		k in freq
-	]
-end
 #=
 Don't add your tests to runtests.jl. Instead, create files named
 
@@ -22,7 +18,7 @@ for (root, dirs, files) in walkdir(@__DIR__)
         end
         title = titlecase(replace(splitext(file[6:end])[1], "-" => " "))
         @testset "$title" begin
-            include(file)
+            include(joinpath(root, file))
         end
     end
 end

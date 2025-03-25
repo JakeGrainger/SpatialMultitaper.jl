@@ -4,14 +4,15 @@ using Reexport
 @reexport using Meshes, GeoTables
 
 using Distributions,
-	FFTW,
-	FINUFFT,
-	Interpolations,
-	InvertedIndices,
-	LinearAlgebra,
-	SpecialFunctions,
-	StaticArrays,
-	StatsBase
+    FFTW,
+    FINUFFT,
+    Interpolations,
+    InvertedIndices,
+    LinearAlgebra,
+    SpecialFunctions,
+    StaticArrays,
+    StatsBase,
+    ConstructionBase
 
 include("SlepianSolver/SlepianSolver.jl")
 using .SlepianSolver
@@ -23,42 +24,54 @@ include("dft_interface/nufft_interface.jl")
 include("dft_interface/fft_interface.jl")
 
 include("utils.jl")
+include("estimate_types.jl")
 include("tapers.jl")
 include("mean.jl")
 include("tapered_dft.jl")
+include("input_checking.jl")
 include("spectral_estimate.jl")
-include("spectral_matrix_transforms.jl")
-include("partial_covariance_density.jl")
+
+include("transforms/spectral_matrix_transforms.jl")
+include("transforms/usual/complex_coherence.jl")
+include("transforms/usual/magnitude_coherence.jl")
+include("transforms/usual/magnitude_coherence2.jl")
+include("transforms/usual/group_delay.jl")
+include("transforms/partial/partial_complex_coherence.jl")
+include("transforms/partial/partial_magnitude_coherence.jl")
+include("transforms/partial/partial_magnitude_coherence2.jl")
+include("transforms/partial/partial_group_delay.jl")
+include("transforms/partial/partial_spectra.jl")
+
 include("K_function.jl")
 include("resampling.jl")
 
 export multitaper_estimate,
-	sin_taper_family,
-	interpolated_taper_family,
-	partial_covariance_density,
-	DefaultMean,
-	KnownMean,
-	georef,
-	Point,
-	CartesianGrid,
-	PointSet,
-	pad,
-	downsample,
-	grid2side,
-	side2grid,
-	optimaltapers,
-	complex_coherence,
-	magnitude_coherence,
-	magnitude_sq_coherence,
-	group_delay,
-	partial_spectra,
-	partial_complex_coherence,
-	partial_magnitude_coherence,
-	partial_magnitude_sq_coherence,
-	partial_group_delay,
-	partial_K,
-	shift_resample,
-	ToroidalShift,
-	partial_K_resample
+    sin_taper_family,
+    interpolated_taper_family,
+    DefaultMean,
+    KnownMean,
+    georef,
+    Point,
+    CartesianGrid,
+    PointSet,
+    pad,
+    downsample,
+    grid2side,
+    side2grid,
+    optimaltapers,
+    complex_coherence,
+    magnitude_coherence,
+    magnitude_coherence2,
+    group_delay,
+    partial_spectra,
+    partial_complex_coherence,
+    partial_magnitude_coherence,
+    partial_magnitude_coherence2,
+    partial_group_delay,
+    partial_K,
+    shift_resample,
+    ToroidalShift,
+    partial_K_resample,
+    make_tapers
 
 end

@@ -1,139 +1,128 @@
-function check_spatial_data(data::NTuple{N, Union{GeoTable, PointSet}}) where {N}
-	_getdims(x) = x isa PointSet ? embeddim(x) : embeddim(domain(x))
-	dim = _getdims(first(data))
-	@assert all(_getdims.(data) .== dim) "data should all be the same spatial dimension"
-	copied_data = deepcopy(data)
-	for proc in copied_data
-		if proc isa GeoTable
-			if length(values(proc)) > 1
-				@warn "more than one random field provided to a geotable, currently we only process the first of these!"
-			end
-			if any(x -> abs(x) == Inf, values(proc)[1])
-				error("Some fields have infinite values!")
-			end
-			if any(isnan, values(proc)[1])
-				replace!(values(proc)[1], NaN => zero(eltype(values(proc)[1])))
-			end
-		end
-	end
-	return copied_data, dim
+struct SpectralEstimate{D,F,P,N} <: FrequencyDomainEstimate{D,P}
+    freq::NTuple{D,F}
+    power::N
+    function SpectralEstimate(freq::NTuple{D,F}, power) where {D,F}
+        P = checkfreqdomaininputs(freq, power)
+        new{D,F,P,typeof(power)}(freq, power)
+    end
 end
-
-function check_mean_method(
-	mean_method::MeanEstimationMethod,
-	data::NTuple{N, Union{GeoTable, PointSet}},
-) where {N}
-	return ntuple(i -> mean_method, Val{N}())
-end
-
-function check_mean_method(
-	mean_method::NTuple{P, MeanEstimationMethod},
-	data::NTuple{N, Union{GeoTable, PointSet}},
-) where {P, N}
-	P === N ||
-		throw(ArgumentError("Number of mean methods should match number of processes"))
-	return mean_method
-end
-
-struct SpectralEstimate{F, P, J <: Union{Nothing, Vector{P}}}
-	freq::F
-	power::P
-	power_jackknifed::J
-end
+getfreq(est::SpectralEstimate) = est.freq
+getestimate(est::SpectralEstimate) = est.power
 
 """
-	multitaper_estimate(data, tapers; nfreq, fmax, region, jackknife=false, mean_method = DefaultMean())
+	multitaper_estimate(data, region; nfreq, fmax, tapers, mean_method = DefaultMean())
 
 Computes the multitaper spectral estimate from a tapered dft.
 
 # Arguments:
 - `data`: The data to estimate the spectrum from.
-- `tapers`: A tuple of taper functions.
+- `region`: The region to estimate the spectrum from.
 - `nfreq::NTuple{D,Int}`: The number of frequencies in each dimension.
 - `fmax::NTuple{D,Real}`: The maximum frequency in each dimension.
-- `region`: The region to estimate the spectrum from.
-- `jackknife`: If true, jackknife (leave one out) replicates returned.
+- `tapers`: A tuple of taper functions.
 - `mean_method`: The method to estimate the mean. Default is `DefaultMean`, but can use `KnownMean(x)` to specify this if known.
 
 # Output:
-If the data has P processes, and nfreq = (n_1,...,n_D), the output is a named tuple with
-- freq: a tuple of array of frequencies in each dimension (note this is ordered in increasing frequency).
-- power: the P x P x n_1 x ... x n_D array.
+The output is a `SpectralEstimate` object, with a `freq` and `power` field.
+Say `nfreq = (n_1,...,n_D)`, then `freq` is a `D` dimensional `NTuple` of arrays of frequencies in each dimension.
+Power can be in the following forms:
+- If `data` is a single process, then `power` is a `n_1 x ... x n_D` array.
+- If `data` has `P` processes and is passed as an `NTuple`, then `power` is an `n_1 x ... x n_D` array of `SMatrix{P,P,T,P*P}`.
+- If `data` is a vector of `P` processes, then `power` is a `P x P x n_1 x ... x n_D` array.
 
+In any case, indexing into a `SpectralEstimate` will provide a `SpectralEstimate` object with the same `freq` and a subset of the `power` array corresponding to the processes in the chosen index.
 """
 function multitaper_estimate(
-	data::Union{GeoTable, PointSet},
-	region;
-	nfreq,
-	fmax,
-	tapers,
-	jackknife = false,
-	mean_method::MeanEstimationMethod = DefaultMean(),
+    data::Union{GeoTable,PointSet},
+    region;
+    nfreq,
+    fmax,
+    tapers,
+    mean_method::MeanEstimationMethod = DefaultMean(),
 )
-	mt_est = multitaper_estimate(
-		(data,),
-		region,
-		nfreq = nfreq,
-		fmax = fmax,
-		tapers = tapers,
-		jackknife = jackknife,
-		mean_method = mean_method,
-	)
-	if jackknife
-		return SpectralEstimate(
-			mt_est.freq,
-			reshape(mt_est.power, size(mt_est.power)[3:end]),
-			reshape.(mt_est.power_jackknifed, size(mt_est.power)[3:end]),
-		)
-	else
-		return SpectralEstimate(
-			mt_est.freq,
-			reshape(mt_est.power, size(mt_est.power)[3:end]),
-			nothing,
-		)
-	end
+    return multitaper_estimate(
+        (data,),
+        region,
+        nfreq = nfreq,
+        fmax = fmax,
+        tapers = tapers,
+        mean_method = mean_method,
+    )
 end
 function multitaper_estimate(
-	data::NTuple{N, Union{GeoTable, PointSet}},
-	region;
-	nfreq,
-	fmax,
-	tapers,
-	jackknife = false,
-	mean_method = DefaultMean(),
-) where {N}
-	data, dim = check_spatial_data(data)
-	mean_method = check_mean_method(mean_method, data)
-	J_n = tapered_dft(data, tapers, nfreq, fmax, region, mean_method)
-	freq = make_freq(nfreq, fmax, dim)
-	power = mapslices(spectral_matrix, J_n, dims = (1, 2))
-	if jackknife
-		jk_weights = [make_jk_weight(size(J_n, 1), m) for m in axes(J_n, 1)] # weight vector which zeros out mth entry
-		power_jackknifed = [
-			mapslices(x -> spectral_matrix(x, jk_weights[m]), J_n, dims = (1, 2)) for
-			m in axes(J_n, 1)
-		]
-		return SpectralEstimate(freq, power, power_jackknifed)
-	else
-		return SpectralEstimate(freq, power, nothing)
-	end
+    data,
+    region;
+    nfreq,
+    fmax,
+    tapers,
+    mean_method::MeanEstimationMethod = DefaultMean(),
+)
+    data, dim = check_spatial_data(data)
+    mean_method = check_mean_method(mean_method, data)
+    J_n = tapered_dft(data, tapers, nfreq, fmax, region, mean_method)
+    freq = make_freq(nfreq, fmax, dim)
+    power = dft2spectralmatrix(J_n)
+    return SpectralEstimate(freq, power)
 end
 
-function make_jk_weight(M, m)
-	x = fill(1 / sqrt(M - 1), M)
-	x[m] = 0
-	return x
+"""
+    dft2spectralmatrix(J_n::Array)
+
+Computes the spectral matrix from the DFTs, assuming that the DFTs are stored as one large array which is P x M x n_1 x ... x n_D.
+"""
+dft2spectralmatrix(J_n::Array) = mapslices(x -> spectral_matrix(x), J_n, dims = (1, 2))
+
+
+"""
+    dft2spectralmatrix(J_n::NTuple{P, Array{T, N}}) where {P, T, N}
+
+Computes the spectral matrix from the DFTs, assuming that the DFTs are stored as a tuple of P arrays of size n_1 x ... x n_D x M.
+"""
+function dft2spectralmatrix(J_n::NTuple{P,Array{T,N}}) where {P,T,N}
+    S_mat = preallocate_spectralmatrix(J_n)
+    dft2spectralmatrix!(S_mat, J_n)
+    return S_mat
 end
 
-function spectral_matrix(x, weight = 1 / sqrt(size(x, 1)))
-	xw = conj.(x) .* weight
-	return xw' * xw
+
+function preallocate_spectralmatrix(J_n::NTuple{1,Array{T,N}}) where {T,N}
+    return Array{T,N - 1}(undef, size(J_n[1])[1:end-1])
 end
+function preallocate_spectralmatrix(J_n::NTuple{P,Array{T,N}}) where {P,T,N}
+    return Array{SMatrix{P,P,T,P * P},N - 1}(undef, size(J_n[1])[1:end-1])
+end
+
+function dft2spectralmatrix!(S_mat::Array{T,D}, J_n::NTuple{1,Array{T,N}}) where {T,N,D}
+    for i in CartesianIndices(S_mat)
+        S_mat[i] = mean(abs2, @view J_n[1][i, :])
+    end
+    return S_mat
+end
+
+function dft2spectralmatrix!(
+    S_mat::Array{SMatrix{P,P,T,L},D},
+    J_n::NTuple{P,Array{T,N}},
+) where {P,T,N,L,D}
+    # at this point J_n is a P-tuple of DFTs of dimension n_1 x ... x n_D x M
+    # we want to return a n_1 x ... x n_D array of static P x P matrices (TODO maybe even hermitian symmetric ones later)
+    @assert all(size(S_mat) == size(J)[1:end-1] for J in J_n) "S_mat should have the same size as the first N-1 dimensions of each J_n"
+    for i in CartesianIndices(S_mat)
+        S_mat[i] = mean(
+            spectral_matrix(SVector(ntuple(j -> J_n[j][i, m], Val{P}()))) for
+            m in axes(J_n[1], N)
+        )
+    end
+    return S_mat
+end
+
+spectral_matrix(x::AbstractVector) = x * x'
+spectral_matrix(x::AbstractMatrix) = (x * x') ./ size(x, 2)
+
 
 make_freq(nfreq::Int, fmax::Number, dim::Int) =
-	ntuple(d -> choose_freq_1d(nfreq, fmax), dim)
+    ntuple(d -> choose_freq_1d(nfreq, fmax), dim)
 function make_freq(nfreq, fmax, dim::Int)
-	freq = choose_freq_1d.(nfreq, fmax)
-	@assert length(freq) == dim "error in passing function, dim should be equal to length of freq"
-	return freq
+    freq = choose_freq_1d.(nfreq, fmax)
+    @assert length(freq) == dim "error in passing function, dim should be equal to length of freq"
+    return freq
 end

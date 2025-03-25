@@ -1,13 +1,13 @@
 @testset "unitless" begin
 	grid = CartesianGrid((1.2, 4.5), (1.3, 20.4), dims = (10, 10))
-	@test all(SpatialMultitaper.unitless_spacing(grid) .≈ (0.01, 1.59)) # (1.3 - 1.2)/10, (20.4 - 4.5)/10
-	@test SpatialMultitaper.unitless_origin(grid) == (1.2, 4.5)
-	@test SpatialMultitaper.unitless_minimum(grid) == (1.2, 4.5)
-	@test SpatialMultitaper.unitless_measure(Box(Point(0, 0), Point(1, 1))) == 1
+	@test all(Spmt.unitless_spacing(grid) .≈ (0.01, 1.59)) # (1.3 - 1.2)/10, (20.4 - 4.5)/10
+	@test Spmt.unitless_origin(grid) == (1.2, 4.5)
+	@test Spmt.unitless_minimum(grid) == (1.2, 4.5)
+	@test Spmt.unitless_measure(Box(Point(0, 0), Point(1, 1))) == 1
 end
 @testset "grid2side" begin
 	grid = CartesianGrid((1.2, 4.5), (1.3, 20.4), dims = (10, 10))
-	gridsides = SpatialMultitaper.grid2side(grid)
+	gridsides = Spmt.grid2side(grid)
 	@test centroid(grid, 1) == Point(gridsides[1][1], gridsides[2][1])
 	@test centroid(grid, 2) == Point(gridsides[1][2], gridsides[2][1])
 	@test centroid(grid, 11) == Point(gridsides[1][1], gridsides[2][2])
@@ -29,12 +29,12 @@ end
 	@test pad(M, 100) == [[ones(10, 10); zeros(90, 10)] zeros(100, 90)]
 	@test pad(1:4, 100) == [1:4; zeros(96)]
 	@test_throws AssertionError pad(M, (5, 11))
-	@test SpatialMultitaper.pad(zeros(4, 4, 4), (10, 10, 10)) == zeros(10, 10, 10)
-	y = SpatialMultitaper.pad(ones(2, 2, 2), (10, 10, 10))
+	@test Spmt.pad(zeros(4, 4, 4), (10, 10, 10)) == zeros(10, 10, 10)
+	y = Spmt.pad(ones(2, 2, 2), (10, 10, 10))
 	@test all(x -> x == 1, y[1:2, 1:2, 1:2])
 	@test all(x -> x == 0, y[3:10, 3:10, 3:10])
-	@test_throws AssertionError SpatialMultitaper.pad(ones(3, 5), (2, 2))
-	@test SpatialMultitaper.pad(1:3, (5,)) == [1, 2, 3, 0, 0]
+	@test_throws AssertionError Spmt.pad(ones(3, 5), (2, 2))
+	@test Spmt.pad(1:3, (5,)) == [1, 2, 3, 0, 0]
 end
 @testset "grid2side" begin
 	g = CartesianGrid((100, 100), (1.0, 2.0), (0.1, 0.3))
@@ -49,19 +49,19 @@ end
 	@testset "1d" begin
 		g = CartesianGrid((100,), (1.0,), (0.1,))
 		x = rand(10)
-		@test SpatialMultitaper.upsample(x, g, nothing) == x
-		@test_throws AssertionError SpatialMultitaper.upsample(x, g, 2)
-		@test_throws AssertionError SpatialMultitaper.upsample(x, g, (2,))
-		@test size(SpatialMultitaper.upsample(x, g, 10)) == (100,)
-		@test downsample(SpatialMultitaper.upsample(x, g, 10), 10) ≈ x
+		@test Spmt.upsample(x, g, nothing) == x
+		@test_throws AssertionError Spmt.upsample(x, g, 2)
+		@test_throws AssertionError Spmt.upsample(x, g, (2,))
+		@test size(Spmt.upsample(x, g, 10)) == (100,)
+		@test downsample(Spmt.upsample(x, g, 10), 10) ≈ x
 	end
 	@testset "2d" begin
 		g = CartesianGrid((100, 100), (1.0, 2.0), (0.1, 0.3))
 		x = rand(10, 10)
-		@test SpatialMultitaper.upsample(x, g, nothing) == x
-		@test_throws AssertionError SpatialMultitaper.upsample(x, g, 2)
-		@test_throws AssertionError SpatialMultitaper.upsample(x, g, (2, 10))
-		@test size(SpatialMultitaper.upsample(x, g, 10)) == (100, 100)
-		@test downsample(SpatialMultitaper.upsample(x, g, 10), 10) ≈ x
+		@test Spmt.upsample(x, g, nothing) == x
+		@test_throws AssertionError Spmt.upsample(x, g, 2)
+		@test_throws AssertionError Spmt.upsample(x, g, (2, 10))
+		@test size(Spmt.upsample(x, g, 10)) == (100, 100)
+		@test downsample(Spmt.upsample(x, g, 10), 10) ≈ x
 	end
 end

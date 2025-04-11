@@ -173,6 +173,6 @@ Resamples the DFTs across M independently in P, assuming that the DFTs are store
 """
 
 function null_resample(J_n::NTuple{P,Array{T,N}}) where {P,T,N}
-	M = size(J_n)[end]
+	M = size(first(J_n))[end]
 	ntuple(j -> selectdim(J_n[j], N, rand(1:M, M)), Val{P}())
 end

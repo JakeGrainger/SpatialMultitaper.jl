@@ -66,19 +66,19 @@ function multitaper_estimate(
 end
 
 """
-    dft2spectralmatrix(J_n::Array)
+    dft2spectralmatrix(J_n::AbstractArray)
 
 Computes the spectral matrix from the DFTs, assuming that the DFTs are stored as one large array which is P x M x n_1 x ... x n_D.
 """
-dft2spectralmatrix(J_n::Array) = mapslices(x -> spectral_matrix(x), J_n, dims = (1, 2))
+dft2spectralmatrix(J_n::AbstractArray) = mapslices(x -> spectral_matrix(x), J_n, dims = (1, 2))
 
 
 """
-    dft2spectralmatrix(J_n::NTuple{P, Array{T, N}}) where {P, T, N}
+    dft2spectralmatrix(J_n::NTuple{P, AbstractArray{T, N}}) where {P, T, N}
 
 Computes the spectral matrix from the DFTs, assuming that the DFTs are stored as a tuple of P arrays of size n_1 x ... x n_D x M.
 """
-function dft2spectralmatrix(J_n::NTuple{P,Array{T,N}}) where {P,T,N}
+function dft2spectralmatrix(J_n::NTuple{P,AbstractArray{T,N}}) where {P,T,N}
     S_mat = preallocate_spectralmatrix(J_n)
     dft2spectralmatrix!(S_mat, J_n)
     return S_mat

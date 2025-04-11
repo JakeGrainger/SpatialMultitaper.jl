@@ -161,7 +161,9 @@ end
 Resamples the DFTs across M independently in P, assuming that the DFTs are stored as one large array which is P x M x n_1 x ... x n_D.
 """
 function null_resample(J_n::Array{T,N}) where {T,N}
-	permutedims(map(j -> selectdim(selectdim(J_n, 1, j), 2, rand(1:M, M)), Val{P}()), (N, 1:N-1...))
+	M = size(J_n, 2)
+	P = size(J_n, 1)
+	permutedims(map(j -> selectdim(selectdim(J_n, 1, j), 2, rand(1:M, M)), 1:P), (N, 1:N-1...))
 end
 
 """
@@ -171,5 +173,6 @@ Resamples the DFTs across M independently in P, assuming that the DFTs are store
 """
 
 function null_resample(J_n::NTuple{P,Array{T,N}}) where {P,T,N}
+	M = size(J_n)[end]
 	ntuple(j -> selectdim(J_n[j], N, rand(1:M, M)), Val{P}())
 end

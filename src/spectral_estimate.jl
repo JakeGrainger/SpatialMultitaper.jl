@@ -101,7 +101,7 @@ end
 
 function dft2spectralmatrix!(
     S_mat::Array{SMatrix{P,P,T,L},D},
-    J_n::NTuple{P,Array{T,N}},
+    J_n::NTuple{P,AbstractArray{T,N}},
 ) where {P,T,N,L,D}
     # at this point J_n is a P-tuple of DFTs of dimension n_1 x ... x n_D x M
     # we want to return a n_1 x ... x n_D array of static P x P matrices (TODO maybe even hermitian symmetric ones later)

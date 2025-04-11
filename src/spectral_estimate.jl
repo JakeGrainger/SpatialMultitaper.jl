@@ -85,10 +85,10 @@ function dft2spectralmatrix(J_n::NTuple{P,AbstractArray{T,N}}) where {P,T,N}
 end
 
 
-function preallocate_spectralmatrix(J_n::NTuple{1,Array{T,N}}) where {T,N}
+function preallocate_spectralmatrix(J_n::NTuple{1,AbstractArray{T,N}}) where {T,N}
     return Array{T,N - 1}(undef, size(J_n[1])[1:end-1])
 end
-function preallocate_spectralmatrix(J_n::NTuple{P,Array{T,N}}) where {P,T,N}
+function preallocate_spectralmatrix(J_n::NTuple{P,AbstractArray{T,N}}) where {P,T,N}
     return Array{SMatrix{P,P,T,P * P},N - 1}(undef, size(J_n[1])[1:end-1])
 end
 

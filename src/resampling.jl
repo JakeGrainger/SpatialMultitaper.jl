@@ -7,7 +7,7 @@ Base.rand(u::UniformShift) = rand.(Uniform.(u.min, u.max))
 
 struct UniformBallShift{D,T<:Number} <: SpatialShift
 	max_shift::T
-	UniformBallShift(max_shift::T, dim::Val{D}) where {D} = new{D, T}(max_shift)
+	UniformBallShift(max_shift::T, dim::Val{D}) where {T, D} = new{D, T}(max_shift)
 end
 function Base.rand(u::UniformShift{2})
 	radius = random(Uniform(0, u.max_shift))

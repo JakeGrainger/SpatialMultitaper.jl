@@ -62,7 +62,7 @@ end
 marginal_shift(pp::PointSet, shift_method::ToroidalShift) =
 	toroidal_shift(pp, shift_method.region, shift_method.shift)
 
-struct MinusShift{R,G,S}
+struct MinusShift{R,G,S} <: ShiftMethod
 	region::R
 	inset_region::G
 	shift::S

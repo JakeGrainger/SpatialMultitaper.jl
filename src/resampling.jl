@@ -72,7 +72,7 @@ function MinusShift(region, maxshift)
 	shift = UniformBallShift(maxshift, Val{embeddim(region)}())
 	return MinusShift(region, inset_region, shift)
 end
-
+Base.rand(shift::MinusShift) = MinusShift(shift.region, shift.inset_region, rand(shift.shift))
 function make_inset_region(region, maxshift)
 	bbox = boundingbox(region)
 	bsize = map(x->x[2]-x[1], box2sides(bbox))

@@ -82,6 +82,9 @@ function make_inset_region(region, maxshift)
 	transform = Stretch((1 .- 2maxshift./bsize)...)
 	return transform(region)
 end
+function marginal_shift(pp::PointSet, shift_method::MinusShift)
+    Translate(shift_method.shift...)(pp)
+end
 
 ##
 function shift_resample(

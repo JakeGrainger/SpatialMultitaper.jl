@@ -73,6 +73,13 @@ function MinusShift(region, maxshift)
 	return MinusShift(region, inset_region, shift)
 end
 
+function make_inset_region(region, maxshift)
+	bbox = boundingbox(region)
+	bsize = map(x->x[2]-x[1], box2sides(bbox))
+	transform = Stretch((1 .- 2maxshift./bsize)...)
+	return transform(region)
+end
+
 ##
 function shift_resample(
 	data::NTuple{P, S},

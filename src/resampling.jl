@@ -9,15 +9,18 @@ struct UniformBallShift{D,T<:Number} <: SpatialShift
 	max_shift::T
 	UniformBallShift(max_shift::T, dim::Val{D}) where {T, D} = new{D, T}(max_shift)
 end
-function Base.rand(u::UniformShift{2})
-	radius = random(Uniform(0, u.max_shift))
-	angle = random(Uniform(0, 2π))
+function Base.rand(u::UniformBallShift{1})
+	return rand(Uniform(-u.max_shift, u.max_shift))
+end
+function Base.rand(u::UniformBallShift{2})
+	radius = rand(Uniform(0, u.max_shift))
+	angle = rand(Uniform(0, 2π))
 	return (radius * cos(angle), radius * sin(angle))
 end
-function Base.rand(u::UniformShift{3})
-	radius = random(Uniform(0, u.max_shift))
-	theta = random(Uniform(0, π))
-	phi = random(Uniform(0, 2π))
+function Base.rand(u::UniformBallShift{3})
+	radius = rand(Uniform(0, u.max_shift))
+	theta = rand(Uniform(0, π))
+	phi = rand(Uniform(0, 2π))
 	return (
 		radius * sin(theta) * cos(phi),
 		radius * sin(theta) * sin(phi),

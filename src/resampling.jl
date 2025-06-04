@@ -9,15 +9,18 @@ struct UniformBallShift{D,T<:Number} <: SpatialShift
 	max_shift::T
 	UniformBallShift(max_shift::T, dim::Val{D}) where {T, D} = new{D, T}(max_shift)
 end
-function Base.rand(u::UniformShift{2})
-	radius = random(Uniform(0, u.max_shift))
-	angle = random(Uniform(0, 2π))
+function Base.rand(u::UniformBallShift{1})
+	return rand(Uniform(-u.max_shift, u.max_shift))
+end
+function Base.rand(u::UniformBallShift{2})
+	radius = rand(Uniform(0, u.max_shift))
+	angle = rand(Uniform(0, 2π))
 	return (radius * cos(angle), radius * sin(angle))
 end
-function Base.rand(u::UniformShift{3})
-	radius = random(Uniform(0, u.max_shift))
-	theta = random(Uniform(0, π))
-	phi = random(Uniform(0, 2π))
+function Base.rand(u::UniformBallShift{3})
+	radius = rand(Uniform(0, u.max_shift))
+	theta = rand(Uniform(0, π))
+	phi = rand(Uniform(0, 2π))
 	return (
 		radius * sin(theta) * cos(phi),
 		radius * sin(theta) * sin(phi),
@@ -62,7 +65,7 @@ end
 marginal_shift(pp::PointSet, shift_method::ToroidalShift) =
 	toroidal_shift(pp, shift_method.region, shift_method.shift)
 
-struct MinusShift{R,G,S}
+struct MinusShift{R,G,S} <: ShiftMethod
 	region::R
 	inset_region::G
 	shift::S
@@ -71,6 +74,16 @@ function MinusShift(region, maxshift)
 	inset_region = make_inset_region(region, maxshift)
 	shift = UniformBallShift(maxshift, Val{embeddim(region)}())
 	return MinusShift(region, inset_region, shift)
+end
+Base.rand(shift::MinusShift) = MinusShift(shift.region, shift.inset_region, rand(shift.shift))
+function make_inset_region(region, maxshift)
+	bbox = boundingbox(region)
+	bsize = map(x->x[2]-x[1], box2sides(bbox))
+	transform = Stretch((1 .- 2maxshift./bsize)...)
+	return transform(region)
+end
+function marginal_shift(pp::PointSet, shift_method::MinusShift)
+    Translate(shift_method.shift...)(pp)
 end
 
 ##

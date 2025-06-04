@@ -35,11 +35,11 @@ include("transforms/spectral_matrix_transforms.jl")
 include("transforms/usual/complex_coherence.jl")
 include("transforms/usual/magnitude_coherence.jl")
 include("transforms/usual/magnitude_coherence2.jl")
-include("transforms/usual/group_delay.jl")
+include("transforms/usual/phase.jl")
 include("transforms/partial/partial_complex_coherence.jl")
 include("transforms/partial/partial_magnitude_coherence.jl")
 include("transforms/partial/partial_magnitude_coherence2.jl")
-include("transforms/partial/partial_group_delay.jl")
+include("transforms/partial/partial_phase.jl")
 include("transforms/partial/partial_spectra.jl")
 
 include("K_function.jl")
@@ -62,12 +62,12 @@ export multitaper_estimate,
     complex_coherence,
     magnitude_coherence,
     magnitude_coherence2,
-    group_delay,
+    phase,
     partial_spectra,
     partial_complex_coherence,
     partial_magnitude_coherence,
     partial_magnitude_coherence2,
-    partial_group_delay,
+    partial_phase,
     partial_K,
     shift_resample,
     ToroidalShift,

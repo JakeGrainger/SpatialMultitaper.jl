@@ -70,7 +70,8 @@ end
 
 Computes the spectral matrix from the DFTs, assuming that the DFTs are stored as one large array which is P x M x n_1 x ... x n_D.
 """
-dft2spectralmatrix(J_n::AbstractArray) = mapslices(x -> spectral_matrix(x), J_n, dims = (1, 2))
+dft2spectralmatrix(J_n::AbstractArray) =
+    mapslices(x -> spectral_matrix(x), J_n, dims = (1, 2))
 
 
 """
@@ -123,6 +124,6 @@ make_freq(nfreq::Int, fmax::Number, dim::Int) =
     ntuple(d -> choose_freq_1d(nfreq, fmax), dim)
 function make_freq(nfreq, fmax, dim::Int)
     freq = choose_freq_1d.(nfreq, fmax)
-    @assert length(freq) == dim "error in passing function, dim should be equal to length of freq"
+    @assert length(freq) == dim "error in passing function, dim should be equal to length of freq (which is a tuple of frequencies)"
     return freq
 end

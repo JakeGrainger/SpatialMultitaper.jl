@@ -158,7 +158,7 @@ end
     return abs2.(complex_coherence(x))
 end
 
-@spectraltransform function group_delay(x::AbstractMatrix)
+@spectraltransform function phase(x::AbstractMatrix)
     return angle.(complex_coherence(x))
 end
 
@@ -174,7 +174,7 @@ end
     return abs2.(partial_complex_coherence(x))
 end
 
-@spectraltransform function partial_group_delay(x::AbstractMatrix)
+@spectraltransform function partial_phase(x::AbstractMatrix)
     return angle.(partial_complex_coherence(x))
 end
 

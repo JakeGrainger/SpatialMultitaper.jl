@@ -5,6 +5,31 @@ struct UniformShift{D, T} <: SpatialShift
 end
 Base.rand(u::UniformShift) = rand.(Uniform.(u.min, u.max))
 
+struct UniformBallShift{D,T<:Number} <: SpatialShift
+	max_shift::T
+	UniformBallShift(max_shift::T, dim::Val{D}) where {T, D} = new{D, T}(max_shift)
+end
+function Base.rand(u::UniformBallShift{1})
+	return rand(Uniform(-u.max_shift, u.max_shift))
+end
+function Base.rand(u::UniformBallShift{2})
+	radius = rand(Uniform(0, u.max_shift))
+	angle = rand(Uniform(0, 2π))
+	return (radius * cos(angle), radius * sin(angle))
+end
+function Base.rand(u::UniformBallShift{3})
+	radius = rand(Uniform(0, u.max_shift))
+	theta = rand(Uniform(0, π))
+	phi = rand(Uniform(0, 2π))
+	return (
+		radius * sin(theta) * cos(phi),
+		radius * sin(theta) * sin(phi),
+		radius * cos(theta),
+	)
+end
+Base.rand(u::UniformBallShift{D,T}) where {D,T} = error("Unsupported dimension $D for UniformBallShift")
+
+
 ##
 abstract type ShiftMethod end
 struct NoShift <: ShiftMethod end
@@ -39,6 +64,27 @@ function toroidal_shift(x, side, v)
 end
 marginal_shift(pp::PointSet, shift_method::ToroidalShift) =
 	toroidal_shift(pp, shift_method.region, shift_method.shift)
+
+struct MinusShift{R,G,S} <: ShiftMethod
+	region::R
+	inset_region::G
+	shift::S
+end
+function MinusShift(region, maxshift)
+	inset_region = make_inset_region(region, maxshift)
+	shift = UniformBallShift(maxshift, Val{embeddim(region)}())
+	return MinusShift(region, inset_region, shift)
+end
+Base.rand(shift::MinusShift) = MinusShift(shift.region, shift.inset_region, rand(shift.shift))
+function make_inset_region(region, maxshift)
+	bbox = boundingbox(region)
+	bsize = map(x->x[2]-x[1], box2sides(bbox))
+	transform = Stretch((1 .- 2maxshift./bsize)...)
+	return transform(region)
+end
+function marginal_shift(pp::PointSet, shift_method::MinusShift)
+    Translate(shift_method.shift...)(pp)
+end
 
 ##
 function shift_resample(
@@ -100,4 +146,53 @@ function partial_K_resample(
 		radii = resampled.radii,
 		partial_K = Dict((key[1], key[2] - p) => val for (key, val) in resampled.partial_K),
 	)
+end
+
+## freq domain null resampling
+function multitaper_estimate_resampled(
+    data,
+    region;
+    nfreq,
+    fmax,
+    tapers,
+    mean_method::MeanEstimationMethod = DefaultMean(),
+	nresamples::Int
+)
+    data, dim = check_spatial_data(data)
+    mean_method = check_mean_method(mean_method, data)
+    freq = make_freq(nfreq, fmax, dim)
+    J_n = tapered_dft(data, tapers, nfreq, fmax, region, mean_method)
+	power = dft2spectralmatrix(J_n)
+	resampled = [SpectralEstimate(freq, dft2spectralmatrix(null_resample(J_n))) for _ in 1:nresamples]
+	observed = SpectralEstimate(freq, power)
+    return  (observed = observed, resampled = resampled)
+end
+
+"""
+	null_resample(J_n::Array)
+
+Resamples the DFTs across M independently in P, assuming that the DFTs are stored as one large array which is P x M x n_1 x ... x n_D.
+"""
+function null_resample(J_n::Array{T,N}) where {T,N}
+	error("under development!!")
+	M = size(J_n, 2)
+	P = size(J_n, 1)
+	permutedims(map(j -> selectdim(selectdim(J_n, 1, j), 2, rand(1:M, M)), 1:P), (N, 1:N-1...))
+end
+
+"""
+	null_resample(J_n::NTuple{P, Array{T, N}}) where {P, T, N}
+
+Resamples the DFTs across M independently in P, assuming that the DFTs are stored as a tuple of P arrays of size n_1 x ... x n_D x M.
+"""
+function null_resample(J_n::NTuple{P,Array{T,N}}) where {P,T,N}
+	M = size(first(J_n))[end]
+	# ntuple(j -> selectdim(J_n[j], N, rand(1:M, M)), Val{P}())
+	new_J = ntuple(p -> Array{T,N}(undef, size(J_n[p])), Val{P}())
+	for p in 1:P
+		for i in CartesianIndices(J_n[p])
+			new_J[p][i] = J_n[p][i.I[1:end-1]..., rand(1:M)]
+		end
+	end
+	return new_J
 end

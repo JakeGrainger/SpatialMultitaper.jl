@@ -1,18 +1,12 @@
 """
-	tapered_dft(data::AbstractVector{<:Union{GeoTable,PointSet}}, tapers, nfreq, fmax, region, mean_method::AbstractVector{<:MeanEstimationMethod})
+	tapered_dft(data::AbstractVector, tapers, nfreq, fmax, region, mean_method)
 
 Compute the tapered discrete Fourier transform of a collection of data sets.
 If we have `n_1,...,n_D` frequencies, and M tapers and P processes, this returns an array of size `P x M x n_1 x ... x n_D`.
 Note that for small numbers of processes, it is more efficient to use the `NTuple` method.
+The `mean_method` should be the same length at the `data`.
 """
-function tapered_dft(
-    data::AbstractVector{<:Union{GeoTable,PointSet}},
-    tapers,
-    nfreq,
-    fmax,
-    region,
-    mean_method::AbstractVector{<:MeanEstimationMethod},
-)
+function tapered_dft(data::AbstractVector, tapers, nfreq, fmax, region, mean_method)
     @assert length(data) == length(mean_method) "data and mean_method must have the same length, got $(length(data)) and $(length(mean_method))."
     dfts = stack(
         single_tapered_dft(data[p], tapers, nfreq, fmax, region, mean_method[p]) for
@@ -22,10 +16,11 @@ function tapered_dft(
 end
 
 """
-	tapered_dft(data::NTuple{P,Union{GeoTable, PointSet}}, tapers, nfreq, fmax, region, mean_method::NTuple{P,MeanEstimationMethod}) where {P}
+	tapered_dft(data::NTuple{P,Union{GeoTable, PointSet}}, tapers, nfreq, fmax, region, mean_method) where {P}
 
 Compute the tapered discrete Fourier transform of a collection of data sets.
 If we have n_1,...,n_D frequencies, and M tapers and P processes, this returns a `Tuple` of size `P`, whose entries are arrays of size `n_1 x ... x n_D x M`.
+The `mean_method` should be the same length at the `data`.
 """
 function tapered_dft(
     data::NTuple{P,Union{GeoTable,PointSet}},
@@ -33,8 +28,9 @@ function tapered_dft(
     nfreq,
     fmax,
     region,
-    mean_method::NTuple{P,MeanEstimationMethod},
+    mean_method,
 ) where {P}
+    @assert length(data) == length(mean_method) "data and mean_method must have the same length, got $(length(data)) and $(length(mean_method))."
     dfts = ntuple(
         p -> single_tapered_dft(data[p], tapers, nfreq, fmax, region, mean_method[p]),
         Val{P}(),

@@ -35,8 +35,10 @@ Complex coherence is defined as
 ```
 Coherence is then the magnitude of this quantity, and magnitude square coherence is the square of this quantity, and group delay is its complex argument.
 
+## Phase
+
 ## Partial coherence
 
-## Partial group delay
+## Partial phase
 
 ## Partial spectral density

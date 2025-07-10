@@ -20,7 +20,7 @@ using SpatialMultitaper # hide
 import CairoMakie as Mke # hide
 ```
 
-We can also construction families of tapers for other regions of interest, using the methodology proposed by [simons2011spatiospectral](@cite).
+We can also construct families of tapers for other regions of interest, using the methodology proposed by [simons2011spatiospectral](@cite).
 For example, say we are interested in an octagonal region
 
 ```@example octogon_taper
@@ -33,7 +33,7 @@ viz(region)
 
 We can construct discrete tapers for this region using the `make_taper` function:
 ```@example octogon_taper
-    tapers = make_tapers(region, bandwidth = 3.4)
+    tapers = make_tapers(region, bandwidth = 3.5)
 ```
 In this case, we obtain 12 well concentrated tapers within this bandwidth. We can visualize the tapers:
 ```@example octogon_taper
@@ -51,6 +51,42 @@ Note that this process can be slow for complex regions, or if high resolution gr
 
 ```@docs
 make_tapers
+```
+
+## Exploring the tapers
+
+Given a constructed family of tapers, one can index into them to obtain one single taper.
+```@example octogon_taper
+    taper = tapers[1]
+```
+
+We can evaluate the taper at a given point by calling it as a function:
+```@example octogon_taper
+    taper(0.5, 0.5)
+```
+Alternatively, we can pass a point or a tuple
+```@example octogon_taper
+    taper(Point(0.5, 0.5))
+```
+```@example octogon_taper
+    taper((0.5, 0.5))
+```
+We can also consider the Fourier transform of the taper, which is a function of wavenumber.
+In general, we would like the Fourier transform to be well concentrated around the origin, and to decay quickly away from it.
+When constructing the general tapers, we specified a bandwidth, within which we expect the Fourier transform to be well concentrated (in a ball around zero with a radius of the bandwidth).
+We can evaluate the Fourier transform of the taper at a given wavenumber with the `taper_ft` function:
+```@example octogon_taper
+    taper_ft(taper, 0, 0)
+```
+So plotting the `abs2` of Fourier transforms to check the concentrations we see that
+```@example octogon_taper
+    fig = Mke.Figure()
+    ax = [Mke.Axis(fig[i,j], aspect = 1) for i in 1:3, j in 1:4]
+    for i in eachindex(tapers)
+        Mke.heatmap!(ax[i], range(-5,5,100), range(-5,5,100), (x,y) -> abs2(taper_ft(tapers[i],x,y)))
+        viz!(ax[i], boundary(Ball(Point(0,0), 3.5)), color = :black)
+    end
+    fig
 ```
 
 ## Mathematical background

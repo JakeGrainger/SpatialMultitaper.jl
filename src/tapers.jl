@@ -137,8 +137,7 @@ Base.show(io::IO, ::MIME"text/plain", taper::InterpolatedTaper) =
 Base.show(io::IO, ::MIME"text/plain", taper::TaperFamily) =
     print(io, "A family of $(length(taper)) taper functions.")
 
-##
-
+## specific taper families
 """
 	interpolated_taper_family(raw_tapers, grid; freq_res=size(grid))
 
@@ -159,26 +158,34 @@ function interpolated_taper_family(
     grid::CartesianGrid;
     freq_res = size(grid),
 )
+    check_interpolated_tapers_cross(raw_tapers, grid; tol = 1e-2)
+
     interpolated_tapers = TaperFamily(
         ntuple(
             d -> interpolate(discretetaper(raw_tapers[d], grid, freq_res = freq_res)),
             length(raw_tapers),
         ),
     )
-    # checks orthogonality of interpolated tapers
+    return interpolated_tapers
+end
+
+"""
+    check_interpolated_tapers_cross(raw_tapers, grid; tol = 1e-2)
+
+Checks how much the interpolation changes the orthogonality of the tapers. If the maximum cross-correlation is greater than `1e-2`, it will warn the user.
+"""
+function check_interpolated_tapers_cross(raw_tapers, grid; tol = 1e-2)
     max_cross = maximum(
         abs(L2_inner_product_interpolated(raw_tapers[i], raw_tapers[j], grid)) for
-        i = 1:length(interpolated_tapers) for j = i+1:length(interpolated_tapers)
+        i in eachindex(raw_tapers) for j = i+1:length(raw_tapers)
     )
-    if max_cross > 1e-2
+    if max_cross > tol
         max_discrete_cross = maximum(
             abs(sum(h * g for (h, g) in zip(raw_tapers[i], raw_tapers[j]))) for
-            i = 1:length(interpolated_tapers) for j = i+1:length(interpolated_tapers)
+            i in eachindex(raw_tapers) for j = i+1:length(raw_tapers)
         )
-        @warn "The tapers are not orthogonal. The maximum cross-correlation is $max_cross. You may wish to increase the resolution of the grid used for the discrete tapers, or check that the discrete tapers are orthogonal (the discrete tapers has a max-cross L2 norm of $max_discrete_cross)."
+        @warn "The tapers are significantly not orthogonal. The maximum cross-correlation is $max_cross. You may wish to increase the resolution of the grid used for the discrete tapers, or check that the discrete tapers are orthogonal (the discrete tapers has a max-cross L2 norm of $max_discrete_cross)."
     end
-
-    return interpolated_tapers
 end
 
 

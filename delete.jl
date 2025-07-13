@@ -40,12 +40,6 @@ normalisation, conc =
 normalisation
 [conc[i, i, :, :] for i in axes(conc, 1)][1]
 
-##
-n_space = 400
-Mke.lines(range(-10, 10, 100), x -> sinc(x * (1 / n_space))^4)
-Mke.ylims!(Mke.current_axis(), 0, 1)
-Mke.current_figure()
-
 
 ##
 fig = Mke.Figure()
@@ -70,23 +64,38 @@ for i = 1:3
         ax[i],
         range(-5, 5, 100),
         range(-5, 5, 100),
-        (x, y) -> abs2(taper_ft(tapers_on_grids[i][1], x, y)),
-        colorrange = (0, 0.3),
+        (x, y) -> angle(taper_ft(tapers_on_grids[i][1], x, y)),
+        # colorrange = (0, 0.3),
+        colorrange = (-pi,pi)
     )
     viz!(ax[i], boundary(Ball(Point(0, 0), 3.5)), color = :black)
 end
 fig
 
+##
 check(x, y) =
     abs2(taper_ft(tapers_on_grids[1][1], x, y)) /
     abs2(taper_ft(tapers_on_grids[3][1], x, y))
 
 ##
+
 fig = Mke.Figure()
-ax = Mke.Axis(fig[1, 1])
+ax = [Mke.Axis(fig[j, i]) for i in 1:2, j in 1:2]
 for i = 1:3
-    Mke.lines!(ax, 0:0.01:3.5, (x) -> abs(taper_ft(tapers_on_grids[i][1], x, 0.0)))
+    points = try
+        tapers_on_grids[i][1].taper_ft.taper_ft.taper_ft.abs.itp.ranges
+    catch
+        tapers_on_grids[i][1].taper_ft.taper_ft.abs.itp.ranges
+    end
+    Mke.lines!(ax[1], 0:0.01:3.5, (x) -> imag(taper_ft(tapers_on_grids[i][1], x, 0.0)))
+    Mke.scatter!(ax[1], points[1], (x) -> imag(taper_ft(tapers_on_grids[i][1], x, 0.0)), markersize = 3)
+    Mke.lines!(ax[2], 0:0.01:3.5, (x) -> real(taper_ft(tapers_on_grids[i][1], x, 0.0)))
+    Mke.scatter!(ax[2], points[1], (x) -> real(taper_ft(tapers_on_grids[i][1], x, 0.0)), markersize = 3)
+    Mke.lines!(ax[3], 0:0.01:3.5, (x) -> abs(taper_ft(tapers_on_grids[i][1], x, 0.0)))
+    Mke.scatter!(ax[3], points[1], (x) -> abs(taper_ft(tapers_on_grids[i][1], x, 0.0)), markersize = 3)
+    Mke.lines!(ax[4], 0:0.01:3.5, (x) -> angle(taper_ft(tapers_on_grids[i][1], x, 0.0)))
+    Mke.scatter!(ax[4], points[1], (x) -> angle(taper_ft(tapers_on_grids[i][1], x, 0.0)), markersize = 3)
+
+    Mke.xlims!.(ax, 0, 3.5)
 end
 fig
-
-##

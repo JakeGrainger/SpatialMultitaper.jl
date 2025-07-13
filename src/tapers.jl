@@ -9,12 +9,29 @@ struct DiscreteTaperSeq{T<:AbstractArray,G<:CartesianGrid}
     end
 end
 
+struct InterpolatedComplexAbsAngle{A,B}
+    abs::A
+    complex::B
+end
+function (f::InterpolatedComplexAbsAngle)(x...)
+    y = f.complex(x...)
+    f.abs(x...) * y / abs(y)
+end
+
 struct DiscreteTaperFT{H}
     taper_ft::H
     function DiscreteTaperFT(taper, grid, freq_res)
-        ft_desc = fftshift(fft(pad(taper, freq_res))) .* prod(unitless_spacing(grid))
+        freq_res = process_res(freq_res, boundingbox(grid))
+        ft_desc = fft_anydomain(taper, grid, freq_res, inv.(unitless_spacing(grid))) .* prod(unitless_spacing(grid))
         freq = fftshift.(fftfreq.(size(ft_desc), inv.(unitless_spacing(grid))))
-        ft_interp = cubic_spline_interpolation(freq, ft_desc, extrapolation_bc = Periodic())
+        ft_desc_abs = abs.(ft_desc)
+        ft_abs_interp = linear_interpolation(freq, ft_desc_abs, extrapolation_bc = Periodic())
+        ft_angle_interp = linear_interpolation( # stores the complex interpolation to get good angles avoiding wrapping
+            freq,
+            ft_desc,
+            extrapolation_bc = Periodic(),
+        )
+        ft_interp = InterpolatedComplexAbsAngle(ft_abs_interp, ft_angle_interp)
         new{typeof(ft_interp)}(ft_interp)
     end
 end

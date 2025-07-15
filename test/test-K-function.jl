@@ -8,9 +8,17 @@ fmax = (2, 2)
 data = (pattern, pattern2, griddata)
 radii = 0.3:0.1:0.5
 results =
-	partial_K(data, region; radii = radii, tapers = tapers, nfreq = nfreq, fmax = fmax)
+    partial_K(data, region; radii = radii, tapers = tapers, nfreq = nfreq, fmax = fmax)
 @test results[1] == radii
 @test results[2] isa Dict
 
-results_scale = partial_K(data, region; radii = radii, tapers = tapers, nfreq = nfreq, fmax = fmax, upscalefactor = 1)
+results_scale = partial_K(
+    data,
+    region;
+    radii = radii,
+    tapers = tapers,
+    nfreq = nfreq,
+    fmax = fmax,
+    upscalefactor = 1,
+)
 @test results_scale == results

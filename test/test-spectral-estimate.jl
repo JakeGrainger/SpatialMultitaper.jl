@@ -52,7 +52,8 @@ end
         region,
         (DefaultMean(), DefaultMean()),
     )
-    @test mt_est[1, 2, :, :].power[5, 2] ≈ sum(dft[1][5, 2, :] .* conj.(dft[2][5, 2, :])) / 3
+    @test mt_est[1, 2, :, :].power[5, 2] ≈
+          sum(dft[1][5, 2, :] .* conj.(dft[2][5, 2, :])) / 3
 
     mt_est_vec = multitaper_estimate(
         [pattern, griddata],

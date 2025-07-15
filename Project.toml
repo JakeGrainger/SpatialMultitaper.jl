@@ -5,7 +5,6 @@ version = "0.0.4"
 
 [deps]
 Arpack = "7d9fca2a-8960-54d3-9f78-7d1dccf2cb97"
-CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 ConstructionBase = "187b0558-2788-49d3-abe0-74a17ed4e7c9"
 DSP = "717857b8-e6f2-59f4-9121-6e50c889abd2"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
@@ -22,7 +21,6 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 
 [compat]
-CairoMakie = "0.15.3"
 ConstructionBase = "1.5.8"
 Distributions = "0.25.113"
 GeoTables = "1.23.0"

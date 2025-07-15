@@ -8,30 +8,16 @@ struct DiscreteTaperSeq{T<:AbstractArray,G<:CartesianGrid}
         new{typeof(taper),typeof(grid)}(taper, grid)
     end
 end
-
-struct InterpolatedComplexAbsAngle{A,B}
-    abs::A
-    complex::B
-end
-function (f::InterpolatedComplexAbsAngle)(x...)
-    y = f.complex(x...)
-    f.abs(x...) * y / abs(y)
-end
-
 struct DiscreteTaperFT{H}
     taper_ft::H
     function DiscreteTaperFT(taper, grid, freq_res)
         freq_res = process_res(freq_res, boundingbox(grid))
-        ft_desc = fft_anydomain(taper, grid, freq_res, inv.(unitless_spacing(grid))) .* prod(unitless_spacing(grid))
+        ft_desc =
+            fft_anydomain(taper, grid, freq_res, 1 ./ (2 .* unitless_spacing(grid))) .*
+            prod(unitless_spacing(grid))
         freq = fftshift.(fftfreq.(size(ft_desc), inv.(unitless_spacing(grid))))
-        ft_desc_abs = abs.(ft_desc)
-        ft_abs_interp = linear_interpolation(freq, ft_desc_abs, extrapolation_bc = Periodic())
-        ft_angle_interp = linear_interpolation( # stores the complex interpolation to get good angles avoiding wrapping
-            freq,
-            ft_desc,
-            extrapolation_bc = Periodic(),
-        )
-        ft_interp = InterpolatedComplexAbsAngle(ft_abs_interp, ft_angle_interp)
+
+        ft_interp = linear_interpolation(freq, ft_desc, extrapolation_bc = Periodic())
         new{typeof(ft_interp)}(ft_interp)
     end
 end
@@ -236,12 +222,12 @@ function taper_concentrations(taper_families, bandwidth; resolution = 100)
     end
     return concentrations
 end
-function single_taper_concentration(taper1, taper2, concentration_domain; resolution = 100)
+function single_taper_concentration(taper1, taper2, concentration_domain; resolution)
     concentration_bb = boundingbox(concentration_domain)
     concentration_grid = CartesianGrid(
         minimum(concentration_bb),
         maximum(concentration_bb),
-        dims = ntuple(d -> resolution, Val{embeddim(concentration_bb)}()),
+        dims = resolution,
     )
     concentration =
         prod(unitless_spacing(concentration_grid)) * sum(
@@ -254,7 +240,47 @@ end
 
 
 """
-    check_tapers_for_data(data, tapers, bandwidth)
+    choose_concentration_resolution(tapers_on_grids, concentration_region)
+
+Chooses the number of wavenumbers to sample at to integrate on the concentration region.
+Assumes that all tapers in each taper family are the same in some sense (the Fourier transform is sampled in the same way and interpolated).
+Does not assume this across families.
+Will return the lowest resolution to mitigate some effects of interpolation that can matter for fine resolutions.
+"""
+function choose_concentration_resolution(tapers_on_grids, concentration_region)
+    bbox = boundingbox(concentration_region)
+    nfreqs = [_nfreq_in_box(tapers[1], bbox) for tapers in tapers_on_grids]
+    concentration_res = ntuple(i -> minimum(x -> x[i], nfreqs), Val{embeddim(bbox)}())
+    if any(x -> x < 30, concentration_res)
+        @warn "The resolution for computing the concentration of the tapers is very low. You may want to increase the wavenumber domain resolution used when precomputing taper Fourier transforms."
+    end
+    return concentration_res
+end
+
+"""
+    _freq_in_box
+
+Internal function to compute the number of frequencies at which the Fourier transform of a taper was evaluated in given box.
+"""
+function _nfreq_in_box(taper::ContinuousTaper, box::Box)
+    return ntuple(d -> 2^63 - 1, embeddim(box))
+end
+function _nfreq_in_box(taper::Taper, box::Box)
+    freq = _evaluation_frequencies(taper)
+    sides = box2sides(box)
+    return ntuple(d -> sum(x -> sides[d][1] ≤ x ≤ sides[d][2], freq[d]), embeddim(box))
+end
+
+function _evaluation_frequencies(taper::DiscreteTaper)
+    taper.taper_ft.taper_ft.itp.ranges
+end
+
+function _evaluation_frequencies(taper::InterpolatedTaper)
+    taper.taper_ft.taper_ft.taper_ft.itp.ranges
+end
+
+"""
+    check_tapers_for_data(data, tapers, bandwidth; freq_res, tol, min_concentration)
 
 This function checks if the tapers are suitable for the provided data.
 In particular, it checks that the tapers work for the type of grids provided in the data.
@@ -263,8 +289,23 @@ We use the term `grid` here to refer to the sampling mechanism of a process.
 So it also refer to continuously recorded data (which is the `NoGrid` type).
 
 If you have a problem, you can use `taper_checks` to check the tapers directly.
+
+# Arguments
+- `data`: The data to check the tapers for.
+- `tapers`: The tapers to check.
+- `bandwidth`: The bandwidth of the tapers.
+- `freq_res`: The frequency resolution to use for the tapers generated from the data grids.
+- `tol`: The tolerance for the L2 norm of the tapers.
+- `min_concentration`: The minimum concentration of the tapers before they are considered invalid and an error is thrown.
 """
-function check_tapers_for_data(data, tapers, bandwidth; freq_res = 500, tol = 1e-2)
+function check_tapers_for_data(
+    data,
+    tapers,
+    bandwidth;
+    freq_res = 500,
+    tol = 1e-2,
+    min_concentration = 0.95,
+)
     normalisations, concentrations =
         taper_checks(data, tapers, bandwidth, freq_res = freq_res)
     concentrations_diag = [
@@ -276,16 +317,19 @@ function check_tapers_for_data(data, tapers, bandwidth; freq_res = 500, tol = 1e
         i in axes(concentrations, 1), j in axes(concentrations, 2),
         k in axes(concentrations, 3), l in axes(concentrations, 4)
     ]
-    @assert all(x -> abs(x - 1) < tol, normalisations) "All tapers must have an L2 norm of 1, but found largest difference of $(maximum(x->abs(x-1), normalisations))"
-    @assert all(x -> abs(x - 1) < tol, concentrations_diag) "All tapers must have a concentration of 1, but found largest difference of $(maximum(x->abs(x-1), concentrations_diag))"
+    @assert all(x -> abs(x - 1) < tol, stack(normalisations)) "All tapers must have an L2 norm of 1, but found largest difference of $(maximum(x->abs(x-1), stack(normalisations)))"
+    @assert all(x -> real(x) > min_concentration, concentrations_diag) "The worst taper concentration was $(minimum(x->real(x), concentrations_diag))"
     @assert all(x -> abs(x) < tol, concentrations_off_diag) "All tapers must have no cross-concentration, but found largest difference of $(maximum(x->abs(x), concentrations_off_diag))"
 end
-function taper_checks(data, tapers, bandwidth; freq_res = 500, conc_res = 100)
+
+function taper_checks(data, tapers, bandwidth; freq_res = 500)
     @assert bandwidth > 0 "Bandwidth must be positive"
 
     observational_types = unique(get_grid.(data))
-    tapers_on_grids = tapers_on_grid.(Ref(tapers), observational_types; freq_res = freq_res)
+    tapers_on_grids =
+        [tapers_on_grid(tapers, grid; freq_res = freq_res) for grid in observational_types]
     concentration_region = Ball(Point(ntuple(i -> 0.0, _getdims(data[1]))), bandwidth)
+    conc_res = choose_concentration_resolution(tapers_on_grids, concentration_region)
     normalisations = tapers_normalisations(tapers_on_grids) # checks on each family
     concentrations =
         taper_concentrations(tapers_on_grids, concentration_region; resolution = conc_res) # has to check across the sampled and non sampled versions

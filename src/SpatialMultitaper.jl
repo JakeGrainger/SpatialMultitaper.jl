@@ -73,6 +73,7 @@ export multitaper_estimate,
     ToroidalShift,
     partial_K_resample,
     make_tapers,
-    taper_ft
+    taper_ft,
+    check_tapers_for_data
 
 end

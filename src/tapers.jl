@@ -92,10 +92,6 @@ function L2_inner_product_interpolated(
     )
 end
 
-function Interpolations.interpolate(taper::DiscreteTaper)
-    Interpolations.interpolate
-end
-
 function interpolate_tapers(raw_tapers, grid; freq_res = size(grid))
     sides = grid2side(grid)
     scaled_taper =

@@ -11,13 +11,13 @@ choose_freq_1d(nfreq, fmax) = fftshift(fftfreq(nfreq, 2fmax))
 Returns the starting index for the oversampled frequencies to downsample.
 """
 function freq_downsample_startindex(nfreq, oversample)
-	if iseven(nfreq) || oversample == 1
-		return 1
-	elseif iseven(oversample)
-		return oversample ÷ 2 + 1
-	else
-		return (oversample - 1) ÷ 2 + 1
-	end
+    if iseven(nfreq) || oversample == 1
+        return 1
+    elseif iseven(oversample)
+        return oversample ÷ 2 + 1
+    else
+        return (oversample - 1) ÷ 2 + 1
+    end
 end
 
 """
@@ -31,5 +31,5 @@ This assumes that the frequencies are fftshifted.
 - `oversample::Int`: The oversampling factor used.
 """
 function freq_downsample_index(nfreq, oversample)
-	freq_downsample_startindex(nfreq, oversample):oversample:nfreq*oversample
+    freq_downsample_startindex(nfreq, oversample):oversample:nfreq*oversample
 end

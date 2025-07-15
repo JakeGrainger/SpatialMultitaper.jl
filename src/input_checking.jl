@@ -1,5 +1,5 @@
+_getdims(x) = x isa PointSet ? embeddim(x) : embeddim(domain(x))
 function check_spatial_data(data)
-    _getdims(x) = x isa PointSet ? embeddim(x) : embeddim(domain(x))
     dim = _getdims(first(data))
     @assert all(_getdims.(data) .== dim) "data should all be the same spatial dimension"
     copied_data = deepcopy(data)

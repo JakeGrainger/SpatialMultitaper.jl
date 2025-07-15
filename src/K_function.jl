@@ -94,22 +94,23 @@ function partial_K(
     zero_atom,
     radii,
     indices::AbstractVector{<:Tuple{Int,Int,AbstractVector{Int},AbstractVector{Int}}},
-	upscalefactor = nothing,
+    upscalefactor = nothing,
 )
     K = Dict(
-        index => [sdf2partialK(fhat, zero_atom, r, index, upscalefactor) for r in radii] for
+        index =>
+            [sdf2partialK(fhat, zero_atom, r, index, upscalefactor) for r in radii] for
         index in indices
     )
     return (radii = radii, partial_K = K)
 end
 
-function sdf2partialK(fhat, zero_atom, r, index, upscalefactor=nothing)
+function sdf2partialK(fhat, zero_atom, r, index, upscalefactor = nothing)
     pspec = partial_spectra(fhat, index[1], index[2], index[3], index[4])
     sdf2K(
         pspec.freq,
         pspec.partial_spectra .- (index[1] == index[2]) * zero_atom[index[1]],
         r,
-		upscalefactor,
+        upscalefactor,
     )
 end
 

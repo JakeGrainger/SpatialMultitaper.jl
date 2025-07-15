@@ -6,7 +6,8 @@ end
 function apply_transform(transform, power, ::Val{nothing})
     mapslices(transform, power, dims = (1, 2))
 end
-postprocess_transform(x::Array{SMatrix{N,N,T,L},D}) where {T,D,N,L} = inv_ssquarematrixscopy(x)
+postprocess_transform(x::Array{SMatrix{N,N,T,L},D}) where {T,D,N,L} =
+    inv_ssquarematrixscopy(x)
 postprocess_transform(x::Array) = x
 
 function ssquarematrixscopy(x::Array{T,D}, ::Val{N}) where {T,D,N}
@@ -183,9 +184,8 @@ end
     par_coh = -complex_coherence(C)
     invCd = inv.(diag(C))
     invCd_root = diagm(sqrt.(invCd))
-	part1 = (invCd_root * par_coh * invCd_root)
-    (part1 - diagm(diag(part1)) + diagm(invCd)) ./
-    (1.0 .- abs2.(par_coh) + I)
+    part1 = (invCd_root * par_coh * invCd_root)
+    (part1 - diagm(diag(part1)) + diagm(invCd)) ./ (1.0 .- abs2.(par_coh) + I)
 end
 
 

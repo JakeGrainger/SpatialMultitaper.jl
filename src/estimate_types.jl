@@ -30,7 +30,10 @@ function Base.getindex(
     i::Vararg{Any,D},
 ) where {D,P}
     checkbounds(est, p, q, i...)
-    return constructorof(typeof(est))(getfreqindex(est, i...), getestimateindex(est, p, q, i...))
+    return constructorof(typeof(est))(
+        getfreqindex(est, i...),
+        getestimateindex(est, p, q, i...),
+    )
 end
 
 function Base.getindex(est::FrequencyDomainEstimate{D,P}, p::Int, q::Int) where {D,P}

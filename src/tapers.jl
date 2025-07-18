@@ -321,6 +321,7 @@ function check_tapers_for_data(
     @assert all(x -> abs(x - 1) < tol, stack(normalisations)) "All tapers must have an L2 norm of 1, but found largest difference of $(maximum(x->abs(x-1), stack(normalisations)))"
     @assert all(x -> real(x) > min_concentration, concentrations_diag) "The worst taper concentration was $(minimum(x->real(x), concentrations_diag))"
     @assert all(x -> abs(x) < tol, concentrations_off_diag) "All tapers must have no cross-concentration, but found largest difference of $(maximum(x->abs(x), concentrations_off_diag))"
+
     @info "Tapers are suitable for the data."
 end
 

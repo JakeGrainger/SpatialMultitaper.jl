@@ -286,6 +286,11 @@ So it also refer to continuously recorded data (which is the `NoGrid` type).
 
 If you have a problem, you can use `taper_checks` to check the tapers directly.
 
+Importantly, these checks are very expensive to compute.
+In some cases failures in the checks may be due to the quality of the approximation of the Fourier transform of the tapers.
+Sometimes this can be mitigated by increasing the frequency resolution of the tapers here.
+However, when using interpolated tapers, you may also need to increase the resolution of the grid used to compute the Fourier transform of those tapers.
+
 # Arguments
 - `data`: The data to check the tapers for.
 - `tapers`: The tapers to check.
@@ -298,8 +303,8 @@ function check_tapers_for_data(
     data,
     tapers,
     bandwidth;
-    freq_res = 500,
-    tol = 1e-2,
+    freq_res = 1000,
+    tol = 1e-1,
     min_concentration = 0.95,
 )
     normalisations, concentrations =
@@ -316,6 +321,8 @@ function check_tapers_for_data(
     @assert all(x -> abs(x - 1) < tol, stack(normalisations)) "All tapers must have an L2 norm of 1, but found largest difference of $(maximum(x->abs(x-1), stack(normalisations)))"
     @assert all(x -> real(x) > min_concentration, concentrations_diag) "The worst taper concentration was $(minimum(x->real(x), concentrations_diag))"
     @assert all(x -> abs(x) < tol, concentrations_off_diag) "All tapers must have no cross-concentration, but found largest difference of $(maximum(x->abs(x), concentrations_off_diag))"
+
+    @info "Tapers are suitable for the data."
 end
 
 function taper_checks(data, tapers, bandwidth; freq_res = 500)

@@ -57,6 +57,7 @@ function multitaper_estimate(
     tapers,
     mean_method::MeanEstimationMethod = DefaultMean(),
 )
+    mask.(data, Ref(region))
     data, dim = check_spatial_data(data)
     mean_method = check_mean_method(mean_method, data)
     J_n = tapered_dft(data, tapers, nfreq, fmax, region, mean_method)

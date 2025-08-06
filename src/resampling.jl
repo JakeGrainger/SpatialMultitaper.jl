@@ -66,27 +66,27 @@ end
 marginal_shift(pp::PointSet, shift_method::ToroidalShift) =
     toroidal_shift(pp, shift_method.region, shift_method.shift)
 
-struct MinusShift{R,G,S} <: ShiftMethod
-    region::R
-    inset_region::G
-    shift::S
-end
-function MinusShift(region, maxshift)
-    inset_region = make_inset_region(region, maxshift)
-    shift = UniformBallShift(maxshift, Val{embeddim(region)}())
-    return MinusShift(region, inset_region, shift)
-end
-Base.rand(shift::MinusShift) =
-    MinusShift(shift.region, shift.inset_region, rand(shift.shift))
-function make_inset_region(region, maxshift)
-    bbox = boundingbox(region)
-    bsize = map(x -> x[2] - x[1], box2sides(bbox))
-    transform = Stretch((1 .- 2maxshift ./ bsize)...)
-    return transform(region)
-end
-function marginal_shift(pp::PointSet, shift_method::MinusShift)
-    Translate(shift_method.shift...)(pp)
-end
+# struct MinusShift{R,G,S} <: ShiftMethod
+#     region::R
+#     inset_region::G
+#     shift::S
+# end
+# function MinusShift(region, maxshift)
+#     inset_region = make_inset_region(region, maxshift)
+#     shift = UniformBallShift(maxshift, Val{embeddim(region)}())
+#     return MinusShift(region, inset_region, shift)
+# end
+# Base.rand(shift::MinusShift) =
+#     MinusShift(shift.region, shift.inset_region, rand(shift.shift))
+# function make_inset_region(region, maxshift)
+#     bbox = boundingbox(region)
+#     bsize = map(x -> x[2] - x[1], box2sides(bbox))
+#     transform = Stretch((1 .- 2maxshift ./ bsize)...)
+#     return transform(region)
+# end
+# function marginal_shift(pp::PointSet, shift_method::MinusShift)
+#     Translate(shift_method.shift...)(pp)
+# end
 
 ##
 function shift_resample(

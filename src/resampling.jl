@@ -65,7 +65,7 @@ function toroidal_shift(x, side, v)
     return a + mod(x - a + v, b - a)
 end
 marginal_shift(pp::PointSet, shift_method::ToroidalShift) =
-    Translate(shift_method.shift...)(pp)
+    toroidal_shift(pp, shift_method.region, shift_method.shift)
 
 ## Standard shift
 struct StandardShift{S<:Union{<:SpatialShift,<:NTuple}} <: ShiftMethod
@@ -81,7 +81,7 @@ StandardShift
 Base.rand(shift::StandardShift) = StandardShift(rand(shift.shift))
 
 marginal_shift(pp::PointSet, shift_method::StandardShift) =
-    toroidal_shift(pp, shift_method.region, shift_method.shift)
+    Translate(shift_method.shift...)(pp)
 
 
 # struct MinusShift{R,G,S} <: ShiftMethod

@@ -28,4 +28,17 @@ end
     @test results.radii == radii
     @test results.partial_K isa Dict
     @test all(x -> haskey(results.partial_K, x), [(1, 1), (1, 2), (2, 2)])
+
+    results = partial_K_resample(
+        data,
+        region;
+        radii = radii,
+        shift_method = Spmt.StandardShift(Spmt.UniformShift((-0.1, -0.1), (0.1, 0.1))),
+        tapers = tapers,
+        nfreq = nfreq,
+        fmax = fmax,
+    )
+    @test results.radii == radii
+    @test results.partial_K isa Dict
+    @test all(x -> haskey(results.partial_K, x), [(1, 1), (1, 2), (2, 2)])
 end

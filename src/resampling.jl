@@ -36,6 +36,7 @@ abstract type ShiftMethod end
 struct NoShift <: ShiftMethod end
 marginal_shift(pp::PointSet, ::NoShift) = pp
 
+## Toroidal shift
 struct ToroidalShift{R<:Box,S<:Union{<:SpatialShift,<:NTuple}} <: ShiftMethod
     region::R
     shift::S
@@ -64,7 +65,24 @@ function toroidal_shift(x, side, v)
     return a + mod(x - a + v, b - a)
 end
 marginal_shift(pp::PointSet, shift_method::ToroidalShift) =
+    Translate(shift_method.shift...)(pp)
+
+## Standard shift
+struct StandardShift{S<:Union{<:SpatialShift,<:NTuple}} <: ShiftMethod
+    shift::S
+end
+"""
+    StandardShift(shift)
+
+A shift method that just applies a shift to all points. Does not make any assumptions about the region they are recorded on.
+"""
+StandardShift
+
+Base.rand(shift::StandardShift) = StandardShift(rand(shift.shift))
+
+marginal_shift(pp::PointSet, shift_method::StandardShift) =
     toroidal_shift(pp, shift_method.region, shift_method.shift)
+
 
 # struct MinusShift{R,G,S} <: ShiftMethod
 #     region::R

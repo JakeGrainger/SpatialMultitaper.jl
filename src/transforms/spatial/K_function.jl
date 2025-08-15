@@ -16,8 +16,8 @@ end
 function K_function(
     data,
     region,
-    indices = default_indices(data);
     radii,
+    indices = default_indices(data);
     nfreq,
     fmax,
     tapers,

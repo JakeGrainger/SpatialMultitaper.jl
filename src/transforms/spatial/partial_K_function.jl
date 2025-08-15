@@ -14,7 +14,7 @@ function partial_K_function(c::PartialCFunction{R,T,D}, λ) where {R,T,D}
 end
 
 """
-	partial_K(data, region, indices; radii, nfreq, fmax, tapers, mean_method)
+	partial_K(data, region, radii, indices; nfreq, fmax, tapers, mean_method)
 
 Computes the partial K function from the `data` at radii `radii`.
 Default is to compute this for all pairs of indices conditional on any index not included.
@@ -25,8 +25,8 @@ The residual of `index[1]` partial `index[3]` with `index[2]` partial `index[4]`
 function partial_K_function(
     data,
     region,
-    indices = default_indices(data);
     radii,
+    indices = default_indices(data);
     nfreq,
     fmax,
     tapers,

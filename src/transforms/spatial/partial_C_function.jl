@@ -52,8 +52,8 @@ end
 function partial_C_function(
     data,
     region,
-    indices::AbstractVector{Tuple{Int,Int}} = default_indices(data);
     radii,
+    indices::AbstractVector{Tuple{Int,Int}} = default_indices(data);
     nfreq,
     fmax,
     tapers,

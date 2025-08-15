@@ -23,8 +23,8 @@ end
 function C_function(
     data,
     region,
-    indices = default_indices(data);
     radii,
+    indices = default_indices(data);
     nfreq,
     fmax,
     tapers,

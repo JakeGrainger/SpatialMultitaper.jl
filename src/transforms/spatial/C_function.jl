@@ -12,10 +12,9 @@ function C_function(
 ) where {D,F,P,N}
     check_spectral_indices(indices, f)
     C = Dict(
-        index => [
-            sdf2C(f[index...], zero_atom[index[1]] * (index[1] == index[2]), r) for
-            r in radii
-        ] for index in indices
+        index =>
+            sdf2C(f[index...], zero_atom[index[1]] * (index[1] == index[2]), radii) for
+        index in indices
     )
     return CFunction(radii, C, Val{D}())
 end
@@ -43,8 +42,18 @@ function C_function(
     return C_function(fhat, zero_atom, radii; indices = indices)
 end
 
+
 """
-    sdf2C(f, zero_atom, radius)
+    sdf2C(f, zero_atom, radii::AbstractVector{<:Number})
+
+Takes some form of spectra and returns the C function for each radius in `radii`.
+"""
+function sdf2C(f, zero_atom, radii::AbstractVector{<:Number})
+    [sdf2C(f, zero_atom, radius) for radius in radii]
+end
+
+"""
+    sdf2C(f, zero_atom, radius::Number)
 
 Takes some form of spectra and returns the C function for the `radius`.
 """
@@ -63,13 +72,18 @@ function sdf2C(
     )
 end
 
+function sphere_weight(r, u, ::Val{1})
+    x = norm(u)
+    return 2r * sinc(2r * x)
+end
+
+function sphere_weight(r, u, ::Val{2})
+    x = norm(u)
+    return (x < 1e-10) ? (pi * r^2) : ((r / x) * besselj1(2π * r * x))
+end
+
 function sphere_weight(r, u, ::Val{D}) where {D}
     x = norm(u)
-    if D === 1
-        return 2r * sinc(2r * x)
-    elseif D === 2
-        return x < 1e-10 ? pi * r^2 : (r / x) * besselj1(2π * r * x)
-    else
-        return (r / x)^(D / 2) * besselj(D / 2, 2π * r * x)
-    end
+    return (x < 1e-10) ? (unitless_measure(Ball(Point(ntuple(x -> 0, Val{D}())), r))) :
+           (r / x)^(D / 2) * besselj(D / 2, 2π * r * x)
 end

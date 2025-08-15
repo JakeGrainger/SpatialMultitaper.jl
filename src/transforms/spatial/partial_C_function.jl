@@ -12,10 +12,9 @@ function partial_C_function(
 ) where {D,F,P,N}
     check_spectral_indices(indices, f)
     C = Dict(
-        index => [
-            sdf2C(f[index...], zero_atom[index[1]] * (index[1] == index[2]), r) for
-            r in radii
-        ] for index in indices
+        index =>
+            sdf2C(f[index...], zero_atom[index[1]] * (index[1] == index[2]), radii) for
+        index in indices
     )
     return PartialCFunction(radii, C, Val{D}())
 end

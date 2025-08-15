@@ -1,6 +1,6 @@
 struct CFunction{R,T,D}
     radii::R
-    C::T
+    C_function::T
     CFunction(radii::R, C::T, ::Val{D}) where {R,T,D} = new{R,T,D}(radii, C)
 end
 
@@ -39,7 +39,7 @@ function C_function(
         mean_method = mean_method,
     )
     zero_atom = atom_estimate.(data, Ref(region))
-    return C_function(f, zero_atom, radii; indices = indices)
+    return C_function(f, zero_atom, radii, indices)
 end
 
 

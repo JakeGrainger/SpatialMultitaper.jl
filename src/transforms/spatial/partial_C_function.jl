@@ -1,6 +1,6 @@
 struct PartialCFunction{R,T,D}
     radii::R
-    C::T
+    partial_C_function::T
     PartialCFunction(radii::R, C::T, ::Val{D}) where {R,T,D} = new{R,T,D}(radii, C)
 end
 
@@ -26,7 +26,7 @@ function partial_C_function(
     indices::AbstractVector{Tuple{Int,Int}} = default_indices(f),
 )
     check_spectral_indices(indices, f)
-    partial_C_function(partial_spectra(f), zero_atom, radii; indices = indices)
+    partial_C_function(partial_spectra(f), zero_atom, radii, indices)
 end
 
 function partial_C_function(
@@ -37,7 +37,7 @@ function partial_C_function(
 ) where {D,F,P,N}
     check_spectral_indices(indices, f)
     C = Dict(
-        index => sdf2K(
+        index => sdf2C(
             partial_spectra(f, index[1], index[2], index[3], index[4]),
             (index[1] == index[2]) * zero_atom[index[1]],
             radii,
@@ -50,13 +50,21 @@ function partial_C_function(
     data,
     region,
     radii,
-    indices::AbstractVector{Tuple{Int,Int}} = default_indices(data);
+    indices = default_indices(data);
     nfreq,
     fmax,
     tapers,
+    mean_method::MeanEstimationMethod = DefaultMean(),
 )
     check_spectral_indices(indices, data)
-    fhat = multitaper_estimate(data, region; tapers = tapers, nfreq = nfreq, fmax = fmax)
+    fhat = multitaper_estimate(
+        data,
+        region;
+        tapers = tapers,
+        nfreq = nfreq,
+        fmax = fmax,
+        mean_method = mean_method,
+    )
     zero_atom = atom_estimate.(data, Ref(region))
-    return partial_C_function(fhat, zero_atom, radii; indices = indices)
+    return partial_C_function(fhat, zero_atom, radii, indices)
 end

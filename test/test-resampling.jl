@@ -26,8 +26,8 @@ end
         fmax = fmax,
     )
     @test results.radii == radii
-    @test results.partial_K isa Dict
-    @test all(x -> haskey(results.partial_K, x), [(1, 1), (1, 2), (2, 2)])
+    @test results.partial_K_function isa Dict
+    @test all(x -> haskey(results.partial_K_function, x), [(1, 1), (1, 2), (2, 2)])
 
     results = partial_K_resample(
         data,
@@ -39,6 +39,6 @@ end
         fmax = fmax,
     )
     @test results.radii == radii
-    @test results.partial_K isa Dict
-    @test all(x -> haskey(results.partial_K, x), [(1, 1), (1, 2), (2, 2)])
+    @test results.partial_K_function isa Dict
+    @test all(x -> haskey(results.partial_K_function, x), [(1, 1), (1, 2), (2, 2)])
 end

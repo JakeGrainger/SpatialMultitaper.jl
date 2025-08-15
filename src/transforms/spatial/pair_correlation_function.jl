@@ -35,7 +35,7 @@ function paircorrelation_function(
         fmax = fmax,
         mean_method = mean_method,
     )
-    λ = mean_estimate.(data, Ref(region), Ref(mean_method)) # TODO: technically this isn't compatible with mean methods as they should be passed as Tuples.
+    λ = mean_estimate(data, region, mean_method)
     return paircorrelation_function(f, λ, radii, indices)
 end
 

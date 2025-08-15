@@ -15,12 +15,16 @@ mean_estimate(data::PointSet, region, mean_method) = mean_estimate(
 mean_estimate(data::GeoTable, region, mean_method) =
     mean_estimate(domain(data), values(data)[1], region, mean_method)
 
-function mean_estimate(points::PointSet, marks, region, mean_method::DefaultMean)
+function mean_estimate(points::PointSet, marks, region, ::DefaultMean)
     sum(marks[i] for i in eachindex(marks) if points[i] ∈ region) / unitless_measure(region)
 end
 
-function mean_estimate(grid::CartesianGrid, rf, region, mean_method::DefaultMean)
+function mean_estimate(grid::CartesianGrid, rf, region, ::DefaultMean)
     mean(rf[i] for i in eachindex(rf) if centroid(grid, i) ∈ region)
+end
+
+function mean_estimate(data::Union{Tuple,AbstractVector}, region, ::DefaultMean)
+    mean_estimate.(data, Ref(region), Ref(DefaultMean()))
 end
 
 function mean_estimate(domain, data, region, mean_method::KnownMean)

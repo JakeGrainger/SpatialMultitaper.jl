@@ -151,20 +151,21 @@ function partial_K_resample(
         (x, y, view(firsthalf, Not(SVector(i, j))), view(secondhalf, Not(SVector(i, j)))) for (i, x) in enumerate(firsthalf), (j, y) in enumerate(secondhalf) if i <= j
     ]
     function wrapped_partial_K(_data, _region)
-        partial_K(
+        partial_K_function(
             _data,
-            _region;
-            radii = radii,
+            _region,
+            radii,
+            indices;
             tapers = tapers,
             nfreq = nfreq,
             fmax = fmax,
-            indices = indices,
         )
     end
     resampled = partial_shift_resample(data, region, wrapped_partial_K, shift_method)
-    return (
-        radii = resampled.radii,
-        partial_K = Dict((key[1], key[2] - p) => val for (key, val) in resampled.partial_K),
+    return PartialKFunction(
+        resampled.radii,
+        Dict((key[1], key[2] - p) => val for (key, val) in resampled.partial_K_function),
+        Val{_getdims(first(data))}(),
     )
 end
 

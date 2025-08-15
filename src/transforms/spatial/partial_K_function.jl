@@ -1,20 +1,20 @@
 struct PartialKFunction{R,T,D}
     radii::R
-    K::T
+    partial_K_function::T
     PartialKFunction(radii::R, K::T, ::Val{D}) where {R,T,D} = new{R,T,D}(radii, K)
 end
 
 function partial_K_function(c::PartialCFunction{R,T,D}, λ) where {R,T,D}
     V = unitless_measure(Ball(Point(ntuple(x -> 0, Val{D}())), 1))
     K = Dict(
-        index => val ./ λ[index[1]] * λ[index[2]] .+ c.radii .^ d .* V for
-        (index, val) in c.C
+        index => val ./ λ[index[1]] * λ[index[2]] .+ c.radii .^ D .* V for
+        (index, val) in c.partial_C_function
     )
     return PartialKFunction(c.radii, K, Val{D}())
 end
 
 """
-	partial_K(data, region, radii, indices; nfreq, fmax, tapers, mean_method)
+	partial_K_function(data, region, radii, indices; nfreq, fmax, tapers, mean_method)
 
 Computes the partial K function from the `data` at radii `radii`.
 Default is to compute this for all pairs of indices conditional on any index not included.
@@ -35,8 +35,8 @@ function partial_K_function(
     c = partial_C_function(
         data,
         region,
+        radii,
         indices;
-        radii = radii,
         nfreq = nfreq,
         fmax = fmax,
         tapers = tapers,

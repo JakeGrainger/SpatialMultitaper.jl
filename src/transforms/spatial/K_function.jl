@@ -1,14 +1,14 @@
 struct KFunction{R,T,D}
     radii::R
-    K::T
+    K_function::T
     KFunction(radii::R, K::T, ::Val{D}) where {R,T,D} = new{R,T,D}(radii, K)
 end
 
 function K_function(c::CFunction{R,T,D}, λ) where {R,T,D}
     V = unitless_measure(Ball(Point(ntuple(x -> 0, Val{D}())), 1))
     K = Dict(
-        index => val ./ λ[index[1]] * λ[index[2]] .+ c.radii .^ d .* V for
-        (index, val) in c.C
+        index => val ./ λ[index[1]] * λ[index[2]] .+ c.radii .^ D .* V for
+        (index, val) in c.C_function
     )
     return KFunction(c.radii, K, Val{D}())
 end
@@ -26,13 +26,13 @@ function K_function(
     c = C_function(
         data,
         region,
+        radii,
         indices;
-        radii = radii,
         nfreq = nfreq,
         fmax = fmax,
         tapers = tapers,
         mean_method = mean_method,
     )
-    λ = mean_estimate.(data, Ref(region), Ref(mean_method)) # TODO: technically this isn't compatible with mean methods as they should be passed as Tuples.
+    λ = mean_estimate(data, region, mean_method)
     return K_function(c, λ)
 end

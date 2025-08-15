@@ -30,19 +30,28 @@ include("mean.jl")
 include("tapered_dft.jl")
 include("input_checking.jl")
 include("spectral_estimate.jl")
+include("atoms.jl")
 
 include("transforms/spectral_matrix_transforms.jl")
 include("transforms/usual/complex_coherence.jl")
 include("transforms/usual/magnitude_coherence.jl")
 include("transforms/usual/magnitude_coherence2.jl")
 include("transforms/usual/phase.jl")
+
 include("transforms/partial/partial_complex_coherence.jl")
 include("transforms/partial/partial_magnitude_coherence.jl")
 include("transforms/partial/partial_magnitude_coherence2.jl")
 include("transforms/partial/partial_phase.jl")
 include("transforms/partial/partial_spectra.jl")
 
-include("K_function.jl")
+include("transforms/spatial/spatial_utils.jl")
+include("transforms/spatial/C_function.jl")
+include("transforms/spatial/K_function.jl")
+include("transforms/spatial/L_function.jl")
+include("transforms/spatial/partial_C_function.jl")
+include("transforms/spatial/partial_K_function.jl")
+include("transforms/spatial/partial_L_function.jl")
+
 include("resampling.jl")
 
 export multitaper_estimate,
@@ -68,7 +77,12 @@ export multitaper_estimate,
     partial_magnitude_coherence,
     partial_magnitude_coherence2,
     partial_phase,
-    partial_K,
+    C_function,
+    K_function,
+    L_function,
+    partial_C_function,
+    partial_K_function,
+    partial_L_function,
     shift_resample,
     ToroidalShift,
     partial_K_resample,

@@ -52,6 +52,9 @@ include("transforms/spatial/partial_C_function.jl")
 include("transforms/spatial/partial_K_function.jl")
 include("transforms/spatial/partial_L_function.jl")
 
+include("transforms/spatial/pair_correlation_function.jl")
+include("transforms/spatial/partial_pair_correlation_function.jl")
+
 include("resampling.jl")
 
 export multitaper_estimate,

@@ -33,6 +33,6 @@ function K_function(
         tapers = tapers,
         mean_method = mean_method,
     )
-    λ = mean_estimate(data, region, mean_method)
+    λ = mean_estimate.(data, Ref(region), Ref(mean_method)) # TODO: technically this isn't compatible with mean methods as they should be passed as Tuples.
     return K_function(c, λ)
 end

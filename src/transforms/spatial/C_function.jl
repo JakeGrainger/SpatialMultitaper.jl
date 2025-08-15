@@ -30,7 +30,7 @@ function C_function(
     mean_method::MeanEstimationMethod = DefaultMean(),
 )
     check_spectral_indices(indices, data)
-    fhat = multitaper_estimate(
+    f = multitaper_estimate(
         data,
         region;
         tapers = tapers,
@@ -39,7 +39,7 @@ function C_function(
         mean_method = mean_method,
     )
     zero_atom = atom_estimate.(data, Ref(region))
-    return C_function(fhat, zero_atom, radii; indices = indices)
+    return C_function(f, zero_atom, radii; indices = indices)
 end
 
 

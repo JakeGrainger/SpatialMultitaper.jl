@@ -13,6 +13,8 @@ using Distributions,
     StaticArrays,
     StatsBase,
     ConstructionBase
+    
+import BSplineKit
 
 include("SlepianSolver/SlepianSolver.jl")
 using .SlepianSolver
@@ -87,7 +89,9 @@ export multitaper_estimate,
     partial_K_function,
     partial_L_function,
     paircorrelation_function,
+    paircorrelation_function_direct,
     partial_paircorrelation_function,
+    partial_paircorrelation_function_direct,
     shift_resample,
     ToroidalShift,
     partial_K_resample,

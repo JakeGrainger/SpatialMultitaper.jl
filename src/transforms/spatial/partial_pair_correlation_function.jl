@@ -11,7 +11,38 @@ getargument(f::PartialPairCorrelationFunction) = f.radii
 getestimate(f::PartialPairCorrelationFunction) = f.partial_pair_correlation_function
 getextrafields(::PartialPairCorrelationFunction{R,T,D,P}) where {R,T,D,P} = (Val{D}(),)
 
+function partial_paircorrelation_function(k::PartialKFunction{R,T,D}; penalty = 0.0) where {R,T,D}
+    pcf = Dict(index => K2paircorrelation(k.radii, val, Val{D}(), penalty) for (index, val) in k.partial_K_function)
+    return PartialPairCorrelationFunction(k.radii, pcf, Val{D}())
+end
+
 function partial_paircorrelation_function(
+    data,
+    region,
+    radii,
+    indices = default_indices(data);
+    penalty = 0.0,
+    nfreq,
+    fmax,
+    tapers,
+    mean_method::MeanEstimationMethod = DefaultMean(),
+)
+    k = partial_K_function(
+        data,
+        region,
+        radii,
+        indices;
+        nfreq = nfreq,
+        fmax = fmax,
+        tapers = tapers,
+        mean_method = mean_method,
+    )
+    return partial_paircorrelation_function(k; penalty = penalty)
+end
+
+## direct method
+
+function partial_paircorrelation_function_direct(
     f::PartialSpectra{D,F,P,N},
     λ,
     radii,
@@ -24,16 +55,16 @@ function partial_paircorrelation_function(
     return PartialPairCorrelationFunction(radii, pcf, Val{D}())
 end
 
-function partial_paircorrelation_function(
+function partial_paircorrelation_function_direct(
     f::SpectralEstimate,
     λ,
     radii,
     indices::AbstractVector{Tuple{Int,Int}} = default_indices(f),
 )
-    partial_paircorrelation_function(partial_spectra(f), λ, radii, indices)
+    partial_paircorrelation_function_direct(partial_spectra(f), λ, radii, indices)
 end
 
-function partial_paircorrelation_function(
+function partial_paircorrelation_function_direct(
     f::SpectralEstimate{D,F,P,N},
     λ,
     radii,
@@ -51,7 +82,7 @@ function partial_paircorrelation_function(
     return PartialCFunction(radii, C, Val{D}())
 end
 
-function partial_paircorrelation_function(
+function partial_paircorrelation_function_direct(
     data,
     region,
     radii,
@@ -71,5 +102,5 @@ function partial_paircorrelation_function(
         mean_method = mean_method,
     )
     λ = mean_estimate(data, region, mean_method)
-    return partial_paircorrelation_function(f, λ, radii, indices)
+    return partial_paircorrelation_function_direct(f, λ, radii, indices)
 end

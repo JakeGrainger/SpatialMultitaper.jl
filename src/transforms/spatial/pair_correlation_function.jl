@@ -11,7 +11,45 @@ getargument(f::PairCorrelationFunction) = f.radii
 getestimate(f::PairCorrelationFunction) = f.paircorrelation_function
 getextrafields(::PairCorrelationFunction{R,T,D,P}) where {R,T,D,P} = (Val{D}(),)
 
+function K2paircorrelation(radii, k, ::Val{D}, penalty) where {D}
+    A = 2 * (π)^(D / 2) / gamma(D/2)
+    kinterp = BSplineKit.fit(BSplineKit.BSplineOrder(4), radii, k, penalty)
+    kderiv = BSplineKit.Derivative(1) * kinterp
+    return kderiv.(radii) ./ (A.*radii.^(D-1))
+end
+
+function paircorrelation_function(k::KFunction{R,T,D}; penalty = 0.0) where {R,T,D}
+    pcf = Dict(index => K2paircorrelation(k.radii, val, Val{D}(), penalty) for (index, val) in k.K_function)
+    return PairCorrelationFunction(k.radii, pcf, Val{D}())
+end
+
 function paircorrelation_function(
+    data,
+    region,
+    radii,
+    indices = default_indices(data);
+    penalty = 0.0,
+    nfreq,
+    fmax,
+    tapers,
+    mean_method::MeanEstimationMethod = DefaultMean(),
+)
+    k = K_function(
+        data,
+        region,
+        radii,
+        indices;
+        nfreq = nfreq,
+        fmax = fmax,
+        tapers = tapers,
+        mean_method = mean_method,
+    )
+    return paircorrelation_function(k; penalty = penalty)
+end
+
+## direct method
+
+function paircorrelation_function_direct(
     f::SpectralEstimate{D,F,P,N},
     λ,
     radii,
@@ -24,7 +62,7 @@ function paircorrelation_function(
     return PairCorrelationFunction(radii, pcf, Val{D}())
 end
 
-function paircorrelation_function(
+function paircorrelation_function_direct(
     data,
     region,
     radii,
@@ -44,7 +82,7 @@ function paircorrelation_function(
         mean_method = mean_method,
     )
     λ = mean_estimate(data, region, mean_method)
-    return paircorrelation_function(f, λ, radii, indices)
+    return paircorrelation_function_direct(f, λ, radii, indices)
 end
 
 

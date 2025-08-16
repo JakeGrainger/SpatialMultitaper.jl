@@ -6,7 +6,7 @@ tapers = sin_taper_family((3, 3), region)
 nfreq = (10, 10)
 fmax = (2, 2)
 data = (pattern, pattern2, griddata)
-radii = 0.3:0.1:0.5
+radii = 0.3:0.1:1.0
 
 results = C_function(data, region, radii; tapers = tapers, nfreq = nfreq, fmax = fmax)
 @test results isa Spmt.CFunction
@@ -39,7 +39,28 @@ results = paircorrelation_function(
     fmax = fmax,
 )
 @test results isa Spmt.PairCorrelationFunction
+
+results = paircorrelation_function_direct(
+    data,
+    region,
+    radii;
+    tapers = tapers,
+    nfreq = nfreq,
+    fmax = fmax,
+)
+@test results isa Spmt.PairCorrelationFunction
+
 results = partial_paircorrelation_function(
+    data,
+    region,
+    radii;
+    tapers = tapers,
+    nfreq = nfreq,
+    fmax = fmax,
+)
+@test results isa Spmt.PartialPairCorrelationFunction
+
+results = partial_paircorrelation_function_direct(
     data,
     region,
     radii;

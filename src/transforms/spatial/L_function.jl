@@ -10,7 +10,7 @@ end
 getargument(f::LFunction) = f.radii
 getestimate(f::LFunction) = f.L_function
 getextrafields(::LFunction{R,T,D,P}) where {R,T,D,P} = (Val{D}(),)
-
+# TODO: these transforms will only work currently if a dictionary is stored inside, so not in the univariate case!
 function L_function(k::KFunction{R,T,D}) where {R,T,D}
     V = unitless_measure(Ball(Point(ntuple(x -> 0, Val{D}())), 1))
     L = Dict(index => (val ./ V) .^ (1 / D) for (index, val) in k.K_function)

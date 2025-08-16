@@ -11,8 +11,8 @@ getargument(f::PartialPairCorrelationFunction) = f.radii
 getestimate(f::PartialPairCorrelationFunction) = f.partial_pair_correlation_function
 getextrafields(::PartialPairCorrelationFunction{R,T,D,P}) where {R,T,D,P} = (Val{D}(),)
 
-function partial_paircorrelation_function(k::PartialKFunction{R,T,D}; penalty = 0.0) where {R,T,D}
-    pcf = Dict(index => K2paircorrelation(k.radii, val, Val{D}(), penalty) for (index, val) in k.partial_K_function)
+function partial_paircorrelation_function(k::PartialKFunction{R,T,D}; penalty = 0.0, method = PCFMethodC()) where {R,T,D}
+    pcf = Dict(index => K2paircorrelation(k.radii, val, Val{D}(), penalty, method) for (index, val) in k.partial_K_function)
     return PartialPairCorrelationFunction(k.radii, pcf, Val{D}())
 end
 
@@ -22,6 +22,7 @@ function partial_paircorrelation_function(
     radii,
     indices = default_indices(data);
     penalty = 0.0,
+    method::PCFMethod = PCFMethodC(),
     nfreq,
     fmax,
     tapers,
@@ -37,7 +38,7 @@ function partial_paircorrelation_function(
         tapers = tapers,
         mean_method = mean_method,
     )
-    return partial_paircorrelation_function(k; penalty = penalty)
+    return partial_paircorrelation_function(k; penalty = penalty, method = method)
 end
 
 ## direct method

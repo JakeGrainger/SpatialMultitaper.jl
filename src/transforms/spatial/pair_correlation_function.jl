@@ -11,15 +11,39 @@ getargument(f::PairCorrelationFunction) = f.radii
 getestimate(f::PairCorrelationFunction) = f.paircorrelation_function
 getextrafields(::PairCorrelationFunction{R,T,D,P}) where {R,T,D,P} = (Val{D}(),)
 
-function K2paircorrelation(radii, k, ::Val{D}, penalty) where {D}
+abstract type PCFMethod end
+struct PCFMethodA <: PCFMethod end
+struct PCFMethodB <: PCFMethod end
+struct PCFMethodC <: PCFMethod end
+struct PCFMethodD <: PCFMethod end
+
+function K2paircorrelation(radii, k, ::Val{D}, penalty, ::PCFMethodA) where {D}
     A = 2 * (π)^(D / 2) / gamma(D/2)
     kinterp = BSplineKit.fit(BSplineKit.BSplineOrder(4), radii, k, penalty)
-    kderiv = BSplineKit.Derivative(1) * kinterp
-    return kderiv.(radii) ./ (A.*radii.^(D-1))
+    ∂k = BSplineKit.Derivative(1) * kinterp
+    return ∂k.(radii) ./ (A.*radii.^(D-1))
 end
 
-function paircorrelation_function(k::KFunction{R,T,D}; penalty = 0.0) where {R,T,D}
-    pcf = Dict(index => K2paircorrelation(k.radii, val, Val{D}(), penalty) for (index, val) in k.K_function)
+function K2paircorrelation(radii, k, ::Val{2}, penalty, ::PCFMethodB)
+    y = BSplineKit.fit(BSplineKit.BSplineOrder(4), radii, k ./ (2π.*radii), penalty)
+    ∂y = BSplineKit.Derivative(1) * y
+    return ∂y.(radii) + k ./ (2π.*radii.^2)
+end
+
+function K2paircorrelation(radii, k, ::Val{2}, penalty, ::PCFMethodC)
+    z = BSplineKit.fit(BSplineKit.BSplineOrder(4), radii, k ./ (2π.*radii.^2), penalty)
+    ∂z = BSplineKit.Derivative(1) * z
+    return ∂z.(radii) .* radii + k ./ (π.*radii.^3)
+end
+
+function K2paircorrelation(radii, k, ::Val{2}, penalty, ::PCFMethodD)
+    v = BSplineKit.fit(BSplineKit.BSplineOrder(4), radii, sqrt.(k), penalty)
+    ∂v = BSplineKit.Derivative(1) * v
+    return 2 .* k ./(π.*radii) .* ∂v.(radii) .^ 2
+end
+
+function paircorrelation_function(k::KFunction{R,T,D}; penalty = 0.0, method = PCFMethodC()) where {R,T,D}
+    pcf = Dict(index => K2paircorrelation(k.radii, val, Val{D}(), penalty, method) for (index, val) in k.K_function)
     return PairCorrelationFunction(k.radii, pcf, Val{D}())
 end
 
@@ -29,6 +53,7 @@ function paircorrelation_function(
     radii,
     indices = default_indices(data);
     penalty = 0.0,
+    method::PCFMethod = PCFMethodC(),
     nfreq,
     fmax,
     tapers,
@@ -44,7 +69,7 @@ function paircorrelation_function(
         tapers = tapers,
         mean_method = mean_method,
     )
-    return paircorrelation_function(k; penalty = penalty)
+    return paircorrelation_function(k; penalty = penalty, method = method)
 end
 
 ## direct method

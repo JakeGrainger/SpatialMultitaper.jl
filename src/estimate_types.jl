@@ -12,7 +12,8 @@ getextrafields(::AbstractEstimate) = ()
 
 Produces a Tuple containing the arguments and the estimate.
 """
-Base.collect(estimate::AbstractEstimate) = (getargument(estimate)..., getestimate(estimate))
+Base.collect(estimate::AbstractEstimate) = tuple(getargument(estimate)..., getestimate(estimate))
+Base.collect(estimate::IsotropicEstimate) = tuple(getargument(estimate), getestimate(estimate))
 
 ## bounds checking
 function Base.checkbounds(

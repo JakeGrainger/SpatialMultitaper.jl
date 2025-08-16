@@ -18,8 +18,8 @@ end
     radii = 0.3:0.1:0.5
     results = partial_K_resample(
         data,
-        region;
-        radii = radii,
+        region,
+        radii;
         shift_method = ToroidalShift(region),
         tapers = tapers,
         nfreq = nfreq,
@@ -31,8 +31,8 @@ end
 
     results = partial_K_resample(
         data,
-        region;
-        radii = radii,
+        region,
+        radii;
         shift_method = Spmt.StandardShift(Spmt.UniformShift((-0.1, -0.1), (0.1, 0.1))),
         tapers = tapers,
         nfreq = nfreq,

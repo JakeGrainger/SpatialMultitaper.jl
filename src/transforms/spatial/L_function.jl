@@ -1,8 +1,15 @@
-struct LFunction{R,T,D}
+struct LFunction{R,T,D,P} <: IsotropicEstimate{D, P}
     radii::R
     L_function::T
-    LFunction(radii::R, L::T, ::Val{D}) where {R,T,D} = new{R,T,D}(radii, L)
+    function LFunction(radii::R, L::T, ::Val{D}) where {R,T,D}
+        P = checkinputs(radii, L)
+        new{R,T,D,P}(radii, L)
+    end
 end
+
+getargument(f::LFunction) = f.radii
+getestimate(f::LFunction) = f.L_function
+getextrafields(::LFunction{R,T,D,P}) where {R,T,D,P} = (Val{D}(),)
 
 function L_function(k::KFunction{R,T,D}) where {R,T,D}
     V = unitless_measure(Ball(Point(ntuple(x -> 0, Val{D}())), 1))

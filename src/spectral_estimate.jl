@@ -1,12 +1,12 @@
-struct SpectralEstimate{D,F,P,N} <: FrequencyDomainEstimate{D,P}
+struct SpectralEstimate{D,F,P,N} <: AnisotropicEstimate{D,P}
     freq::NTuple{D,F}
     power::N
     function SpectralEstimate(freq::NTuple{D,F}, power) where {D,F}
-        P = checkfreqdomaininputs(freq, power)
+        P = checkinputs(freq, power)
         new{D,F,P,typeof(power)}(freq, power)
     end
 end
-getfreq(est::SpectralEstimate) = est.freq
+getargument(est::SpectralEstimate) = est.freq
 getestimate(est::SpectralEstimate) = est.power
 
 """

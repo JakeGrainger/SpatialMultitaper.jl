@@ -1,12 +1,12 @@
-struct MagnitudeCoherence{D,F,P,N} <: FrequencyDomainEstimate{D,P}
+struct MagnitudeCoherence{D,F,P,N} <: AnisotropicEstimate{D,P}
     freq::NTuple{D,F}
     coherence::N
     function MagnitudeCoherence(freq::NTuple{D,F}, coherence) where {D,F}
-        P = checkfreqdomaininputs(freq, coherence)
+        P = checkinputs(freq, coherence)
         new{D,F,P,typeof(coherence)}(freq, coherence)
     end
 end
-getfreq(est::MagnitudeCoherence) = est.freq
+getargument(est::MagnitudeCoherence) = est.freq
 getestimate(est::MagnitudeCoherence) = est.coherence
 
 function magnitude_coherence(x::AbstractMatrix)

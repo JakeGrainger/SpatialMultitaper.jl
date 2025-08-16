@@ -1,12 +1,12 @@
-struct ComplexCoherence{D,F,P,N} <: FrequencyDomainEstimate{D,P}
+struct ComplexCoherence{D,F,P,N} <: AnisotropicEstimate{D,P}
     freq::NTuple{D,F}
     coherence::N
     function ComplexCoherence(freq::NTuple{D,F}, coherence) where {D,F}
-        P = checkfreqdomaininputs(freq, coherence)
+        P = checkinputs(freq, coherence)
         new{D,F,P,typeof(coherence)}(freq, coherence)
     end
 end
-getfreq(est::ComplexCoherence) = est.freq
+getargument(est::ComplexCoherence) = est.freq
 getestimate(est::ComplexCoherence) = est.coherence
 
 function complex_coherence(x::AbstractMatrix)

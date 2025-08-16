@@ -1,12 +1,12 @@
-struct PartialPhase{D,F,P,N} <: FrequencyDomainEstimate{D,P}
+struct PartialPhase{D,F,P,N} <: AnisotropicEstimate{D,P}
     freq::NTuple{D,F}
     partial_phase::N
     function PartialPhase(freq::NTuple{D,F}, partial_phase) where {D,F}
-        P = checkfreqdomaininputs(freq, partial_phase)
+        P = checkinputs(freq, partial_phase)
         new{D,F,P,typeof(partial_phase)}(freq, partial_phase)
     end
 end
-getfreq(est::PartialPhase) = est.freq
+getargument(est::PartialPhase) = est.freq
 getestimate(est::PartialPhase) = est.partial_phase
 
 function partial_phase(x::AbstractMatrix)

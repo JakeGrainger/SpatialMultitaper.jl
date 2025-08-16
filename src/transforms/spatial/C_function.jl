@@ -1,8 +1,15 @@
-struct CFunction{R,T,D}
+struct CFunction{R,T,D,P} <: IsotropicEstimate{D, P}
     radii::R
     C_function::T
-    CFunction(radii::R, C::T, ::Val{D}) where {R,T,D} = new{R,T,D}(radii, C)
+    function CFunction(radii::R, C::T, ::Val{D}) where {R,T,D}
+        P = checkinputs(radii, C)
+        new{R,T,D,P}(radii, C)
+    end
 end
+
+getargument(f::CFunction) = f.radii
+getestimate(f::CFunction) = f.C_function
+getextrafields(::CFunction{R,T,D,P}) where {R,T,D,P} = (Val{D}(),)
 
 function C_function(
     f::SpectralEstimate{D,F,P,N},
@@ -62,7 +69,7 @@ function sdf2C(
     zero_atom,
     radius::Number,
 ) where {D,F,P,N}
-    freq = getfreq(f)
+    freq = getargument(f)
     spectra = getestimate(f) .- zero_atom
     prod(step, freq) * real(
         sum(

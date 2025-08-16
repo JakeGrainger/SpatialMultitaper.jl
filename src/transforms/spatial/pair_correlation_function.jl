@@ -1,19 +1,27 @@
-struct PairCorrelationFunction{R,P}
+struct PairCorrelationFunction{R,T,D,P} <: IsotropicEstimate{D,P}
     radii::R
-    pcf::P
+    paircorrelation_function::T
+    function PairCorrelationFunction(radii::R, pcf::T, ::Val{D}) where {R,T,D}
+        P = checkinputs(radii, pcf)
+        new{R,T,D,P}(radii, pcf)
+    end
 end
 
+getargument(f::PairCorrelationFunction) = f.radii
+getestimate(f::PairCorrelationFunction) = f.paircorrelation_function
+getextrafields(::PairCorrelationFunction{R,T,D,P}) where {R,T,D,P} = (Val{D}(),)
+
 function paircorrelation_function(
-    f::SpectralEstimate,
+    f::SpectralEstimate{D,F,P,N},
     λ,
     radii,
     indices = default_indices(f),
-)
+) where {D,F,P,N}
     check_spectral_indices(indices, f)
     pcf = Dict(
         index => sdf2pcf(f[index...], λ[index[1]], λ[index[2]], radii) for index in indices
     )
-    return PairCorrelationFunction(radii, pcf)
+    return PairCorrelationFunction(radii, pcf, Val{D}())
 end
 
 function paircorrelation_function(
@@ -55,7 +63,7 @@ function sdf2pcf(
     λ2,
     radius::Number,
 ) where {D,F,P,N}
-    freq = getfreq(f)
+    freq = getargument(f)
     spectra = getestimate(f)
     pcf_unweighted =
         prod(step, freq) * real(

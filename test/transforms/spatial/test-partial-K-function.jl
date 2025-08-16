@@ -10,6 +10,9 @@ radii = 0.3:0.1:0.5
 
 results = C_function(data, region, radii; tapers = tapers, nfreq = nfreq, fmax = fmax)
 @test results isa Spmt.CFunction
+@test results[1,2].C_function isa Vector{Float64}
+@test results[1,2].C_function == Spmt.getestimate(results)[(1,2)]
+
 results = K_function(data, region, radii; tapers = tapers, nfreq = nfreq, fmax = fmax)
 @test results isa Spmt.KFunction
 results = L_function(data, region, radii; tapers = tapers, nfreq = nfreq, fmax = fmax)

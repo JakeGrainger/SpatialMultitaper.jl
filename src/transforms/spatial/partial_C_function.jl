@@ -1,8 +1,15 @@
-struct PartialCFunction{R,T,D}
+struct PartialCFunction{R,T,D,P} <: IsotropicEstimate{D,P}
     radii::R
     partial_C_function::T
-    PartialCFunction(radii::R, C::T, ::Val{D}) where {R,T,D} = new{R,T,D}(radii, C)
+    function PartialCFunction(radii::R, C::T, ::Val{D}) where {R,T,D}
+        P = checkinputs(radii, C)
+        new{R,T,D,P}(radii, C)
+    end
 end
+
+getargument(f::PartialCFunction) = f.radii
+getestimate(f::PartialCFunction) = f.partial_C_function
+getextrafields(::PartialCFunction{R,T,D,P}) where {R,T,D,P} = (Val{D}(),)
 
 function partial_C_function(
     f::PartialSpectra{D,F,P,N},

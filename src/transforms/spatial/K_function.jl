@@ -1,8 +1,15 @@
-struct KFunction{R,T,D}
+struct KFunction{R,T,D,P} <: IsotropicEstimate{D, P}
     radii::R
     K_function::T
-    KFunction(radii::R, K::T, ::Val{D}) where {R,T,D} = new{R,T,D}(radii, K)
+    function KFunction(radii::R, K::T, ::Val{D}) where {R,T,D}
+        P = checkinputs(radii, K)
+        new{R,T,D,P}(radii, K)
+    end
 end
+
+getargument(f::KFunction) = f.radii
+getestimate(f::KFunction) = f.K_function
+getextrafields(::KFunction{R,T,D,P}) where {R,T,D,P} = (Val{D}(),)
 
 function K_function(c::CFunction{R,T,D}, λ) where {R,T,D}
     V = unitless_measure(Ball(Point(ntuple(x -> 0, Val{D}())), 1))

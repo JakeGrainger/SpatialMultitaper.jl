@@ -1,12 +1,12 @@
-struct Phase{D,F,P,N} <: FrequencyDomainEstimate{D,P}
+struct Phase{D,F,P,N} <: AnisotropicEstimate{D,P}
     freq::NTuple{D,F}
     phase::N
     function Phase(freq::NTuple{D,F}, phase) where {D,F}
-        P = checkfreqdomaininputs(freq, phase)
+        P = checkinputs(freq, phase)
         new{D,F,P,typeof(phase)}(freq, phase)
     end
 end
-getfreq(est::Phase) = est.freq
+getargument(est::Phase) = est.freq
 getestimate(est::Phase) = est.phase
 
 function phase(x::AbstractMatrix)

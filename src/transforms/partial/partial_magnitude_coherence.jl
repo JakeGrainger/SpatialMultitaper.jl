@@ -1,12 +1,12 @@
-struct PartialMagnitudeCoherence{D,F,P,N} <: FrequencyDomainEstimate{D,P}
+struct PartialMagnitudeCoherence{D,F,P,N} <: AnisotropicEstimate{D,P}
     freq::NTuple{D,F}
     partial_coherence::N
     function PartialMagnitudeCoherence(freq::NTuple{D,F}, partial_coherence) where {D,F}
-        P = checkfreqdomaininputs(freq, partial_coherence)
+        P = checkinputs(freq, partial_coherence)
         new{D,F,P,typeof(partial_coherence)}(freq, partial_coherence)
     end
 end
-getfreq(est::PartialMagnitudeCoherence) = est.freq
+getargument(est::PartialMagnitudeCoherence) = est.freq
 getestimate(est::PartialMagnitudeCoherence) = est.partial_coherence
 
 function partial_magnitude_coherence(x::AbstractMatrix)

@@ -1,19 +1,27 @@
-struct PartialPairCorrelationFunction{R,P}
+struct PartialPairCorrelationFunction{R,T,D,P} <: IsotropicEstimate{D,P}
     radii::R
-    pcf::P
+    partial_pair_correlation_function::T
+    function PartialPairCorrelationFunction(radii::R, pcf::T, ::Val{D}) where {R,T,D}
+        P = checkinputs(radii, pcf)
+        new{R,T,D,P}(radii, pcf)
+    end
 end
 
+getargument(f::PartialPairCorrelationFunction) = f.radii
+getestimate(f::PartialPairCorrelationFunction) = f.partial_pair_correlation_function
+getextrafields(::PartialPairCorrelationFunction{R,T,D,P}) where {R,T,D,P} = (Val{D}(),)
+
 function partial_paircorrelation_function(
-    f::PartialSpectra,
+    f::PartialSpectra{D,F,P,N},
     λ,
     radii,
     indices = default_indices(f),
-)
+) where {D,F,P,N}
     check_spectral_indices(indices, f)
     pcf = Dict(
         index => sdf2pcf(f[index...], λ[index[1]], λ[index[2]], radii) for index in indices
     )
-    return PartialPairCorrelationFunction(radii, pcf)
+    return PartialPairCorrelationFunction(radii, pcf, Val{D}())
 end
 
 function partial_paircorrelation_function(

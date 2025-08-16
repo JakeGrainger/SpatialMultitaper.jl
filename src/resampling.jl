@@ -137,8 +137,8 @@ end
 
 function partial_K_resample(
     data::NTuple,
-    region;
-    radii,
+    region,
+    radii;
     shift_method::ShiftMethod,
     tapers,
     nfreq,
@@ -165,7 +165,7 @@ function partial_K_resample(
     return PartialKFunction(
         resampled.radii,
         Dict((key[1], key[2] - p) => val for (key, val) in resampled.partial_K_function),
-        Val{_getdims(first(data))}(),
+        getextrafields(resampled)...,
     )
 end
 

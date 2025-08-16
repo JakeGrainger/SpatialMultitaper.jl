@@ -1,12 +1,12 @@
-struct PartialSpectra{D,F,P,N} <: FrequencyDomainEstimate{D,P}
+struct PartialSpectra{D,F,P,N} <: AnisotropicEstimate{D,P}
     freq::NTuple{D,F}
     partial_spectra::N
     function PartialSpectra(freq::NTuple{D,F}, partial_coherence) where {D,F}
-        P = checkfreqdomaininputs(freq, partial_coherence)
+        P = checkinputs(freq, partial_coherence)
         new{D,F,P,typeof(partial_coherence)}(freq, partial_coherence)
     end
 end
-getfreq(est::PartialSpectra) = est.freq
+getargument(est::PartialSpectra) = est.freq
 getestimate(est::PartialSpectra) = est.partial_spectra
 
 

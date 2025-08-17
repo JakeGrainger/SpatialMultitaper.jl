@@ -24,6 +24,12 @@ function K2paircorrelation(radii, k, ::Val{D}, penalty, ::PCFMethodA) where {D}
     return ∂k.(radii) ./ (A.*radii.^(D-1))
 end
 
+function K2paircorrelation(radii, k, ::Val{2}, penalty, ::PCFMethodA)
+    kinterp = BSplineKit.fit(BSplineKit.BSplineOrder(4), radii, k, penalty)
+    ∂k = BSplineKit.Derivative(1) * kinterp
+    return ∂k.(radii) ./ (2pi.*radii)
+end
+
 function K2paircorrelation(radii, k, ::Val{2}, penalty, ::PCFMethodB)
     y = BSplineKit.fit(BSplineKit.BSplineOrder(4), radii, k ./ (2π.*radii), penalty)
     ∂y = BSplineKit.Derivative(1) * y

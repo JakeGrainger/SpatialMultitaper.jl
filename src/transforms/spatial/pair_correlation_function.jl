@@ -33,13 +33,13 @@ end
 function K2paircorrelation(radii, k, ::Val{2}, penalty, ::PCFMethodC)
     z = BSplineKit.fit(BSplineKit.BSplineOrder(4), radii, k ./ (2π.*radii.^2), penalty)
     ∂z = BSplineKit.Derivative(1) * z
-    return ∂z.(radii) .* radii + k ./ (π.*radii.^3)
+    return ∂z.(radii) .* radii + k ./ (π.*radii.^2)
 end
 
 function K2paircorrelation(radii, k, ::Val{2}, penalty, ::PCFMethodD)
     v = BSplineKit.fit(BSplineKit.BSplineOrder(4), radii, sqrt.(k), penalty)
     ∂v = BSplineKit.Derivative(1) * v
-    return 2 .* k ./(π.*radii) .* ∂v.(radii) .^ 2
+    return ∂v.(radii) .* sqrt.(k) ./ (π.*radii)
 end
 
 function paircorrelation_function(k::KFunction{R,T,D}; penalty = 0.0, method = PCFMethodC()) where {R,T,D}

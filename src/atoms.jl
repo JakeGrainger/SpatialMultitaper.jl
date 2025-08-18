@@ -5,3 +5,4 @@ atom_estimate(domain::PointSet, marks, region) =
     error("Atom for the marked case is not yet implemented")
 
 atom_estimate(data::Union{Tuple,AbstractVector}, region) = atom_estimate.(data, Ref(region))
+# TODO: should link this to the existing mean methods

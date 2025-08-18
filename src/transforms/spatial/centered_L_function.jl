@@ -12,7 +12,7 @@ getestimate(f::CenteredLFunction) = f.centered_L_function
 getextrafields(::CenteredLFunction{R,T,D,P}) where {R,T,D,P} = (Val{D}(),)
 
 function L2centeredL(radii, k_function)
-    [k - r for (k, r) in zip(k_function, radii)]
+    [k .- r for (k, r) in zip(k_function, radii)]
 end
 
 function centered_L_function(l::LFunction{R,T,D,P}) where {R,T,D,P}

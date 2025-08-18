@@ -44,7 +44,7 @@ end
 function default_indices(
     input::Union{SpectralEstimate{D,F,P,N},PartialSpectra{D,F,P,N}},
 ) where {D,F,P,N}
-    return [(i, j) for i = 1:P for j = i:P]
+    return nothing
 end
 
 function default_indices(input::AbstractVector{Union{GeoTable,PointSet}})

@@ -21,7 +21,7 @@ function partial_centered_L_function(k::PartialLFunction{R,T,D,P}) where {R,T<:D
 end
 
 partial_centered_L_function(k::PartialKFunction) =
-    partial_centered_L_function(L_function(k))
+    partial_centered_L_function(partial_L_function(k))
 
 function partial_centered_L_function(
     data,

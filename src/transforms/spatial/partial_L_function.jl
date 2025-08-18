@@ -14,12 +14,18 @@ getextrafields(::PartialLFunction{R,T,D,P}) where {R,T,D,P} = (Val{D}(),)
 function partial_L_function(k::PartialKFunction{R,T,D,P}) where {R,T,D,P}
     @assert all(x -> all(y -> y ≥ 0, x), values(k.partial_K_function)) "Partial K function takes some negative values, so the L function cannot be used."
     V = unitless_measure(Ball(Point(ntuple(x -> 0, Val{D}())), 1))
-    L = Dict(index => (val ./ V) .^ (1 / D) for (index, val) in k.partial_K_function)
+    L = Dict(
+        index => sign.(val) .* (abs.(val) ./ V) .^ (1 / D) for
+        (index, val) in k.partial_K_function
+    )
     return PartialLFunction(k.radii, L, Val{D}())
 end
 
 function partial_L_function(k::PartialKFunction{R,T,2,P}) where {R,T,P}
-    L = Dict(index => sqrt.(val ./ pi) for (index, val) in k.partial_K_function)
+    L = Dict(
+        index => sign.(val) .* sqrt.(abs.(val) ./ pi) for
+        (index, val) in k.partial_K_function
+    )
     return PartialLFunction(k.radii, L, Val{2}())
 end
 

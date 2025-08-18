@@ -1,6 +1,6 @@
 struct PartialCenteredLFunction{R,T,D,P} <: IsotropicEstimate{D,P}
     radii::R
-    partial_partial_centered_L_function::T
+    partial_centered_L_function::T
     function PartialCenteredLFunction(radii::R, L::T, ::Val{D}) where {R,T,D}
         P = checkinputs(radii, L)
         new{R,T,D,P}(radii, L)

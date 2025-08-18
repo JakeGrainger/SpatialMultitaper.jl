@@ -16,6 +16,8 @@ results = K_function(pattern, region, radii; tapers = tapers, nfreq = nfreq, fma
 @test results isa Spmt.KFunction
 results = L_function(pattern, region, radii; tapers = tapers, nfreq = nfreq, fmax = fmax)
 @test results isa Spmt.LFunction
+@test results.L_function .- results.radii ==
+      centered_L_function(results).centered_L_function
 
 results = C_function(data, region, radii; tapers = tapers, nfreq = nfreq, fmax = fmax)
 @test results isa Spmt.CFunction

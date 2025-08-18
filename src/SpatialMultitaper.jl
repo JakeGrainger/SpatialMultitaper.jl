@@ -13,7 +13,7 @@ using Distributions,
     StaticArrays,
     StatsBase,
     ConstructionBase
-    
+
 import BSplineKit
 
 include("SlepianSolver/SlepianSolver.jl")
@@ -50,10 +50,11 @@ include("transforms/spatial/spatial_utils.jl")
 include("transforms/spatial/C_function.jl")
 include("transforms/spatial/K_function.jl")
 include("transforms/spatial/L_function.jl")
+include("transforms/spatial/centered_L_function.jl")
 include("transforms/spatial/partial_C_function.jl")
 include("transforms/spatial/partial_K_function.jl")
 include("transforms/spatial/partial_L_function.jl")
-
+include("transforms/spatial/partial_centered_L_function.jl")
 include("transforms/spatial/pair_correlation_function.jl")
 include("transforms/spatial/partial_pair_correlation_function.jl")
 
@@ -85,9 +86,11 @@ export multitaper_estimate,
     C_function,
     K_function,
     L_function,
+    centered_L_function,
     partial_C_function,
     partial_K_function,
     partial_L_function,
+    partial_centered_L_function,
     paircorrelation_function,
     paircorrelation_function_direct,
     partial_paircorrelation_function,

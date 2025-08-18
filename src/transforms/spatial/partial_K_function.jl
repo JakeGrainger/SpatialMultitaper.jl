@@ -11,10 +11,17 @@ getargument(f::PartialKFunction) = f.radii
 getestimate(f::PartialKFunction) = f.partial_K_function
 getextrafields(::PartialKFunction{R,T,D,P}) where {R,T,D,P} = (Val{D}(),)
 
+function partial_K_function(c::PartialCFunction{R,T,D,1}, λ) where {R,T,D}
+    return PartialKFunction(
+        c.radii,
+        C2K(c.partial_C_function, λ[1], λ[1], Val{D}()),
+        Val{D}(),
+    )
+end
+
 function partial_K_function(c::PartialCFunction{R,T,D,P}, λ) where {R,T,D,P}
-    V = unitless_measure(Ball(Point(ntuple(x -> 0, Val{D}())), 1))
     K = Dict(
-        index => val ./ (λ[index[1]] * λ[index[2]]) .+ c.radii .^ D .* V for
+        index => C2K(c.radii, val, λ[index[1]], λ[index[2]], Val{D}()) for
         (index, val) in c.partial_C_function
     )
     return PartialKFunction(c.radii, K, Val{D}())

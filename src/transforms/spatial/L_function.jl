@@ -11,28 +11,22 @@ getargument(f::LFunction) = f.radii
 getestimate(f::LFunction) = f.L_function
 getextrafields(::LFunction{R,T,D,P}) where {R,T,D,P} = (Val{D}(),)
 
-function L_function(k::KFunction{R,T,D,1}) where {R,T,D}
+function K2L(k, ::Val{D}) where {D}
     V = unitless_measure(Ball(Point(ntuple(x -> 0, Val{D}())), 1))
-    L = sign.(k.K_function) .* (abs.(k.K_function) ./ V) .^ (1 / D)
-    return LFunction(k.radii, L, Val{D}())
+    return sign.(k) .* (abs.(k) ./ V) .^ (1 / D)
 end
 
-function L_function(k::KFunction{R,T,2,1}) where {R,T}
-    L = sign.(k.K_function) .* sqrt.(abs.(k.K_function) ./ pi)
-    return LFunction(k.radii, L, Val{2}())
+function K2L(k, ::Val{2})
+    return sign.(k) .* sqrt.(abs.(k) ./ pi)
+end
+
+function L_function(k::KFunction{R,T,D,1}) where {R,T,D}
+    return LFunction(k.radii, K2L(k.K_function, Val{D}()), Val{D}())
 end
 
 function L_function(k::KFunction{R,T,D,P}) where {R,T,D,P}
-    V = unitless_measure(Ball(Point(ntuple(x -> 0, Val{D}())), 1))
-    L = Dict(
-        index => sign.(val) .* (abs.(val) ./ V) .^ (1 / D) for (index, val) in k.K_function
-    )
+    L = Dict(index => K2L(val, Val{D}()) for (index, val) in k.K_function)
     return LFunction(k.radii, L, Val{D}())
-end
-
-function L_function(k::KFunction{R,T,2,P}) where {R,T,P}
-    L = Dict(index => sign.(val) .* sqrt.(abs.(val) ./ pi) for (index, val) in k.K_function)
-    return LFunction(k.radii, L, Val{2}())
 end
 
 function L_function(

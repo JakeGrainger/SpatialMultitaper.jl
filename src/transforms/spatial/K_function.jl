@@ -11,16 +11,19 @@ getargument(f::KFunction) = f.radii
 getestimate(f::KFunction) = f.K_function
 getextrafields(::KFunction{R,T,D,P}) where {R,T,D,P} = (Val{D}(),)
 
-function K_function(c::CFunction{R,T,D,1}, λ) where {R,T,D}
+function C2K(radii, c, λ1, λ2, ::Val{D}) where {D}
     V = unitless_measure(Ball(Point(ntuple(x -> 0, Val{D}())), 1))
-    K = c.C_function ./ (λ[1]^2) .+ c.radii .^ D .* V
-    return KFunction(c.radii, K, Val{D}())
+    return c ./ (λ1 * λ2) .+ radii .^ D .* V
+end
+
+
+function K_function(c::CFunction{R,T,D,1}, λ) where {R,T,D}
+    return KFunction(c.radii, C2K(c.radii, c.C_function, λ[1], λ[1], Val{D}()), Val{D}())
 end
 
 function K_function(c::CFunction{R,T,D,P}, λ) where {R,T,D,P}
-    V = unitless_measure(Ball(Point(ntuple(x -> 0, Val{D}())), 1))
     K = Dict(
-        index => val ./ (λ[index[1]] * λ[index[2]]) .+ c.radii .^ D .* V for
+        index => C2K(c.radii, val, λ[index[1]], λ[index[2]], Val{D}()) for
         (index, val) in c.C_function
     )
     return KFunction(c.radii, K, Val{D}())

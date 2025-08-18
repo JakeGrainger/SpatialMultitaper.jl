@@ -12,12 +12,16 @@ getestimate(f::PartialCenteredLFunction) = f.partial_centered_L_function
 getextrafields(::PartialCenteredLFunction{R,T,D,P}) where {R,T,D,P} = (Val{D}(),)
 
 function partial_centered_L_function(l::PartialLFunction{R,T,D,P}) where {R,T,D,P}
-    return PartialCenteredLFunction(l.radii, L2centeredL(l.radii, l.L_function), Val{D}())
+    return PartialCenteredLFunction(
+        l.radii,
+        L2centeredL(l.radii, l.partial_L_function),
+        Val{D}(),
+    )
 end
 
-function partial_centered_L_function(k::PartialLFunction{R,T,D,P}) where {R,T<:Dict,D,P}
-    L = Dict(index => L2centeredL(k.radii, val) for (index, val) in k.L_function)
-    return PartialCenteredLFunction(k.radii, L, Val{D}())
+function partial_centered_L_function(l::PartialLFunction{R,T,D,P}) where {R,T<:Dict,D,P}
+    L = Dict(index => L2centeredL(l.radii, val) for (index, val) in l.partial_L_function)
+    return PartialCenteredLFunction(l.radii, L, Val{D}())
 end
 
 partial_centered_L_function(k::PartialKFunction) =

@@ -22,12 +22,11 @@ The i j th element (for i ≠ j) is the partial spectra between the ith and jth 
 If specific indices are requested, computes the partial spectra for the i1th index conditioned on the indices in c1 vs the i2th index conditioned on the indices in c2.
 """
 function partial_spectra(x::AbstractMatrix)
-    C = inv(x)
-    par_coh = -complex_coherence(C)
-    invCd = inv.(diag(C))
-    invCd_root = diagm(sqrt.(invCd))
-    part1 = (invCd_root * par_coh * invCd_root)
-    (part1 - diagm(diag(part1)) + diagm(invCd)) ./ (1.0 .- abs2.(par_coh) + I)
+    g = inv(x)
+    A = diagm(inv.(diag(g)))
+    return (A * g * A) .* (2I - ones(typeof(x)))
+    # computes -gⱼₖ / (gⱼⱼ gₖₖ) if j ≠ k
+    # computes  gⱼₖ / (gⱼⱼ gₖₖ) if j = k
 end
 
 function partial_spectra(x::AbstractMatrix, i1::Int, i2::Int, c1, c2) # note, this can be made more efficient

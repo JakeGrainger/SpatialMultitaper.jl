@@ -18,38 +18,62 @@ struct PCFMethodC <: PCFMethod end
 struct PCFMethodD <: PCFMethod end
 
 function K2paircorrelation(radii, k, ::Val{D}, penalty, ::PCFMethodA) where {D}
-    A = 2 * (π)^(D / 2) / gamma(D/2)
+    A = 2 * (π)^(D / 2) / gamma(D / 2)
     kinterp = BSplineKit.fit(BSplineKit.BSplineOrder(4), radii, k, penalty)
     ∂k = BSplineKit.Derivative(1) * kinterp
-    return ∂k.(radii) ./ (A.*radii.^(D-1))
+    return ∂k.(radii) ./ (A .* radii .^ (D - 1))
 end
 
 function K2paircorrelation(radii, k, ::Val{2}, penalty, ::PCFMethodA)
     kinterp = BSplineKit.fit(BSplineKit.BSplineOrder(4), radii, k, penalty)
     ∂k = BSplineKit.Derivative(1) * kinterp
-    return ∂k.(radii) ./ (2pi.*radii)
+    return ∂k.(radii) ./ (2pi .* radii)
 end
 
 function K2paircorrelation(radii, k, ::Val{2}, penalty, ::PCFMethodB)
-    y = BSplineKit.fit(BSplineKit.BSplineOrder(4), radii, k ./ (2π.*radii), penalty)
+    y = BSplineKit.fit(BSplineKit.BSplineOrder(4), radii, k ./ (2π .* radii), penalty)
     ∂y = BSplineKit.Derivative(1) * y
-    return ∂y.(radii) + k ./ (2π.*radii.^2)
+    return ∂y.(radii) + k ./ (2π .* radii .^ 2)
 end
 
 function K2paircorrelation(radii, k, ::Val{2}, penalty, ::PCFMethodC)
-    z = BSplineKit.fit(BSplineKit.BSplineOrder(4), radii, k ./ (2π.*radii.^2), penalty)
+    z = BSplineKit.fit(BSplineKit.BSplineOrder(4), radii, k ./ (2π .* radii .^ 2), penalty)
     ∂z = BSplineKit.Derivative(1) * z
-    return ∂z.(radii) .* radii + k ./ (π.*radii.^2)
+    return ∂z.(radii) .* radii + k ./ (π .* radii .^ 2)
 end
 
 function K2paircorrelation(radii, k, ::Val{2}, penalty, ::PCFMethodD)
     v = BSplineKit.fit(BSplineKit.BSplineOrder(4), radii, sqrt.(k), penalty)
     ∂v = BSplineKit.Derivative(1) * v
-    return ∂v.(radii) .* sqrt.(k) ./ (π.*radii)
+    return ∂v.(radii) .* sqrt.(k) ./ (π .* radii)
 end
 
-function paircorrelation_function(k::KFunction{R,T,D}; penalty = 0.0, method = PCFMethodC()) where {R,T,D}
-    pcf = Dict(index => K2paircorrelation(k.radii, val, Val{D}(), penalty, method) for (index, val) in k.K_function)
+function paircorrelation_function(
+    k::KFunction{R,T,D,P};
+    penalty = 0.0,
+    method = PCFMethodC(),
+) where {R,T<:Dict,D,P}
+    pcf = Dict(
+        index => K2paircorrelation(k.radii, val, Val{D}(), penalty, method) for
+        (index, val) in k.K_function
+    )
+    return PairCorrelationFunction(k.radii, pcf, Val{D}())
+end
+
+function paircorrelation_function(
+    k::KFunction{R,T,D,P};
+    penalty = 0.0,
+    method = PCFMethodC(),
+) where {R,T,D,P}
+    pcf = Dict(
+        (i, j) => K2paircorrelation(
+            k.radii,
+            getindex.(k.K_function, i, j),
+            Val{D}(),
+            penalty,
+            method,
+        ) for i = 1:P for j = i:P
+    )
     return PairCorrelationFunction(k.radii, pcf, Val{D}())
 end
 
@@ -79,7 +103,7 @@ function paircorrelation_function(
 end
 
 ## direct method
-
+# todo: update direct method to use faster SArray approach when possible
 function paircorrelation_function_direct(
     f::SpectralEstimate{D,F,P,N},
     λ,

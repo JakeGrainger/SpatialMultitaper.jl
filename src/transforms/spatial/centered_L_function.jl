@@ -11,15 +11,15 @@ getargument(f::CenteredLFunction) = f.radii
 getestimate(f::CenteredLFunction) = f.centered_L_function
 getextrafields(::CenteredLFunction{R,T,D,P}) where {R,T,D,P} = (Val{D}(),)
 
-function L2centeredL(radii, k)
-    k .- radii
+function L2centeredL(radii, k_function)
+    [k - r for (k, r) in zip(k_function, radii)]
 end
 
-function centered_L_function(l::LFunction{R,T,D,1}) where {R,T,D}
+function centered_L_function(l::LFunction{R,T,D,P}) where {R,T,D,P}
     return CenteredLFunction(l.radii, L2centeredL(l.radii, l.L_function), Val{D}())
 end
 
-function centered_L_function(k::LFunction{R,T,D,P}) where {R,T,D,P}
+function centered_L_function(k::LFunction{R,T,D,P}) where {R,T<:Dict,D,P}
     L = Dict(index => L2centeredL(k.radii, val) for (index, val) in k.L_function)
     return CenteredLFunction(k.radii, L, Val{D}())
 end

@@ -12,16 +12,29 @@ getestimate(f::PartialKFunction) = f.partial_K_function
 getextrafields(::PartialKFunction{R,T,D,P}) where {R,T,D,P} = (Val{D}(),)
 
 function partial_K_function(c::PartialCFunction{R,T,D,1}, λ) where {R,T,D}
+    invλ = 1 / λ[1]
     return PartialKFunction(
         c.radii,
-        C2K(c.partial_C_function, λ[1], λ[1], Val{D}()),
+        C2K(c.radii, c.partial_C_function, invλ, invλ, Val{D}()),
         Val{D}(),
     )
 end
 
-function partial_K_function(c::PartialCFunction{R,T,D,P}, λ) where {R,T,D,P}
+function partial_K_function(
+    c::PartialCFunction{R,T,D,P},
+    λ::NTuple{P,<:Number},
+) where {R,T<:AbstractArray,D,P}
+    invλ = diagm(1 ./ SVector(λ...))
+    return PartialKFunction(
+        c.radii,
+        C2K(c.radii, c.partial_C_function, invλ, invλ, Val{D}()),
+        Val{D}(),
+    )
+end
+
+function partial_K_function(c::PartialCFunction{R,T,D,P}, λ) where {R,T<:Dict,D,P}
     K = Dict(
-        index => C2K(c.radii, val, λ[index[1]], λ[index[2]], Val{D}()) for
+        index => C2K(c.radii, val, 1 / λ[index[1]], 1 / λ[index[2]], Val{D}()) for
         (index, val) in c.partial_C_function
     )
     return PartialKFunction(c.radii, K, Val{D}())

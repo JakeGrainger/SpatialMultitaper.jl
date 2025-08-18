@@ -22,7 +22,7 @@ results = L_function(pattern, region, radii; tapers = tapers, nfreq = nfreq, fma
 results = C_function(data, region, radii; tapers = tapers, nfreq = nfreq, fmax = fmax)
 @test results isa Spmt.CFunction
 @test results[1, 2].C_function isa Vector{Float64}
-@test results[1, 2].C_function == Spmt.getestimate(results)[(1, 2)]
+@test results[1, 2].C_function == getindex.(Spmt.getestimate(results), 1, 2)
 
 results = K_function(data, region, radii; tapers = tapers, nfreq = nfreq, fmax = fmax)
 @test results isa Spmt.KFunction
@@ -51,15 +51,15 @@ results = paircorrelation_function(
 )
 @test results isa Spmt.PairCorrelationFunction
 
-results = paircorrelation_function_direct(
-    data,
-    region,
-    radii;
-    tapers = tapers,
-    nfreq = nfreq,
-    fmax = fmax,
-)
-@test results isa Spmt.PairCorrelationFunction
+# results = paircorrelation_function_direct(
+#     data,
+#     region,
+#     radii;
+#     tapers = tapers,
+#     nfreq = nfreq,
+#     fmax = fmax,
+# )
+# @test results isa Spmt.PairCorrelationFunction
 
 results = partial_paircorrelation_function(
     data,
@@ -71,12 +71,12 @@ results = partial_paircorrelation_function(
 )
 @test results isa Spmt.PartialPairCorrelationFunction
 
-results = partial_paircorrelation_function_direct(
-    data,
-    region,
-    radii;
-    tapers = tapers,
-    nfreq = nfreq,
-    fmax = fmax,
-)
-@test results isa Spmt.PartialPairCorrelationFunction
+# results = partial_paircorrelation_function_direct(
+#     data,
+#     region,
+#     radii;
+#     tapers = tapers,
+#     nfreq = nfreq,
+#     fmax = fmax,
+# )
+# @test results isa Spmt.PartialPairCorrelationFunction

@@ -29,11 +29,7 @@ function C_function(
     indices = default_indices(f),
 ) where {D,F,P,N}
     check_spectral_indices(indices, f)
-    C = Dict(
-        index =>
-            sdf2C(f[index...], zero_atom[index[1]] * (index[1] == index[2]), radii) for
-        index in indices
-    )
+    C = sdf2C(f, zero_atom, radii, indices)
     return CFunction(radii, C, Val{D}())
 end
 
@@ -61,6 +57,22 @@ function C_function(
 end
 
 
+function sdf2C(f, zero_atom, radii, indices)
+    C = Dict(
+        index =>
+            sdf2C(f[index...], zero_atom[index[1]] * (index[1] == index[2]), radii) for
+        index in indices
+    )
+end
+
+function sdf2C(f, zero_atom::Number, radii, ::Nothing)
+    sdf2C(f, zero_atom, radii)
+end
+
+function sdf2C(f, zero_atom, radii, ::Nothing)
+    sdf2C(f, diagm(SVector(zero_atom...)), radii)
+end
+
 """
     sdf2C(f, zero_atom, radii::AbstractVector{<:Number})
 
@@ -81,11 +93,11 @@ function sdf2C(
     radius::Number,
 ) where {D,F,P,N}
     freq = getargument(f)
-    spectra = getestimate(f) .- zero_atom
+    spectra = getestimate(f)
     prod(step, freq) * real(
         sum(
-            f * sphere_weight(radius, k, Val{D}()) for
-            (f, k) in zip(spectra, Iterators.product(freq...))
+            (s - zero_atom) * sphere_weight(radius, k, Val{D}()) for
+            (s, k) in zip(spectra, Iterators.product(freq...))
         ),
     )
 end

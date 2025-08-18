@@ -15,7 +15,7 @@ getestimate(est::PartialSpectra) = est.partial_spectra
 
 If only a matrix `x` is passed, computes the partial spectra for all indices. 
 The diagonal elements are the spectra of residuals given all other processes
-The i j th element (for i ≠ j) is the partial coherence between the ith and jth process given all other processes not including i and j.
+The i j th element (for i ≠ j) is the partial spectra between the ith and jth process given all other processes not including i and j.
 	
 	partial_spectra(x::Matrix, i1::Int, i2::Int, c1, c2)
 

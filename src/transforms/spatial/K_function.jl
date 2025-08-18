@@ -1,4 +1,4 @@
-struct KFunction{R,T,D,P} <: IsotropicEstimate{D, P}
+struct KFunction{R,T,D,P} <: IsotropicEstimate{D,P}
     radii::R
     K_function::T
     function KFunction(radii::R, K::T, ::Val{D}) where {R,T,D}
@@ -11,10 +11,16 @@ getargument(f::KFunction) = f.radii
 getestimate(f::KFunction) = f.K_function
 getextrafields(::KFunction{R,T,D,P}) where {R,T,D,P} = (Val{D}(),)
 
-function K_function(c::CFunction{R,T,D}, λ) where {R,T,D}
+function K_function(c::CFunction{R,T,D,1}, λ) where {R,T,D}
+    V = unitless_measure(Ball(Point(ntuple(x -> 0, Val{D}())), 1))
+    K = c.C_function ./ (λ[1]^2) .+ c.radii .^ D .* V
+    return KFunction(c.radii, K, Val{D}())
+end
+
+function K_function(c::CFunction{R,T,D,P}, λ) where {R,T,D,P}
     V = unitless_measure(Ball(Point(ntuple(x -> 0, Val{D}())), 1))
     K = Dict(
-        index => val ./ λ[index[1]] * λ[index[2]] .+ c.radii .^ D .* V for
+        index => val ./ (λ[index[1]] * λ[index[2]]) .+ c.radii .^ D .* V for
         (index, val) in c.C_function
     )
     return KFunction(c.radii, K, Val{D}())

@@ -16,6 +16,20 @@ function check_spectral_indices(
     end
 end
 
+function check_spectral_indices(
+    indices,
+    input::Union{
+        SpectralEstimate{D,F,1,N},
+        PartialSpectra{D,F,1,N},
+        NTuple{1,Union{GeoTable,PointSet}},
+        GeoTable,
+        PointSet,
+    },
+) where {D,F,N}
+    @assert indices isa Nothing "in the univariate case, indices should be `nothing`"
+end
+
+
 function default_indices(
     input::Union{
         SpectralEstimate{D,F,P,N},
@@ -24,4 +38,16 @@ function default_indices(
     },
 ) where {D,F,P,N}
     return [(i, j) for i = 1:P for j = i:P]
+end
+
+function default_indices(
+    input::Union{
+        SpectralEstimate{D,F,1,N},
+        PartialSpectra{D,F,1,N},
+        NTuple{1,Union{GeoTable,PointSet}},
+        GeoTable,
+        PointSet,
+    },
+) where {D,F,N}
+    return nothing
 end

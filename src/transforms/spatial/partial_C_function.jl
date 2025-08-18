@@ -72,6 +72,6 @@ function partial_C_function(
         fmax = fmax,
         mean_method = mean_method,
     )
-    zero_atom = atom_estimate.(data, Ref(region))
+    zero_atom = atom_estimate(data, region)
     return partial_C_function(fhat, zero_atom, radii, indices)
 end

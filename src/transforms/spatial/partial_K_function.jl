@@ -1,4 +1,4 @@
-struct PartialKFunction{R,T,D,P} <: IsotropicEstimate{D, P}
+struct PartialKFunction{R,T,D,P} <: IsotropicEstimate{D,P}
     radii::R
     partial_K_function::T
     function PartialKFunction(radii::R, K::T, ::Val{D}) where {R,T,D}
@@ -11,10 +11,10 @@ getargument(f::PartialKFunction) = f.radii
 getestimate(f::PartialKFunction) = f.partial_K_function
 getextrafields(::PartialKFunction{R,T,D,P}) where {R,T,D,P} = (Val{D}(),)
 
-function partial_K_function(c::PartialCFunction{R,T,D}, λ) where {R,T,D}
+function partial_K_function(c::PartialCFunction{R,T,D,P}, λ) where {R,T,D,P}
     V = unitless_measure(Ball(Point(ntuple(x -> 0, Val{D}())), 1))
     K = Dict(
-        index => val ./ λ[index[1]] * λ[index[2]] .+ c.radii .^ D .* V for
+        index => val ./ (λ[index[1]] * λ[index[2]]) .+ c.radii .^ D .* V for
         (index, val) in c.partial_C_function
     )
     return PartialKFunction(c.radii, K, Val{D}())

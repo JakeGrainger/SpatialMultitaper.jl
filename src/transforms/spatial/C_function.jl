@@ -1,4 +1,4 @@
-struct CFunction{R,T,D,P} <: IsotropicEstimate{D, P}
+struct CFunction{R,T,D,P} <: IsotropicEstimate{D,P}
     radii::R
     C_function::T
     function CFunction(radii::R, C::T, ::Val{D}) where {R,T,D}
@@ -10,6 +10,17 @@ end
 getargument(f::CFunction) = f.radii
 getestimate(f::CFunction) = f.C_function
 getextrafields(::CFunction{R,T,D,P}) where {R,T,D,P} = (Val{D}(),)
+
+function C_function(
+    f::SpectralEstimate{D,F,1,N},
+    zero_atom,
+    radii,
+    indices::Nothing = default_indices(f),
+) where {D,F,N}
+    check_spectral_indices(indices, f)
+    C = sdf2C(f, zero_atom[1], radii) # one dimensional case, indexing `zero_atom` returns value if a number
+    return CFunction(radii, C, Val{D}())
+end
 
 function C_function(
     f::SpectralEstimate{D,F,P,N},
@@ -45,7 +56,7 @@ function C_function(
         fmax = fmax,
         mean_method = mean_method,
     )
-    zero_atom = atom_estimate.(data, Ref(region))
+    zero_atom = atom_estimate(data, region)
     return C_function(f, zero_atom, radii, indices)
 end
 

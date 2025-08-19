@@ -1,9 +1,10 @@
-struct SpectralEstimate{D,F,P,N} <: AnisotropicEstimate{D,P}
+struct SpectralEstimate{D,F,P,N,T<:Union{Int, Nothing}} <: AnisotropicEstimate{D,P}
     freq::NTuple{D,F}
     power::N
-    function SpectralEstimate(freq::NTuple{D,F}, power) where {D,F}
+    ntapers::T
+    function SpectralEstimate(freq::NTuple{D,F}, power, ntapers) where {D,F}
         P = checkinputs(freq, power)
-        new{D,F,P,typeof(power)}(freq, power)
+        new{D,F,P,typeof(power), typeof(ntapers)}(freq, power, ntapers)
     end
 end
 getargument(est::SpectralEstimate) = est.freq
@@ -63,7 +64,7 @@ function multitaper_estimate(
     J_n = tapered_dft(data, tapers, nfreq, fmax, region, mean_method)
     freq = make_freq(nfreq, fmax, dim)
     power = dft2spectralmatrix(J_n)
-    return SpectralEstimate(freq, power)
+    return SpectralEstimate(freq, power, length(tapers))
 end
 
 """

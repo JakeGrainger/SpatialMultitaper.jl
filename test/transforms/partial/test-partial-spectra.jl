@@ -1,3 +1,4 @@
+mt_est = make_simple_example()
 pspec = partial_spectra(mt_est)
 pspec_alt = partial_spectra(mt_est, 1, 1, 2:3, 2:3)
 @test pspec[1, 1].partial_spectra ≈ pspec_alt.partial_spectra
@@ -10,4 +11,4 @@ function long_partial_spectra(x)
         i in axes(C, 1), j in axes(C, 2)
     ]
 end
-@test long_partial_spectra(mt_est.power[1, 1]) ≈ pspec.partial_spectra[1, 1]
+@test long_partial_spectra(mt_est.power[1, 1], nothing) ≈ pspec.partial_spectra[1, 1]

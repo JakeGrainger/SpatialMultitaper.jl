@@ -58,7 +58,7 @@ function partial_spectra(spectrum::SpectralEstimate, i1::Int, i2::Int, c1, c2)
 end
 
 function partial_spectra_uncorrected(spectrum::SpectralEstimate)
-    return PartialSpectra(spectrum.freq, apply_transform(partial_spectra_uncorrected, spectrum.power, nothing))
+    return PartialSpectra(spectrum.freq, apply_transform(partial_spectra, spectrum.power, nothing))
 end
 
 function partial_spectra_uncorrected(spectrum::SpectralEstimate, i1::Int, i2::Int, c1, c2)

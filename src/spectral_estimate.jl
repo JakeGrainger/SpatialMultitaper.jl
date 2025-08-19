@@ -9,6 +9,7 @@ struct SpectralEstimate{D,F,P,N,T<:Union{Int, Nothing}} <: AnisotropicEstimate{D
 end
 getargument(est::SpectralEstimate) = est.freq
 getestimate(est::SpectralEstimate) = est.power
+getextrafields(est::SpectralEstimate) = (est.ntapers,)
 
 """
 	multitaper_estimate(data, region; nfreq, fmax, tapers, mean_method = DefaultMean())

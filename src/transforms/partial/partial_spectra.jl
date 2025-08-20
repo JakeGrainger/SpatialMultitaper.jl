@@ -21,7 +21,7 @@ The i j th element (for i ≠ j) is the partial spectra between the ith and jth 
 
 If specific indices are requested, computes the partial spectra for the i1th index conditioned on the indices in c1 vs the i2th index conditioned on the indices in c2.
 """
-function partial_spectra(x::AbstractMatrix, ::Nothing)
+function partial_spectra(x::SMatrix, ::Nothing)
     g = inv(x)
     A = diagm((diag(g)))
     g2 = abs2.(g)
@@ -29,6 +29,15 @@ function partial_spectra(x::AbstractMatrix, ::Nothing)
     return (g ./ denom) .* (2I - ones(typeof(x)))
     # computes -gⱼₖ / (gⱼⱼ gₖₖ - |gⱼₖ|²) if j ≠ k
     # computes  1 / gⱼⱼ if j = k
+end
+
+function partial_spectra(x::Matrix, ::Nothing)
+    C = inv(x)
+    
+    return [
+        i == j ? 1 / C[i,i] : -C[i,j] / (C[i,i] * C[j,j] - abs2(C[i,j])) for
+        i in axes(C, 1), j in axes(C, 2)
+    ]
 end
 
 function partial_spectra(x::SMatrix{2,2,T,4}, ::Nothing) where {T}

@@ -19,3 +19,4 @@ end
 
 @test long_partial_spectra(mt_est.power[1, 1]) ≈ pspec.partial_spectra[1, 1] # 1,1 means first wavenumber
 @test full_partial_spectra(mt_est.power[1, 1]) ≈ pspec.partial_spectra[1, 1]
+@test partial_spectra(mt_est.power[1, 1][1:2,1:2], nothing) ≈ partial_spectra(collect(mt_est.power[1, 1][1:2,1:2]), nothing) # check is specialised methods are equivalent

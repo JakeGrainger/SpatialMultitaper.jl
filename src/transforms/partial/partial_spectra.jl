@@ -23,10 +23,24 @@ If specific indices are requested, computes the partial spectra for the i1th ind
 """
 function partial_spectra(x::AbstractMatrix, ::Nothing)
     g = inv(x)
-    A = diagm(inv.(diag(g)))
-    return (A * g * A) .* (2I - ones(typeof(x)))
-    # computes -gⱼₖ / (gⱼⱼ gₖₖ) if j ≠ k
-    # computes  gⱼₖ / (gⱼⱼ gₖₖ) if j = k
+    A = diagm((diag(g)))
+    g2 = abs2.(g)
+    denom = A * ones(typeof(x)) * A - g2 + diagm(diag(g2))
+    return (g ./ denom) .* (2I - ones(typeof(x)))
+    # computes -gⱼₖ / (gⱼⱼ gₖₖ - |gⱼₖ|²) if j ≠ k
+    # computes  1 / gⱼⱼ if j = k
+end
+
+function partial_spectra(x::SMatrix{2,2,T,4}, ::Nothing) where {T}
+    g = inv(x)
+    p11 = 1 / g[1,1]
+    p22 = 1 / g[2,2]
+    p12 = -g[1,2] / (g[1,1] * g[2,2] - abs2(g[1,2]))
+    p21 = conj(p12)
+
+    return SMatrix{2,2,T,4}(
+        p11, p21, p12, p22 # column major
+    )
 end
 
 function partial_spectra(x::AbstractMatrix, ntapers)

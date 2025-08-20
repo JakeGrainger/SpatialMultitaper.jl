@@ -144,29 +144,10 @@ function partial_K_resample(
     nfreq,
     fmax,
 )
-    p = length(data)
-    firsthalf = 1:p
-    secondhalf = p+1:2p
-    indices = [
-        (x, y, view(firsthalf, Not(SVector(i, j))), view(secondhalf, Not(SVector(i, j)))) for (i, x) in enumerate(firsthalf), (j, y) in enumerate(secondhalf) if i <= j
-    ]
-    function wrapped_partial_K(_data, _region)
-        partial_K_function(
-            _data,
-            _region,
-            radii,
-            indices;
-            tapers = tapers,
-            nfreq = nfreq,
-            fmax = fmax,
-        )
+    function statistic(_data, _region)
+        split_partial_K_function(_data, _region, radii; tapers = tapers, nfreq = nfreq, fmax = fmax)
     end
-    resampled = partial_shift_resample(data, region, wrapped_partial_K, shift_method)
-    return PartialKFunction(
-        resampled.radii,
-        Dict((key[1], key[2] - p) => val for (key, val) in resampled.partial_K_function),
-        getextrafields(resampled)...,
-    )
+    partial_shift_resample(data, region, statistic, shift_method)
 end
 
 ## freq domain null resampling

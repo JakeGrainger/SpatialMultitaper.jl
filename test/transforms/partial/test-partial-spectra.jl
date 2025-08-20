@@ -17,6 +17,14 @@ function full_partial_spectra(x)
     ]
 end
 
-@test long_partial_spectra(mt_est.power[1, 1]) ≈ pspec.partial_spectra[1, 1] # 1,1 means first wavenumber
-@test full_partial_spectra(mt_est.power[1, 1]) ≈ pspec.partial_spectra[1, 1]
-@test partial_spectra(mt_est.power[1, 1][1:2,1:2], nothing) ≈ partial_spectra(collect(mt_est.power[1, 1][1:2,1:2]), nothing) # check is specialised methods are equivalent
+S = mt_est.power[1, 1]
+@test long_partial_spectra(S) ≈ pspec.partial_spectra[1, 1] # 1,1 means first wavenumber
+@test full_partial_spectra(S) ≈ pspec.partial_spectra[1, 1]
+@test partial_spectra(S[1:2,1:2], nothing) ≈ partial_spectra(collect(S[1:2,1:2]), nothing) # check is specialised methods are equivalent
+
+A = Spmt.@SMatrix randn(ComplexF64, 10, 10)
+M = A*A'
+
+for n in 2:2:10
+    @test Spmt.split_partial_spectra(M[1:n,1:n], nothing) ≈ Spmt.split_partial_spectra(collect(M[1:n,1:n]), nothing)
+end

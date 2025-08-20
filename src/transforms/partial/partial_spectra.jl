@@ -33,41 +33,40 @@ end
 
 function partial_spectra(x::Matrix, ::Nothing)
     C = inv(x)
-    
+
     return [
-        i == j ? 1 / C[i,i] : -C[i,j] / (C[i,i] * C[j,j] - abs2(C[i,j])) for
+        i == j ? 1 / C[i, i] : -C[i, j] / (C[i, i] * C[j, j] - abs2(C[i, j])) for
         i in axes(C, 1), j in axes(C, 2)
     ]
 end
 
 function partial_spectra(x::SMatrix{2,2,T,4}, ::Nothing) where {T}
     g = inv(x)
-    p11 = 1 / g[1,1]
-    p22 = 1 / g[2,2]
-    p12 = -g[1,2] / (g[1,1] * g[2,2] - abs2(g[1,2]))
+    p11 = 1 / g[1, 1]
+    p22 = 1 / g[2, 2]
+    p12 = -g[1, 2] / (g[1, 1] * g[2, 2] - abs2(g[1, 2]))
     p21 = conj(p12)
 
     return SMatrix{2,2,T,4}(
-        p11, p21, p12, p22 # column major
+        p11,
+        p21,
+        p12,
+        p22, # column major
     )
 end
 
 function partial_spectra(x::AbstractMatrix, ntapers)
     p = partial_spectra(x, nothing)
-    Q = size(x,1)
+    Q = size(x, 1)
     denom = ntapers - Q + 2 - I # so that M - Q + 2 off diag and M - Q + 1 on diag
     return ntapers ./ denom .* p
 end
 
-function partial_spectra(x::AbstractMatrix, i1::Int, i2::Int, c1, c2, ::Nothing) # note, this can be made more efficient
-    x[i1, i2] - transpose(x[i1, c1]) / x[c1, c1] * x[c1, i2] -
-    transpose(x[i1, c2]) / x[c2, c2] * x[c2, i2] +
-    transpose(x[i1, c1]) / x[c1, c1] * x[c1, c2] / x[c2, c2] * x[c2, i2]
-end
-
-
 function partial_spectra(spectrum::SpectralEstimate)
-    return PartialSpectra(spectrum.freq, apply_transform(partial_spectra, spectrum.power, spectrum.ntapers))
+    return PartialSpectra(
+        spectrum.freq,
+        apply_transform(partial_spectra, spectrum.power, spectrum.ntapers),
+    )
 end
 
 function partial_spectra(spectrum::SpectralEstimate, i1::Int, i2::Int, c1, c2)
@@ -81,7 +80,10 @@ function partial_spectra(spectrum::SpectralEstimate, i1::Int, i2::Int, c1, c2)
 end
 
 function partial_spectra_uncorrected(spectrum::SpectralEstimate)
-    return PartialSpectra(spectrum.freq, apply_transform(partial_spectra, spectrum.power, nothing))
+    return PartialSpectra(
+        spectrum.freq,
+        apply_transform(partial_spectra, spectrum.power, nothing),
+    )
 end
 
 function partial_spectra_uncorrected(spectrum::SpectralEstimate, i1::Int, i2::Int, c1, c2)
@@ -92,4 +94,117 @@ function partial_spectra_uncorrected(spectrum::SpectralEstimate, i1::Int, i2::In
         spectrum.freq,
         apply_transform(wrapped_partial_spectra, spectrum.power),
     )
+end
+
+##
+# debiasing in general isnt known
+function partial_spectra(x::AbstractMatrix, i1::Int, i2::Int, c1, c2, ::Nothing)
+    xi1c1_rdiv_c1c1 = (transpose(x[i1, c1]) / x[c1, c1])
+    xc2c2_ldiv_c2i2 = (x[c2, c2] \ x[c2, i2])
+
+    return x[i1, i2] - xi1c1_rdiv_c1c1 * x[c1, i2] - transpose(x[i1, c2]) * xc2c2_ldiv_c2i2 +
+    xi1c1_rdiv_c1c1 * x[c1, c2] * xc2c2_ldiv_c2i2
+end
+
+split_partial_spectra(x::AbstractMatrix, i1::Int, i2::Int, c1, c2, ::Nothing) = partial_spectra(x, i1, i2, c1, c2, nothing)
+
+function split_partial_spectra(x::AbstractMatrix, i1::Int, i2::Int, c1, c2, ntapers)
+    return split_partial_spectra(x, i1, i2, c1, c2, nothing) * ntapers / (ntapers - length(c1) - length(c2))
+end
+
+function split_partial_spectra(x::Matrix{T}, ntapers) where {T}
+    # assumes that the spectrum is for an even number of processes, and we want to give back all partial spectra of the form 
+    # i on 1:P not i j with j + P on P+1:2P not i + P j + P
+    P = size(x, 1) ÷ 2
+    out = zeros(T, P, P)
+    for i = 1:P, j = i:P
+        out[i, j] = split_partial_spectra(
+            x,
+            i,
+            P + j,
+            view(1:P, Not(SVector(i, j))),
+            view((P+1):2P, Not(SVector(i, j))),
+            ntapers,
+        )
+        if i != j
+            out[j, i] = conj(out[i, j])
+        end
+    end
+    return out
+end
+
+function split_partial_spectra(x::SMatrix{4,4,T,16}, ntapers) where {T}
+    # assumes that the spectrum is for an even number of processes, and we want to give back all partial spectra of the form 
+    # i on 1:P not i j with j + P on P+1:2P not i + P j + P
+
+    
+    p11 = partial_spectra(x, 1, 3, 2, 4, ntapers)
+    p12 = x[1, 4]
+    p22 = partial_spectra(x, 2, 4, 1, 3, ntapers)
+
+    p21 = conj(p12)
+    return SMatrix{2,2,T,4}(p11, p21, p12, p22)
+end
+
+function split_partial_spectra(x::SMatrix{6,6,T,36}, ntapers) where {T}
+    # assumes that the spectrum is for an even number of processes, and we want to give back all partial spectra of the form 
+    # i on 1:P not i j with j + P on P+1:2P not i + P j + P
+
+    p11 = partial_spectra(x, 1, 4, SVector(2,3), SVector(5,6), ntapers)
+    p12 = partial_spectra(x, 1, 5, 3, 6, ntapers)
+    p13 = partial_spectra(x, 1, 6, 2, 5, ntapers)
+    p22 = partial_spectra(x, 2, 5, SVector(1,3), SVector(4,6), ntapers)
+    p23 = partial_spectra(x, 2, 6, 1, 4, ntapers)
+    p33 = partial_spectra(x, 3, 6, SVector(1,2), SVector(4,5), ntapers)
+
+    p21 = conj(p12)
+    p31 = conj(p13)
+    p32 = conj(p23)
+    return SMatrix{3,3,T,9}(p11, p21, p31, p12, p22, p32, p13, p23, p33)
+end
+
+function split_partial_spectra(x::SMatrix{8,8,T,64}, ntapers) where {T}
+    # assumes that the spectrum is for an even number of processes, and we want to give back all partial spectra of the form 
+    # i on 1:P not i j with j + P on P+1:2P not i + P j + P
+
+    p11 = partial_spectra(x, 1, 5, SVector(2,3,4), SVector(6,7,8), ntapers)
+    p12 = partial_spectra(x, 1, 6, SVector(3,4), SVector(7,8), ntapers)
+    p13 = partial_spectra(x, 1, 7, SVector(2,4), SVector(6,8), ntapers)
+    p14 = partial_spectra(x, 1, 8, SVector(2,3), SVector(6,7), ntapers)
+    p22 = partial_spectra(x, 2, 6, SVector(1,3,4), SVector(5,7,8), ntapers)
+    p23 = partial_spectra(x, 2, 7, SVector(1,4), SVector(5,8), ntapers)
+    p24 = partial_spectra(x, 2, 8, SVector(1,3), SVector(5,7), ntapers)
+    p33 = partial_spectra(x, 3, 7, SVector(1,2,4), SVector(5,6,8), ntapers)
+    p34 = partial_spectra(x, 3, 8, SVector(1,2), SVector(5,6), ntapers)
+    p44 = partial_spectra(x, 4, 8, SVector(1,2,3), SVector(5,6,7), ntapers)
+
+    p21 = conj(p12)
+    p31 = conj(p13)
+    p41 = conj(p14)
+    p32 = conj(p23)
+    p42 = conj(p24)
+    p43 = conj(p34)
+
+    return SMatrix{4,4,T}(p11, p21, p31, p41, p12, p22, p32, p42, p13, p23, p33, p43, p14, p24, p34, p44)
+end
+
+split_partial_spectra(x::SMatrix{10,10,T,100}, ntapers) where {T} = _split_partial_spectra_static(x, ntapers, Val{5}())
+
+function split_partial_spectra(x::SMatrix{Q,Q,T,N}, ntapers) where {Q,T,N}
+    P = Q ÷ 2
+    _split_partial_spectra_static(x, ntapers, Val{P}())
+end
+
+function _split_partial_spectra_static(x::SMatrix{Q,Q,T,N}, ntapers, ::Val{P}) where {Q,T,N,P}
+    function x_to_partial(i,j)
+        split_partial_spectra(
+            x,
+            i,
+            P + j,
+            view(1:P, Not(SVector(i, j))),
+            view((P+1):2P, Not(SVector(i, j))),
+            ntapers,
+        )
+    end
+    x_to_partial.(transpose(SOneTo(P)), SOneTo(P))
 end

@@ -19,18 +19,12 @@ function centered_L_function(l::LFunction{R,T,D,P}) where {R,T,D,P}
     return CenteredLFunction(l.radii, L2centeredL(l.radii, l.L_function), Val{D}())
 end
 
-function centered_L_function(l::LFunction{R,T,D,P}) where {R,T<:Dict,D,P}
-    L = Dict(index => L2centeredL(l.radii, val) for (index, val) in l.L_function)
-    return CenteredLFunction(l.radii, L, Val{D}())
-end
-
 centered_L_function(k::KFunction) = centered_L_function(L_function(k))
 
 function centered_L_function(
     data,
     region,
-    radii,
-    indices = default_indices(data);
+    radii;
     nfreq,
     fmax,
     tapers,
@@ -39,8 +33,7 @@ function centered_L_function(
     k = K_function(
         data,
         region,
-        radii,
-        indices;
+        radii;
         nfreq = nfreq,
         fmax = fmax,
         tapers = tapers,

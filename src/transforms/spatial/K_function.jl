@@ -29,14 +29,6 @@ function K_function(
     return KFunction(c.radii, C2K(c.radii, c.C_function, invλ, invλ, Val{D}()), Val{D}())
 end
 
-function K_function(c::CFunction{R,T,D,P}, λ) where {R,T<:Dict,D,P}
-    K = Dict(
-        index => C2K(c.radii, val, 1 / λ[index[1]], 1 / λ[index[2]], Val{D}()) for
-        (index, val) in c.C_function
-    )
-    return KFunction(c.radii, K, Val{D}())
-end
-
 function K_function(
     data,
     region,

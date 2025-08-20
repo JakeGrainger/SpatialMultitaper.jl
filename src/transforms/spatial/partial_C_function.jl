@@ -15,10 +15,8 @@ function partial_C_function(
     f::PartialSpectra{D,F,P,N},
     zero_atom,
     radii,
-    indices = default_indices(f),
 ) where {D,F,P,N}
-    check_spectral_indices(indices, f)
-    C = sdf2C(f, zero_atom, radii, indices)
+    C = sdf2C(f, zero_atom, radii)
     return PartialCFunction(radii, C, Val{D}())
 end
 
@@ -26,40 +24,21 @@ function partial_C_function(
     f::SpectralEstimate,
     zero_atom,
     radii,
-    indices = default_indices(f),
+    partial_type = UsualPartial()
 )
-    check_spectral_indices(indices, f)
-    partial_C_function(partial_spectra(f), zero_atom, radii, indices)
-end
-
-function partial_C_function(
-    f::SpectralEstimate{D,F,P,N},
-    zero_atom,
-    radii,
-    indices::AbstractVector{<:Tuple{Int,Int,AbstractVector{Int},AbstractVector{Int}}},
-) where {D,F,P,N}
-    check_spectral_indices(indices, f)
-    C = Dict(
-        index => sdf2C(
-            partial_spectra(f, index[1], index[2], index[3], index[4]),
-            (index[1] == index[2]) * zero_atom[index[1]],
-            radii,
-        ) for index in indices
-    )
-    return PartialCFunction(radii, C, Val{D}())
+    partial_C_function(partial_spectra(f, partial_type), zero_atom, radii)
 end
 
 function partial_C_function(
     data::Union{NTuple{P,Union{GeoTable,PointSet}},GeoTable,PointSet},
     region,
-    radii,
-    indices = default_indices(data);
+    radii;
     nfreq,
     fmax,
     tapers,
     mean_method::MeanEstimationMethod = DefaultMean(),
+    partial_type::PartialType = UsualPartial()
 ) where {P}
-    check_spectral_indices(indices, data)
     fhat = multitaper_estimate(
         data,
         region;
@@ -69,5 +48,5 @@ function partial_C_function(
         mean_method = mean_method,
     )
     zero_atom = atom_estimate(data, region)
-    return partial_C_function(fhat, zero_atom, radii, indices)
+    return partial_C_function(fhat, zero_atom, radii, partial_type)
 end

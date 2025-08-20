@@ -19,33 +19,28 @@ function partial_centered_L_function(l::PartialLFunction{R,T,D,P}) where {R,T,D,
     )
 end
 
-function partial_centered_L_function(l::PartialLFunction{R,T,D,P}) where {R,T<:Dict,D,P}
-    L = Dict(index => L2centeredL(l.radii, val) for (index, val) in l.partial_L_function)
-    return PartialCenteredLFunction(l.radii, L, Val{D}())
-end
-
 partial_centered_L_function(k::PartialKFunction) =
     partial_centered_L_function(partial_L_function(k))
 
 function partial_centered_L_function(
     data,
     region,
-    radii,
-    indices = default_indices(data);
+    radii;
     nfreq,
     fmax,
     tapers,
     mean_method::MeanEstimationMethod = DefaultMean(),
+    partial_type::PartialType = UsualPartial()
 )
     k = partial_K_function(
         data,
         region,
-        radii,
-        indices;
+        radii;
         nfreq = nfreq,
         fmax = fmax,
         tapers = tapers,
         mean_method = mean_method,
+        partial_type = partial_type
     )
     return partial_centered_L_function(k)
 end

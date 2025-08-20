@@ -15,9 +15,7 @@ function C_function(
     f::SpectralEstimate{D,F,1,N},
     zero_atom,
     radii,
-    indices::Nothing = default_indices(f),
 ) where {D,F,N}
-    check_spectral_indices(indices, f)
     C = sdf2C(f, zero_atom[1], radii) # one dimensional case, indexing `zero_atom` returns value if a number
     return CFunction(radii, C, Val{D}())
 end
@@ -26,24 +24,20 @@ function C_function(
     f::SpectralEstimate{D,F,P,N},
     zero_atom,
     radii,
-    indices = default_indices(f),
 ) where {D,F,P,N}
-    check_spectral_indices(indices, f)
-    C = sdf2C(f, zero_atom, radii, indices)
+    C = sdf2C(f, zero_atom, radii)
     return CFunction(radii, C, Val{D}())
 end
 
 function C_function(
     data,
     region,
-    radii,
-    indices = default_indices(data);
+    radii;
     nfreq,
     fmax,
     tapers,
     mean_method::MeanEstimationMethod = DefaultMean(),
 )
-    check_spectral_indices(indices, data)
     f = multitaper_estimate(
         data,
         region;
@@ -53,41 +47,33 @@ function C_function(
         mean_method = mean_method,
     )
     zero_atom = atom_estimate(data, region)
-    return C_function(f, zero_atom, radii, indices)
+    return C_function(f, zero_atom, radii)
 end
 
 
-function sdf2C(f, zero_atom, radii, indices)
-    C = Dict(
-        index =>
-            sdf2C(f[index...], zero_atom[index[1]] * (index[1] == index[2]), radii) for
-        index in indices
-    )
+function sdf2C(f, zero_atom::Number, radii)
+    _sdf2C(f, zero_atom, radii)
 end
 
-function sdf2C(f, zero_atom::Number, radii, ::Nothing)
-    sdf2C(f, zero_atom, radii)
-end
-
-function sdf2C(f, zero_atom, radii, ::Nothing)
-    sdf2C(f, diagm(SVector(zero_atom...)), radii)
+function sdf2C(f, zero_atom::Tuple, radii)
+    _sdf2C(f, diagm(SVector(zero_atom...)), radii)
 end
 
 """
-    sdf2C(f, zero_atom, radii::AbstractVector{<:Number})
+    _sdf2C(f, zero_atom, radii::AbstractVector{<:Number})
 
 Takes some form of spectra and returns the C function for each radius in `radii`.
 """
-function sdf2C(f, zero_atom, radii::AbstractVector{<:Number})
-    [sdf2C(f, zero_atom, radius) for radius in radii]
+function _sdf2C(f, zero_atom, radii::AbstractVector{<:Number})
+    [_sdf2C(f, zero_atom, radius) for radius in radii]
 end
 
 """
-    sdf2C(f, zero_atom, radius::Number)
+    _sdf2C(f, zero_atom, radius::Number)
 
 Takes some form of spectra and returns the C function for the `radius`.
 """
-function sdf2C(
+function _sdf2C(
     f::Union{SpectralEstimate{D,F,P,N},PartialSpectra{D,F,P,N}},
     zero_atom,
     radius::Number,

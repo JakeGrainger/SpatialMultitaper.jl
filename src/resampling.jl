@@ -145,7 +145,7 @@ function partial_K_resample(
     fmax,
 )
     function statistic(_data, _region)
-        split_partial_K_function(_data, _region, radii; tapers = tapers, nfreq = nfreq, fmax = fmax)
+        partial_K_function(_data, _region, radii; tapers = tapers, nfreq = nfreq, fmax = fmax, partial_type = SplitPartial())
     end
     partial_shift_resample(data, region, statistic, shift_method)
 end

@@ -32,14 +32,6 @@ function partial_K_function(
     )
 end
 
-function partial_K_function(c::PartialCFunction{R,T,D,P}, λ) where {R,T<:Dict,D,P}
-    K = Dict(
-        index => C2K(c.radii, val, 1 / λ[index[1]], 1 / λ[index[2]], Val{D}()) for
-        (index, val) in c.partial_C_function
-    )
-    return PartialKFunction(c.radii, K, Val{D}())
-end
-
 """
 	partial_K_function(data, region, radii, indices; nfreq, fmax, tapers, mean_method)
 
@@ -52,22 +44,22 @@ The residual of `index[1]` partial `index[3]` with `index[2]` partial `index[4]`
 function partial_K_function(
     data,
     region,
-    radii,
-    indices = default_indices(data);
+    radii;
     nfreq,
     fmax,
     tapers,
     mean_method::MeanEstimationMethod = DefaultMean(),
+    partial_type::PartialType = UsualPartial()
 )
     c = partial_C_function(
         data,
         region,
-        radii,
-        indices;
+        radii;
         nfreq = nfreq,
         fmax = fmax,
         tapers = tapers,
         mean_method = mean_method,
+        partial_type = partial_type
     )
     λ = mean_estimate(data, region, mean_method)
     return partial_K_function(c, λ)

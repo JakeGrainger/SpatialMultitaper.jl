@@ -40,6 +40,7 @@ include("transforms/usual/magnitude_coherence.jl")
 include("transforms/usual/magnitude_coherence2.jl")
 include("transforms/usual/phase.jl")
 
+include("transforms/partial.jl")
 include("transforms/partial/partial_complex_coherence.jl")
 include("transforms/partial/partial_magnitude_coherence.jl")
 include("transforms/partial/partial_magnitude_coherence2.jl")

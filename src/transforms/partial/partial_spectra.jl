@@ -62,20 +62,17 @@ function partial_spectra(x::AbstractMatrix, ntapers)
     return ntapers ./ denom .* p
 end
 
-function partial_spectra(spectrum::SpectralEstimate)
+partial_spectra(spectrum::SpectralEstimate) = partial_spectra(spectrum, UsualPartial())
+function partial_spectra(spectrum::SpectralEstimate, ::UsualPartial)
     return PartialSpectra(
         spectrum.freq,
         apply_transform(partial_spectra, spectrum.power, spectrum.ntapers),
     )
 end
-
-function partial_spectra(spectrum::SpectralEstimate, i1::Int, i2::Int, c1, c2)
-    function wrapped_partial_spectra(x)
-        partial_spectra(x, i1, i2, c1, c2, spectrum.ntapers)
-    end # maybe better to make a version of apply_transform for passing args...
+function partial_spectra(spectrum::SpectralEstimate, ::SplitPartial)
     return PartialSpectra(
         spectrum.freq,
-        apply_transform(wrapped_partial_spectra, spectrum.power),
+        apply_transform(split_partial_spectra, spectrum.power, spectrum.ntapers),
     )
 end
 
@@ -207,4 +204,11 @@ function _split_partial_spectra_static(x::SMatrix{Q,Q,T,N}, ntapers, ::Val{P}) w
         )
     end
     x_to_partial.(transpose(SOneTo(P)), SOneTo(P))
+end
+
+function split_partial_spectra(spectrum::SpectralEstimate)
+    return PartialSpectra(
+        spectrum.freq,
+        apply_transform(split_partial_spectra, spectrum.power, spectrum.ntapers),
+    )
 end

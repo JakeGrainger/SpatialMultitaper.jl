@@ -24,16 +24,10 @@ function L_function(k::KFunction{R,T,D,P}) where {R,T,D,P}
     return LFunction(k.radii, K2L(k.K_function, Val{D}()), Val{D}())
 end
 
-function L_function(k::KFunction{R,T,D,P}) where {R,T<:Dict,D,P}
-    L = Dict(index => K2L(val, Val{D}()) for (index, val) in k.K_function)
-    return LFunction(k.radii, L, Val{D}())
-end
-
 function L_function(
     data,
     region,
-    radii,
-    indices = default_indices(data);
+    radii;
     nfreq,
     fmax,
     tapers,
@@ -42,8 +36,7 @@ function L_function(
     k = K_function(
         data,
         region,
-        radii,
-        indices;
+        radii;
         nfreq = nfreq,
         fmax = fmax,
         tapers = tapers,

@@ -1,3 +1,4 @@
+# TODO: this will be redundent soon
 function check_spectral_indices(
     indices,
     input::Union{

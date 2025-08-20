@@ -11,7 +11,11 @@ getargument(f::PartialKFunction) = f.radii
 getestimate(f::PartialKFunction) = f.partial_K_function
 getextrafields(::PartialKFunction{R,T,D,P}) where {R,T,D,P} = (Val{D}(),)
 
-function partial_K_function(c::PartialCFunction{R,T,D,1}, λ) where {R,T,D}
+function partial_K_function(
+    c::PartialCFunction{R,T,D,1},
+    λ;
+    partial_type = UsualPartial(),
+) where {R,T,D}
     invλ = 1 / λ[1]
     return PartialKFunction(
         c.radii,
@@ -22,45 +26,54 @@ end
 
 function partial_K_function(
     c::PartialCFunction{R,T,D,P},
-    λ::NTuple{P,<:Number},
-) where {R,T<:AbstractArray,D,P}
-    invλ = diagm(1 ./ SVector(λ...))
+    λ::NTuple{Q,<:Number};
+    partial_type = UsualPartial(),
+) where {R,T<:AbstractArray,D,P,Q}
+    if partial_type isa UsualPartial
+        @assert Q == P "C function and λ should be the same size for UsualPartial"
+    else
+        @assert Q == P * 2 "λ should be twice the size of C function for  SplitPartial"
+    end
+
+    invλ1, invλ2 = prepare_inverse_lambda_for_K_function(λ, partial_type)
     return PartialKFunction(
         c.radii,
-        C2K(c.radii, c.partial_C_function, invλ, invλ, Val{D}()),
+        C2K(c.radii, c.partial_C_function, invλ1, invλ2, Val{D}()),
         Val{D}(),
     )
 end
 
-"""
-	partial_K_function(data, region, radii, indices; nfreq, fmax, tapers, mean_method)
+function prepare_inverse_lambda_for_K_function(λ, ::UsualPartial)
+    invλ = diagm(1 ./ SVector(λ...))
+    return invλ, invλ
+end
 
-Computes the partial K function from the `data` at radii `radii`.
-Default is to compute this for all pairs of indices conditional on any index not included.
-Alternatively, pass a vector of indices. If this is a vector of `Tuple{Int,Int}`, then this is computed partial on every other index.
-If this is a `Tuple{Int,Int,AbstractVector{Int},AbstractVector{Int}}`, then this is computed partial on the specified indices, i.e.
-The residual of `index[1]` partial `index[3]` with `index[2]` partial `index[4]`.
-"""
+function prepare_inverse_lambda_for_K_function(λ, ::SplitPartial)
+    invλ1 = diagm(1 ./ SVector(λ[1:end÷2]...))
+    invλ2 = diagm(1 ./ SVector(λ[end÷2+1:end]...))
+    return invλ1, invλ2
+end
+
 function partial_K_function(
     data,
-    region,
-    radii;
+    region;
+    radii,
     nfreq,
     fmax,
     tapers,
     mean_method::MeanEstimationMethod = DefaultMean(),
-    partial_type::PartialType = UsualPartial()
+    partial_type::PartialType = UsualPartial(),
 )
     c = partial_C_function(
         data,
-        region,
-        radii;
+        region;
+        radii = radii,
         nfreq = nfreq,
         fmax = fmax,
         tapers = tapers,
         mean_method = mean_method,
-        partial_type = partial_type
+        partial_type = partial_type,
     )
     λ = mean_estimate(data, region, mean_method)
-    return partial_K_function(c, λ)
+    return partial_K_function(c, λ, partial_type = partial_type)
 end

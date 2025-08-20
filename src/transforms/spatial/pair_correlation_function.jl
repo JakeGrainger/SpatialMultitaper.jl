@@ -79,9 +79,8 @@ end
 
 function paircorrelation_function(
     data,
-    region,
+    region;
     radii,
-    indices = default_indices(data);
     penalty = 0.0,
     method::PCFMethod = PCFMethodC(),
     nfreq,
@@ -91,9 +90,8 @@ function paircorrelation_function(
 )
     k = K_function(
         data,
-        region,
-        radii,
-        indices;
+        region;
+        radii = radii,
         nfreq = nfreq,
         fmax = fmax,
         tapers = tapers,
@@ -106,7 +104,7 @@ end
 # todo: update direct method to use faster SArray approach when possible
 function paircorrelation_function_direct(
     f::SpectralEstimate{D,F,P,N},
-    λ,
+    λ;
     radii,
     indices = default_indices(f),
 ) where {D,F,P,N}
@@ -119,9 +117,9 @@ end
 
 function paircorrelation_function_direct(
     data,
-    region,
+    region;
     radii,
-    indices = default_indices(data);
+    indices = default_indices(data),
     nfreq,
     fmax,
     tapers,
@@ -137,7 +135,7 @@ function paircorrelation_function_direct(
         mean_method = mean_method,
     )
     λ = mean_estimate(data, region, mean_method)
-    return paircorrelation_function_direct(f, λ, radii, indices)
+    return paircorrelation_function_direct(f, λ, radii = radii, indices = indices)
 end
 
 

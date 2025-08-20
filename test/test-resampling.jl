@@ -11,34 +11,33 @@ end
     region = Box(Point(0, 0), Point(3, 3))
     pattern = PointSet([Point(0, 0), Point(1, 1)])
     pattern2 = PointSet([Point(0.3, 0.2), Point(0.8, 0.4), Point(0.5, 0.5)])
+    pattern3 = PointSet([Point(0.1, 0.1), Point(0.2, 0.2), Point(0.3, 0.3)])
     tapers = sin_taper_family((3, 3), region)
     nfreq = (10, 10)
     fmax = (2, 2)
-    data = (pattern, pattern2)
+    data = (pattern, pattern2, pattern3)
     radii = 0.3:0.1:0.5
-    results = partial_K_resample(
+    results = partial_shift_resample(
         data,
         region,
-        radii;
-        shift_method = ToroidalShift(region),
+        partial_K_function,
+        ToroidalShift(region);
+        radii = radii,
         tapers = tapers,
         nfreq = nfreq,
         fmax = fmax,
     )
     @test results.radii == radii
-    @test results.partial_K_function isa Dict
-    @test all(x -> haskey(results.partial_K_function, x), [(1, 1), (1, 2), (2, 2)])
 
-    results = partial_K_resample(
+    results = partial_shift_resample(
         data,
         region,
-        radii;
-        shift_method = Spmt.StandardShift(Spmt.UniformShift((-0.1, -0.1), (0.1, 0.1))),
+        partial_K_function,
+        Spmt.StandardShift(Spmt.UniformShift((-0.1, -0.1), (0.1, 0.1)));
+        radii = radii,
         tapers = tapers,
         nfreq = nfreq,
         fmax = fmax,
     )
     @test results.radii == radii
-    @test results.partial_K_function isa Dict
-    @test all(x -> haskey(results.partial_K_function, x), [(1, 1), (1, 2), (2, 2)])
 end

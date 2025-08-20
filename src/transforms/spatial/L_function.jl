@@ -26,8 +26,8 @@ end
 
 function L_function(
     data,
-    region,
-    radii;
+    region;
+    radii,
     nfreq,
     fmax,
     tapers,
@@ -35,8 +35,8 @@ function L_function(
 )
     k = K_function(
         data,
-        region,
-        radii;
+        region;
+        radii = radii,
         nfreq = nfreq,
         fmax = fmax,
         tapers = tapers,

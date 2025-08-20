@@ -23,8 +23,8 @@ centered_L_function(k::KFunction) = centered_L_function(L_function(k))
 
 function centered_L_function(
     data,
-    region,
-    radii;
+    region;
+    radii,
     nfreq,
     fmax,
     tapers,

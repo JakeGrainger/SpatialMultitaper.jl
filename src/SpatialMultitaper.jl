@@ -98,7 +98,7 @@ export multitaper_estimate,
     partial_paircorrelation_function_direct,
     shift_resample,
     ToroidalShift,
-    partial_K_resample,
+    partial_shift_resample,
     make_tapers,
     taper_ft,
     check_tapers_for_data

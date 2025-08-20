@@ -17,23 +17,23 @@ end
 
 function partial_L_function(
     data,
-    region,
-    radii;
+    region;
+    radii,
     nfreq,
     fmax,
     tapers,
     mean_method::MeanEstimationMethod = DefaultMean(),
-    partial_type::PartialType = UsualPartial()
+    partial_type::PartialType = UsualPartial(),
 )
     k = partial_K_function(
         data,
-        region,
-        radii;
+        region;
+        radii = radii,
         nfreq = nfreq,
         fmax = fmax,
         tapers = tapers,
         mean_method = mean_method,
-        partial_type = partial_type
+        partial_type = partial_type,
     )
     return partial_L_function(k)
 end

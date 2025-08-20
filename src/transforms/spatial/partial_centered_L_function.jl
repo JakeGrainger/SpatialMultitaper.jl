@@ -24,8 +24,8 @@ partial_centered_L_function(k::PartialKFunction) =
 
 function partial_centered_L_function(
     data,
-    region,
-    radii;
+    region;
+    radii,
     nfreq,
     fmax,
     tapers,
@@ -34,8 +34,8 @@ function partial_centered_L_function(
 )
     k = partial_K_function(
         data,
-        region,
-        radii;
+        region;
+        radii = radii,
         nfreq = nfreq,
         fmax = fmax,
         tapers = tapers,

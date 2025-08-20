@@ -11,28 +11,20 @@ getargument(f::CFunction) = f.radii
 getestimate(f::CFunction) = f.C_function
 getextrafields(::CFunction{R,T,D,P}) where {R,T,D,P} = (Val{D}(),)
 
-function C_function(
-    f::SpectralEstimate{D,F,1,N},
-    zero_atom,
-    radii,
-) where {D,F,N}
+function C_function(f::SpectralEstimate{D,F,1,N}, zero_atom; radii) where {D,F,N}
     C = sdf2C(f, zero_atom[1], radii) # one dimensional case, indexing `zero_atom` returns value if a number
     return CFunction(radii, C, Val{D}())
 end
 
-function C_function(
-    f::SpectralEstimate{D,F,P,N},
-    zero_atom,
-    radii,
-) where {D,F,P,N}
+function C_function(f::SpectralEstimate{D,F,P,N}, zero_atom; radii) where {D,F,P,N}
     C = sdf2C(f, zero_atom, radii)
     return CFunction(radii, C, Val{D}())
 end
 
 function C_function(
     data,
-    region,
-    radii;
+    region;
+    radii,
     nfreq,
     fmax,
     tapers,
@@ -47,7 +39,7 @@ function C_function(
         mean_method = mean_method,
     )
     zero_atom = atom_estimate(data, region)
-    return C_function(f, zero_atom, radii)
+    return C_function(f, zero_atom, radii = radii)
 end
 
 

@@ -42,9 +42,8 @@ end
 
 function partial_paircorrelation_function(
     data,
-    region,
+    region;
     radii,
-    indices = default_indices(data);
     penalty = 0.0,
     method::PCFMethod = PCFMethodC(),
     nfreq,
@@ -54,9 +53,8 @@ function partial_paircorrelation_function(
 )
     k = partial_K_function(
         data,
-        region,
-        radii,
-        indices;
+        region;
+        radii = radii,
         nfreq = nfreq,
         fmax = fmax,
         tapers = tapers,
@@ -69,7 +67,7 @@ end
 
 function partial_paircorrelation_function_direct(
     f::PartialSpectra{D,F,P,N},
-    λ,
+    λ;
     radii,
     indices = default_indices(f),
 ) where {D,F,P,N}
@@ -82,11 +80,16 @@ end
 
 function partial_paircorrelation_function_direct(
     f::SpectralEstimate,
-    λ,
+    λ;
     radii,
     indices::AbstractVector{Tuple{Int,Int}} = default_indices(f),
 )
-    partial_paircorrelation_function_direct(partial_spectra(f), λ, radii, indices)
+    partial_paircorrelation_function_direct(
+        partial_spectra(f),
+        λ,
+        radii = radii,
+        indices = indices,
+    )
 end
 
 function partial_paircorrelation_function_direct(

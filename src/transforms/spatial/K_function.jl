@@ -31,9 +31,8 @@ end
 
 function K_function(
     data,
-    region,
+    region;
     radii,
-    indices = default_indices(data);
     nfreq,
     fmax,
     tapers,
@@ -41,9 +40,8 @@ function K_function(
 )
     c = C_function(
         data,
-        region,
-        radii,
-        indices;
+        region;
+        radii = radii,
         nfreq = nfreq,
         fmax = fmax,
         tapers = tapers,

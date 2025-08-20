@@ -110,15 +110,16 @@ marginal_shift(pp::PointSet, shift_method::StandardShift) =
 function shift_resample(
     data::NTuple{P,S},
     region,
-    groups,
     statistic,
     shift_method::ShiftMethod,
+    groups = 1:P;
+    kwargs...,
 ) where {P,S}
     @assert sort(reduce(vcat, groups)) == 1:P "groups of shifts should partition the space"
     group_shifts = Dict(group => rand(shift_method) for group in groups)
     shifted_processes =
         ntuple(p -> marginal_shift(data[p], group_shifts[findgroup(p, groups)]), Val{P}())
-    statistic(shifted_processes, region)
+    statistic(shifted_processes, region; kwargs...)
 end
 
 findgroup(p, groups) = groups[findfirst(g -> p ∈ g, groups)]
@@ -128,26 +129,20 @@ function partial_shift_resample(
     data::NTuple{P,S},
     region,
     statistic,
-    shift_method::ShiftMethod,
+    shift_method::ShiftMethod;
+    kwargs...,
 ) where {P,S}
     groups = [1:P, P+1:2P]
     augmented_data = (data..., deepcopy(data)...)
-    return shift_resample(augmented_data, region, groups, statistic, shift_method)
-end
-
-function partial_K_resample(
-    data::NTuple,
-    region,
-    radii;
-    shift_method::ShiftMethod,
-    tapers,
-    nfreq,
-    fmax,
-)
-    function statistic(_data, _region)
-        partial_K_function(_data, _region, radii; tapers = tapers, nfreq = nfreq, fmax = fmax, partial_type = SplitPartial())
-    end
-    partial_shift_resample(data, region, statistic, shift_method)
+    return shift_resample(
+        augmented_data,
+        region,
+        statistic,
+        shift_method,
+        groups;
+        partial_type = SplitPartial(),
+        kwargs...,
+    )
 end
 
 ## freq domain null resampling

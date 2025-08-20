@@ -10,41 +10,65 @@ data = (pattern, pattern2, pattern3)
 radii = 0.3:0.1:1.0
 
 
-results = C_function(pattern, region, radii; tapers = tapers, nfreq = nfreq, fmax = fmax)
+results =
+    C_function(pattern, region; radii = radii, tapers = tapers, nfreq = nfreq, fmax = fmax)
 @test results isa Spmt.CFunction
-results = K_function(pattern, region, radii; tapers = tapers, nfreq = nfreq, fmax = fmax)
+results =
+    K_function(pattern, region; radii = radii, tapers = tapers, nfreq = nfreq, fmax = fmax)
 @test results isa Spmt.KFunction
-results = L_function(pattern, region, radii; tapers = tapers, nfreq = nfreq, fmax = fmax)
+results =
+    L_function(pattern, region; radii = radii, tapers = tapers, nfreq = nfreq, fmax = fmax)
 @test results isa Spmt.LFunction
 @test results.L_function .- results.radii ==
       centered_L_function(results).centered_L_function
 
-results = C_function(data, region, radii; tapers = tapers, nfreq = nfreq, fmax = fmax)
+results =
+    C_function(data, region; radii = radii, tapers = tapers, nfreq = nfreq, fmax = fmax)
 @test results isa Spmt.CFunction
 @test results[1, 2].C_function isa Vector{Float64}
 @test results[1, 2].C_function == getindex.(Spmt.getestimate(results), 1, 2)
 
-results = K_function(data, region, radii; tapers = tapers, nfreq = nfreq, fmax = fmax)
+results =
+    K_function(data, region; radii = radii, tapers = tapers, nfreq = nfreq, fmax = fmax)
 @test results isa Spmt.KFunction
-results = L_function(data, region, radii; tapers = tapers, nfreq = nfreq, fmax = fmax)
+results =
+    L_function(data, region; radii = radii, tapers = tapers, nfreq = nfreq, fmax = fmax)
 @test results isa Spmt.LFunction
 
-results =
-    partial_C_function(data, region, radii; tapers = tapers, nfreq = nfreq, fmax = fmax)
+results = partial_C_function(
+    data,
+    region;
+    radii = radii,
+    tapers = tapers,
+    nfreq = nfreq,
+    fmax = fmax,
+)
 @test results isa Spmt.PartialCFunction
 
-results =
-    partial_K_function(data, region, radii; tapers = tapers, nfreq = nfreq, fmax = fmax)
+results = partial_K_function(
+    data,
+    region;
+    radii = radii,
+    tapers = tapers,
+    nfreq = nfreq,
+    fmax = fmax,
+)
 @test results isa Spmt.PartialKFunction
 
-results =
-    partial_L_function(data, region, radii; tapers = tapers, nfreq = nfreq, fmax = fmax)
+results = partial_L_function(
+    data,
+    region;
+    radii = radii,
+    tapers = tapers,
+    nfreq = nfreq,
+    fmax = fmax,
+)
 @test results isa Spmt.PartialLFunction
 
 results = paircorrelation_function(
     data,
-    region,
-    radii;
+    region;
+    radii = radii,
     tapers = tapers,
     nfreq = nfreq,
     fmax = fmax,
@@ -63,8 +87,8 @@ results = paircorrelation_function(
 
 results = partial_paircorrelation_function(
     data,
-    region,
-    radii;
+    region;
+    radii = radii,
     tapers = tapers,
     nfreq = nfreq,
     fmax = fmax,

@@ -475,6 +475,7 @@ function make_tapers(
     freq_generate_res_processed = process_res(freq_generate_res, bbox)
 
     grid = CartesianGrid(bbox.min, bbox.max, dims = space_res_processed)
+    # TODO: need to do some rounding here to make this more reliable
 
     freq_region = Ball(Meshes.Point(0, 0), bandwidth)
     @info "Computing tapers..."

@@ -486,6 +486,7 @@ function make_tapers(
         freq_res = freq_generate_res_processed,
         freq_downsample = nothing,
         tol = 1e-8,
+        check_grid = false,
     )
     @info "...tapers computed."
     ## process tapers

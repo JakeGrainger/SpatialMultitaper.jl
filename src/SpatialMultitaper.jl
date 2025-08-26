@@ -12,7 +12,8 @@ using Distributions,
     SpecialFunctions,
     StaticArrays,
     StatsBase,
-    ConstructionBase
+    ConstructionBase,
+    LazyArrays
 
 import BSplineKit
 

@@ -11,6 +11,7 @@ Function to compute the optimal tapers for a given `region`, `grid` and region i
 - `freq_res`: The oversampling to be used in frequency.
 - `real_tapers`: Optional argument to decided if real or complex tapers should be provided. Default is `true` which provides real tapers.
 - `tol`: Optional argument passed to the `eigs` function of `Arpack`. You likely need to play with this.
+- `check_grid`: Optional argument to decide if the grid should be checked for compatibility with the region. Default is `true`. Sometimes due to float error this can fail, so you may want to set this to `false` if you are sure the grid and region are compatible.
 
 # Note about errors:
 If you have an error, it is likely a convergence problem. Try setting a larger value for `tol`.
@@ -24,9 +25,12 @@ function optimaltapers(
     freq_downsample = nothing,
     real_tapers = true,
     tol = 0.0,
+    check_grid = true,
 )
     @assert embeddim(grid) == embeddim(region) "The region and grid must have the same number of dimensions."
-    @assert boundingbox(region) ⊆ boundingbox(grid) "The region of interest is not covered by the grid, please provide a bigger grid or smaller region."
+    if check_grid
+        @assert boundingbox(region) ⊆ boundingbox(grid) "The region of interest is not covered by the grid, please provide a bigger grid or smaller region. Note this could be due to floating point error."
+    end
     @assert embeddim(freq_region) == embeddim(region) "The region and freq_region must have the same number of dimensions."
     freq_res = checkfreqres(grid, freq_res)
 

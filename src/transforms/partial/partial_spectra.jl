@@ -58,7 +58,7 @@ end
 function partial_spectra(x::AbstractMatrix, ntapers::Int)
     p = partial_spectra(x, nothing)
     Q = size(x, 1)
-    denom = ntapers - Q + 2 - I # so that M - Q + 2 off diag and M - Q + 1 on diag
+    denom = ntapers .* ones(typeof(x)) .- Q .+ 2 - I # so that M - Q + 2 off diag and M - Q + 1 on diag
     return ntapers ./ denom .* p
 end
 

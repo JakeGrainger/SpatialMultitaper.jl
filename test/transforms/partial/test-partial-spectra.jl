@@ -30,3 +30,7 @@ for n = 4:2:10
     @test Spmt.split_partial_spectra(M[Spmt.SOneTo(n), Spmt.SOneTo(n)], nothing) ≈
           Spmt.split_partial_spectra(collect(M[1:n, 1:n]), nothing)
 end
+
+@test partial_spectra(one(Spmt.SMatrix{3,3,ComplexF64,9}), 5) ≈
+      (5 / 2) .* one(Spmt.SMatrix{3,3,ComplexF64,9})
+@test partial_spectra(Spmt.diagm(ones(5)), 5) ≈ (5 / 2) .* Spmt.diagm(ones(5))

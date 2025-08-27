@@ -55,11 +55,19 @@ function partial_spectra(x::SMatrix{2,2,T,4}, ::Nothing) where {T}
     )
 end
 
-function partial_spectra(x::AbstractMatrix, ntapers::Int)
+function partial_spectra(x::SMatrix{Q,Q,T,N}, ntapers::Int) where {Q,T,N}
     p = partial_spectra(x, nothing)
-    Q = size(x, 1)
     denom = ntapers .* ones(typeof(x)) .- Q .+ 2 - I # so that M - Q + 2 off diag and M - Q + 1 on diag
     return ntapers ./ denom .* p
+end
+
+function partial_spectra(x::AbstractMatrix{T}, ntapers::Int) where {T}
+    Q = size(x, 1)
+    p = partial_spectra(x, nothing)
+    for i in axes(p, 1), j in axes(p, 2)
+        @inbounds p[i, j] *= ntapers / (ntapers - Q + 2 - (i == j))
+    end
+    return p
 end
 
 partial_spectra(spectrum::SpectralEstimate; partial_type::PartialType = UsualPartial()) =
@@ -152,10 +160,10 @@ function _split_partial_spectra_static_single_row(
     ::Val{P},
     i,
 ) where {Q,T,N,P}
-    firsthalf = SOneTo(P)
     temp_idx = StaticArrays.sacollect(SVector{P,Int}, ApplyArray(vcat, 1:i-1, i+1:P, P + i))
     temp = partial_spectra(x[temp_idx, temp_idx], ntapers)
-    temp_diag = partial_spectra(x[[firsthalf; i + P], [firsthalf; i + P]], ntapers)
+    temp_diag_idx = StaticArrays.sacollect(SVector{P + 1,Int}, ApplyArray(vcat, 1:P, P + i))
+    temp_diag = partial_spectra(x[temp_diag_idx, temp_diag_idx], ntapers)
     out = [temp[end, 1:end-1]; temp_diag[i, end]]
     idx = StaticArrays.sacollect(SVector{P,Int}, ApplyArray(vcat, 1:i-1, P, i:P-1)) # because we want to put 1:i-1 from temp, then i from temp_diag, then the remainder of temp (i to P-1)
     return out[idx]

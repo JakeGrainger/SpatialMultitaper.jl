@@ -32,5 +32,5 @@ for n = 4:2:10
 end
 
 @test partial_spectra(one(Spmt.SMatrix{3,3,ComplexF64,9}), 5) ≈
-      (5 / 2) .* one(Spmt.SMatrix{3,3,ComplexF64,9})
-@test partial_spectra(Spmt.diagm(ones(5)), 5) ≈ (5 / 2) .* Spmt.diagm(ones(5))
+      (5 / 3) .* one(Spmt.SMatrix{3,3,ComplexF64,9})
+@test partial_spectra(Spmt.diagm(ones(3)), 5) ≈ (5 / 3) .* Spmt.diagm(ones(3))

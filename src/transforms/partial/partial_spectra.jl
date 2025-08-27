@@ -160,12 +160,13 @@ function _split_partial_spectra_static_single_row(
     ::Val{P},
     i,
 ) where {Q,T,N,P}
-    temp_idx = StaticArrays.sacollect(SVector{P,Int}, ApplyArray(vcat, 1:i-1, i+1:P, P + i))
+    temp_idx =
+        StaticArrays.sacollect(SVector{P,Int}, ApplyArray(vcat, 1:i-1, i+1:P, (P+i):(P+i))) # have to do the one length to avoid allocs
     temp = partial_spectra(x[temp_idx, temp_idx], ntapers)
     temp_diag_idx = StaticArrays.sacollect(SVector{P + 1,Int}, ApplyArray(vcat, 1:P, P + i))
     temp_diag = partial_spectra(x[temp_diag_idx, temp_diag_idx], ntapers)
-    out = [temp[end, 1:end-1]; temp_diag[i, end]]
-    idx = StaticArrays.sacollect(SVector{P,Int}, ApplyArray(vcat, 1:i-1, P, i:P-1)) # because we want to put 1:i-1 from temp, then i from temp_diag, then the remainder of temp (i to P-1)
+    out = [temp[P, SOneTo(P - 1)]; temp_diag[i, end]]
+    idx = StaticArrays.sacollect(SVector{P,Int}, ApplyArray(vcat, 1:i-1, P:P, i:P-1)) # because we want to put 1:i-1 from temp, then i from temp_diag, then the remainder of temp (i to P-1)
     return out[idx]
 end
 

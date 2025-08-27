@@ -116,7 +116,10 @@ function shift_resample(
     kwargs...,
 ) where {P,S}
     @assert sort(reduce(vcat, groups)) == 1:P "groups of shifts should partition the space"
-    group_shifts = Dict(group => rand(shift_method) for group in groups)
+    group_shifts = Dict{eltype(groups),ShiftMethod}(
+        group => rand(shift_method) for group in @view groups[2:end]
+    )
+    group_shifts[groups[1]] = NoShift()
     shifted_processes =
         ntuple(p -> marginal_shift(data[p], group_shifts[findgroup(p, groups)]), Val{P}())
     statistic(shifted_processes, region; kwargs...)

@@ -27,8 +27,18 @@ A = Spmt.@SMatrix randn(ComplexF64, 10, 10)
 M = A * A'
 
 for n = 4:2:10
-    @test Spmt.split_partial_spectra(M[Spmt.SOneTo(n), Spmt.SOneTo(n)], nothing) ≈
-          Spmt.split_partial_spectra(collect(M[1:n, 1:n]), nothing)
+    submatrix_smat = M[Spmt.SOneTo(n), Spmt.SOneTo(n)]
+    submatrix_mat = collect(submatrix_smat)
+    @test submatrix_smat isa Spmt.SMatrix{n,n,ComplexF64,n^2}
+    @test submatrix_mat isa Matrix{ComplexF64}
+    @test submatrix_smat ≈ submatrix_mat
+
+    p = n ÷ 2
+    p_from_smat = Spmt.split_partial_spectra(submatrix_smat, nothing)
+    p_from_mat = Spmt.split_partial_spectra(submatrix_mat, nothing)
+    @test p_from_smat isa Spmt.SMatrix{p,p,ComplexF64,p^2}
+    @test p_from_mat isa Matrix{ComplexF64}
+    @test p_from_smat ≈ p_from_mat
 end
 
 @test partial_spectra(one(Spmt.SMatrix{3,3,ComplexF64,9}), 5) ≈

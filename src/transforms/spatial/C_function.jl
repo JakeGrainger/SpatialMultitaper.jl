@@ -117,12 +117,17 @@ function _sdf2C(f::IsotropicEstimate{D,P}, zero_atom, radius::Number) where {D,P
     )
 end
 
+# function iso_weight(r, k, s, ::Val{2})
+#     halfs = s / 2
+#     π *
+#     r^2 *
+#     (
+#         (k + halfs) * pFq((1 / 2,), (3 / 2, 2), -π^2 * r^2 * (k + halfs)^2) -
+#         (k - halfs) * pFq((1 / 2,), (3 / 2, 2), -π^2 * r^2 * (k - halfs)^2)
+#     )
+# end
+
 function iso_weight(r, k, s, ::Val{2})
     halfs = s / 2
-    π *
-    r^2 *
-    (
-        (k + halfs) * pFq((1 / 2,), (3 / 2, 2), -π^2 * r^2 * (k + halfs)^2) -
-        (k - halfs) * pFq((1 / 2,), (3 / 2, 2), -π^2 * r^2 * (k - halfs)^2)
-    )
+    besselj0(2π * r * (k - halfs)) - besselj0(2π * r * (k + halfs))
 end

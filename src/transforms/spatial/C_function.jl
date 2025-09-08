@@ -11,12 +11,12 @@ getargument(f::CFunction) = f.radii
 getestimate(f::CFunction) = f.C_function
 getextrafields(::CFunction{R,T,D,P}) where {R,T,D,P} = (Val{D}(),)
 
-function C_function(f::SpectralEstimate{D,F,1,N}, zero_atom; radii) where {D,F,N}
+function C_function(f::AbstractEstimate{D,1,N}, zero_atom; radii) where {D,N}
     C = sdf2C(f, zero_atom[1], radii) # one dimensional case, indexing `zero_atom` returns value if a number
     return CFunction(radii, C, Val{D}())
 end
 
-function C_function(f::SpectralEstimate{D,F,P,N}, zero_atom; radii) where {D,F,P,N}
+function C_function(f::AbstractEstimate{D,P,N}, zero_atom; radii) where {D,P,N}
     C = sdf2C(f, zero_atom, radii)
     return CFunction(radii, C, Val{D}())
 end
@@ -29,8 +29,10 @@ function C_function(
     fmax,
     tapers,
     mean_method::MeanEstimationMethod = DefaultMean(),
+    freq_radii = default_rotational_radii(nfreq, fmax),
+    rotational_method = default_rotational_kernel(freq_radii),
 )
-    f = multitaper_estimate(
+    f_mt = multitaper_estimate(
         data,
         region;
         tapers = tapers,
@@ -38,6 +40,7 @@ function C_function(
         fmax = fmax,
         mean_method = mean_method,
     )
+    f = rotational_estimate(f_mt, radii = freq_radii, kernel = rotational_method) # just returns f_mt if NoRotational()
     zero_atom = atom_estimate(data, region)
     return C_function(f, zero_atom, radii = radii)
 end
@@ -94,4 +97,32 @@ function sphere_weight(r, u, ::Val{D}) where {D}
     x = norm(u)
     return (x < 1e-10) ? (unitless_measure(Ball(Point(ntuple(x -> 0, Val{D}())), r))) :
            (r / x)^(D / 2) * besselj(D / 2, 2π * r * x)
+end
+
+##
+"""
+    _sdf2C(f, zero_atom, radius::Number)
+
+Takes some form of spectra and returns the C function for the `radius`.
+"""
+function _sdf2C(f::IsotropicEstimate{D,P}, zero_atom, radius::Number) where {D,P}
+    freq = getargument(f)
+    spectra = getestimate(f)
+    spacing = step(freq)
+    real(
+        sum(
+            (s - zero_atom) * iso_weight(radius, k, spacing, Val{D}()) for
+            (s, k) in zip(spectra, freq)
+        ),
+    )
+end
+
+function iso_weight(r, k, s, ::Val{2})
+    halfs = s / 2
+    π *
+    r^2 *
+    (
+        (k + halfs) * pFq((1 / 2,), (3 / 2, 2), -π^2 * r^2 * (k + halfs)^2) -
+        (k - halfs) * pFq((1 / 2,), (3 / 2, 2), -π^2 * r^2 * (k - halfs)^2)
+    )
 end

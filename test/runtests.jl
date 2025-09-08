@@ -1,6 +1,6 @@
 using SpatialMultitaper
 import SpatialMultitaper as Spmt
-using Test
+using Test, QuadGK
 include("SpatialMultitaperTestingUtils.jl")
 using .SpatialMultitaperTestingUtils
 

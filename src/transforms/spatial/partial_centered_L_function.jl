@@ -30,7 +30,9 @@ function partial_centered_L_function(
     fmax,
     tapers,
     mean_method::MeanEstimationMethod = DefaultMean(),
-    partial_type::PartialType = UsualPartial()
+    partial_type::PartialType = UsualPartial(),
+    freq_radii = default_rotational_radii(nfreq, fmax),
+    rotational_method = default_rotational_kernel(freq_radii),
 )
     k = partial_K_function(
         data,
@@ -40,7 +42,9 @@ function partial_centered_L_function(
         fmax = fmax,
         tapers = tapers,
         mean_method = mean_method,
-        partial_type = partial_type
+        partial_type = partial_type,
+        freq_radii = freq_radii,
+        rotational_method = rotational_method,
     )
     return partial_centered_L_function(k)
 end

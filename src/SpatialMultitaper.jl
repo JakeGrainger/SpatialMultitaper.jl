@@ -13,7 +13,8 @@ using Distributions,
     StaticArrays,
     StatsBase,
     ConstructionBase,
-    LazyArrays
+    LazyArrays,
+    HypergeometricFunctions
 
 import BSplineKit
 
@@ -39,6 +40,7 @@ include("transforms/usual/complex_coherence.jl")
 include("transforms/usual/magnitude_coherence.jl")
 include("transforms/usual/magnitude_coherence2.jl")
 include("transforms/usual/phase.jl")
+include("transforms/usual/rotational.jl")
 
 include("transforms/partial.jl")
 include("transforms/atoms.jl")
@@ -80,6 +82,7 @@ export multitaper_estimate,
     magnitude_coherence,
     magnitude_coherence2,
     phase,
+    rotational_estimate,
     partial_spectra,
     partial_complex_coherence,
     partial_magnitude_coherence,

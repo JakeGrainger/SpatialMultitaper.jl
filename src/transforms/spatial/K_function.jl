@@ -37,6 +37,8 @@ function K_function(
     fmax,
     tapers,
     mean_method::MeanEstimationMethod = DefaultMean(),
+    freq_radii = default_rotational_radii(nfreq, fmax),
+    rotational_method = default_rotational_kernel(freq_radii),
 )
     c = C_function(
         data,
@@ -46,6 +48,8 @@ function K_function(
         fmax = fmax,
         tapers = tapers,
         mean_method = mean_method,
+        freq_radii = freq_radii,
+        rotational_method = rotational_method,
     )
     λ = mean_estimate(data, region, mean_method)
     return K_function(c, λ)

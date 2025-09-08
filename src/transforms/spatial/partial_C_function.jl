@@ -12,7 +12,7 @@ getestimate(f::PartialCFunction) = f.partial_C_function
 getextrafields(::PartialCFunction{R,T,D,P}) where {R,T,D,P} = (Val{D}(),)
 
 function partial_C_function(
-    f::PartialSpectra{D,F,P,N},
+    f::Union{PartialSpectra{D,F,P,N},IsotropicEstimate{D,P}},
     zero_atom;
     radii,
     partial_type = UsualPartial(),
@@ -26,9 +26,15 @@ function partial_C_function(
     zero_atom;
     radii,
     partial_type = UsualPartial(),
+    rotational_method = NoRotational(),
+    freq_radii = default_rotational_radii(f),
 )
     partial_C_function(
-        partial_spectra(f, partial_type = partial_type),
+        rotational_estimate(
+            partial_spectra(f, partial_type = partial_type),
+            radii = freq_radii,
+            kernel = rotational_method,
+        ),
         zero_atom;
         radii = radii,
         partial_type = partial_type,
@@ -52,6 +58,8 @@ function partial_C_function(
     tapers,
     mean_method::MeanEstimationMethod = DefaultMean(),
     partial_type::PartialType = UsualPartial(),
+    freq_radii = default_rotational_radii(nfreq, fmax),
+    rotational_method = default_rotational_kernel(freq_radii),
 ) where {P}
     fhat = multitaper_estimate(
         data,
@@ -62,5 +70,12 @@ function partial_C_function(
         mean_method = mean_method,
     )
     zero_atom = atom_estimate(data, region, partial_type)
-    return partial_C_function(fhat, zero_atom, partial_type = partial_type, radii = radii)
+    return partial_C_function(
+        fhat,
+        zero_atom,
+        partial_type = partial_type,
+        radii = radii,
+        rotational_method = rotational_method,
+        freq_radii = freq_radii,
+    )
 end

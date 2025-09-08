@@ -50,6 +50,8 @@ function partial_paircorrelation_function(
     fmax,
     tapers,
     mean_method::MeanEstimationMethod = DefaultMean(),
+    freq_radii = default_rotational_radii(nfreq, fmax),
+    rotational_method = default_rotational_kernel(freq_radii),
 )
     k = partial_K_function(
         data,
@@ -59,6 +61,8 @@ function partial_paircorrelation_function(
         fmax = fmax,
         tapers = tapers,
         mean_method = mean_method,
+        freq_radii = freq_radii,
+        rotational_method = rotational_method,
     )
     return partial_paircorrelation_function(k; penalty = penalty, method = method)
 end

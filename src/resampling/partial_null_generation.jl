@@ -111,12 +111,12 @@ function create_single_intensity(
     sides = grid2side(grid)
     data_dep = collect(data)[additional_processes]
     intensity = [
-        max(
+        max( # max of intensity and zero to avoid negative intensities
             base_intensity + sum(
                 sum(kernels_interp[j](norm(s .- unitless_coords(x))) for x in data_dep[j]) for j in eachindex(data_dep)
-            ) for s in Iterators.ProductIterator(sides)
-        ),
-        zero(eltype(base_intensity)),
+            ),
+            zero(eltype(base_intensity)),
+        ) for s in Iterators.ProductIterator(sides)
     ]
     return georef((intensity = vec(intensity),), grid)
 end

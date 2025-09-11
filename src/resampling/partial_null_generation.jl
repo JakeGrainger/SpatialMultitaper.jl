@@ -156,6 +156,7 @@ function movingaverage(x, width)
         end
         y[i] /= length(lo:hi)
     end
+    return y
 end
 
 

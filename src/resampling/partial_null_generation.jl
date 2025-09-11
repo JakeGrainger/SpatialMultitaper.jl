@@ -126,8 +126,17 @@ end
 
 function prediction_kernel(spec::SpectralEstimate; radii)
     kernel_ft = prediction_kernel_ft(spec)
-    kernels = _sdf2C.(Ref(kernel_ft.freq), kernel_ft.kernels, nothing, Ref(radii))
+    kernels = _ft2kernel.(Ref(kernel_ft.freq), kernel_ft.kernels, Ref(radii))
     return (radii = radii, kernels = kernels)
+end
+
+function _ft2kernel(freq::NTuple{D}, kernel_ft, radii) where {D}
+    transformed = _sdf2C(freq, kernel_ft, nothing, radii)
+    V = unitless_measure(Ball(Point(ntuple(x -> 0, Val{D}())), 1.0))
+    for i in eachindex(transformed)
+        transformed[i] = transformed[i] ./ (V * radii[i]^D) # divide out area of ball
+    end
+    return transformed
 end
 
 # commented out is for anisotropic version

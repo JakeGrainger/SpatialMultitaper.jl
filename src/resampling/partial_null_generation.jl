@@ -92,7 +92,9 @@ function create_single_intensity(idx, intensities, kernels_ft, J_n::NTuple{P}) w
         (i, ψ) in enumerate(kernels_ft.kernels[idx])
     ]
     intensity_partial =
-        λ .+ (length(power) * prod(step.(freq))) .* fftshift(ifft(ifftshift(freq_version)))
+        λ .+
+        (length(freq_version) * prod(step.(freq))) .*
+        fftshift(ifft(ifftshift(freq_version)))
     grid_sides = fftshift(fftfreq.(length.(freq), length.(freq) ./ step.(freq)))
     return georef(intensity_partial, side2grid(grid_sides))
 end

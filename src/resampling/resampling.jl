@@ -179,27 +179,32 @@ function partial_shift_resample(
         ),
         Val{P}(),
     )
-    return merge_marginal_and_cross_statistics(cross_statistics, marginal_statistics)
+    return merge_marginal_and_cross_statistics(marginal_statistics, cross_statistics)
 end
 
-function merge_marginal_and_cross_statistics(marginal, cross::NTuple{P}) where {P}
-    @assert typeof(marginal) == eltype(cross) "marginal and cross statistics should be the same type, but got $(typeof(marginal)) and $(eltype(cross))"
-    argument = getargument(marginal)
-    @assert all(getargument(c) == argument for c in cross) "marginal and cross statistics should have the same argument (values on which the function was evaluated)"
+function merge_marginal_and_cross_statistics(marginal::NTuple{P}, cross) where {P}
+    @assert typeof(cross) == eltype(marginal) "marginal and cross statistics should be the same type, but got $(typeof(cross)) and $(eltype(marginal))"
+    argument = getargument(cross)
+    @assert all(getargument(m) == argument for m in marginal) "marginal and cross statistics should have the same argument (values on which the function was evaluated)"
 
-    marginal_estimate = getestimate(marginal)
-    cross_estimates = ntuple(p -> getestimate(cross[p][p, p]), Val{P}())
-    combined_estimate = combine_estimate(marginal_estimate, cross_estimates)
-    return constructorof(marginal)(argument, combined_estimate, getextrafields(marginal)...)
+    cross_estimate = getestimate(cross)
+    marginal_estimates = ntuple(p -> getestimate(marginal[p][p, p]), Val{P}())
+    combined_estimate = combine_estimate(marginal_estimates, cross_estimate)
+    return constructorof(typeof(cross))(
+        argument,
+        combined_estimate,
+        getextrafields(cross)...,
+    )
 end
 
 function combine_estimate(
-    marginal_estimate::Array{N,SMatrix{P,P,T,L}},
-    cross_estimates::NTuple{P,Array{N,<:Number}},
+    marginal_estimates::NTuple{P,AbstractArray{<:Number,N}},
+    cross_estimate::Array{SMatrix{P,P,T,L},N},
 ) where {N,P,T,L}
     [
-        marginal_estimate[i] - diagm(diag(marginal_estimate[i])) +
-        diagm(SVector(getindex.(cross_estimates[i]))) for i in eachindex(marginal_estimate)
+        cross_estimate[i] - diagm(diag(cross_estimate[i])) +
+        diagm(SVector{P,T}(getindex.(marginal_estimates[i]))) for
+        i in eachindex(marginal_estimates)
     ]
 end
 

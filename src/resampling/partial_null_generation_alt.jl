@@ -37,6 +37,9 @@ function Base.rand(m::MarginalResampler)
     λ₀ = maximum(l for l in λ if !isnan(l))
     grid_min = first.(pts)
     proposal = rand(PoissonProcess(λ₀), region)
+    if isnothing(proposal)
+        return proposal
+    end
     thinned = eltype(proposal)[]
     for p ∈ proposal
         pcoords = SpatialMultitaper.unitless_coords(p)

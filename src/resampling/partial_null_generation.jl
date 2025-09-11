@@ -82,19 +82,17 @@ function create_intensities(
     )
 end
 
-function create_single_intensity(
-    idx,
-    intensities,
-    kernels_ft,
-    J_n::Array{D,SVector{P}},
-) where {D,P}
+function create_single_intensity(idx, intensities, kernels_ft, J_n::NTuple{P}) where {P}
     freq = kernels_ft.freq
     λ = intensities[idx]
     other_idx =
         StaticArrays.sacollect(SVector{P - 1,Int}, ApplyArray(vcat, 1:idx-1, idx+1:P))
-    freq_version = [λ + (K*J[other_idx])[1] for (K, J) in zip(kernels_ft.kernels[idx], J_n)]
+    freq_version = [
+        sum(ψ[j] * J_n[other_idx[j]][i] for j = 1:(P-1)) for
+        (i, ψ) in enumerate(kernels_ft.kernels[idx])
+    ]
     intensity_partial =
-        (length(power) * prod(step.(freq))) .* fftshift(ifft(ifftshift(freq_version)))
+        λ .+ (length(power) * prod(step.(freq))) .* fftshift(ifft(ifftshift(freq_version)))
     grid_sides = fftshift(fftfreq.(length.(freq), length.(freq) ./ step.(freq)))
     return georef(intensity_partial, side2grid(grid_sides))
 end

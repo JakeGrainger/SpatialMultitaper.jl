@@ -82,7 +82,12 @@ function create_intensities(
     )
 end
 
-function create_single_intensity(idx, intensities, kernels_ft, J_n)
+function create_single_intensity(
+    idx,
+    intensities,
+    kernels_ft,
+    J_n::Array{D,SVector{P}},
+) where {D,P}
     freq = kernels_ft.freq
     λ = intensities[idx]
     other_idx =

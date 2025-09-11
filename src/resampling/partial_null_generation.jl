@@ -116,7 +116,7 @@ function create_single_intensity(
             for j in eachindex(data_dep)
         ) for s in Iterators.ProductIterator(sides)
     ]
-    return georef((intensity = intensity,), grid)
+    return georef((intensity = vec(intensity),), grid)
 end
 
 function integrate_prediction_kernel(radii, kernel, ::Val{D}) where {D}

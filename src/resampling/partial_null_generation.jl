@@ -132,7 +132,7 @@ end
 
 function _ft2kernel(freq::NTuple{D}, kernel_ft, radii) where {D}
     smooth_width = 5 # TODO: shouldn't be hardcoded
-    return movavg(
+    return movingaverage(
         [
             prod(step, freq) * real(
                 sum(
@@ -143,6 +143,19 @@ function _ft2kernel(freq::NTuple{D}, kernel_ft, radii) where {D}
         ],
         smooth_width,
     )
+end
+
+function movingaverage(x, width)
+    y = similar(x)
+    for i in eachindex(x)
+        lo = max(1, i - div(width, 2))
+        hi = min(length(x), i + div(width, 2))
+        y[i] = zero(eltype(x))
+        for idx = lo:hi
+            y[i] += x[idx]
+        end
+        y[i] /= length(lo:hi)
+    end
 end
 
 

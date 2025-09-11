@@ -18,7 +18,6 @@ using Distributions,
     GeoStatsProcesses
 
 import BSplineKit
-import EasyFit: movavg
 
 include("SlepianSolver/SlepianSolver.jl")
 using .SlepianSolver

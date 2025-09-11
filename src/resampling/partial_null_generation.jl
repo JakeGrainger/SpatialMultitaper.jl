@@ -67,37 +67,84 @@ function create_intensities(
     grid,
     mean_method::MeanEstimationMethod = DefaultMean(),
 ) where {P}
-    mask.(data, Ref(region))
-    data, dim = check_spatial_data(data)
-    mean_method = check_mean_method(mean_method, data)
-    J_n = tapered_dft(data, tapers, nfreq, fmax, region, mean_method)
-    freq = make_freq(nfreq, fmax, dim)
-    power = dft2spectralmatrix(J_n)
-    spec = SpectralEstimate(freq, power, length(tapers))
-    intensities = mean_estimate.(data, Ref(region), mean_method)
-    kernels_ft = prediction_kernel_ft(spec)
-    return ntuple(
-        idx -> create_single_intensity(idx, intensities, kernels_ft, J_n),
+    spec = multitaper_estimate(data, region; tapers = tapers, nfreq = nfreq, fmax = fmax)
+    intensity = mean_estimate(data, region, mean_method)
+    kernels = prediction_kernel(spec, radii = radii)
+    kernel_integral =
+        integrate_prediction_kernel.(Ref(radii), kernels.kernels, Val{embeddim(region)}())
+    kernels_interp = ntuple(
+        j -> ntuple(
+            p -> linear_interpolation(
+                radii,
+                getindex.(kernels.kernels[j], p),
+                extrapolation_bc = 0.0,
+            ),
+            Val{P - 1}(),
+        ),
+        Val{P}(),
+    )
+    ntuple(
+        j -> create_single_intensity(
+            j,
+            intensity,
+            kernel_integral[j],
+            kernels_interp[j],
+            data,
+            grid,
+        ),
         Val{P}(),
     )
 end
 
-function create_single_intensity(idx, intensities, kernels_ft, J_n::NTuple{P}) where {P}
-    freq = kernels_ft.freq
-    λ = intensities[idx]
-    other_idx =
-        StaticArrays.sacollect(SVector{P - 1,Int}, ApplyArray(vcat, 1:idx-1, idx+1:P))
-    freq_version = [
-        sum(ψ[j] * J_n[other_idx[j]][i] for j = 1:(P-1)) for
-        (i, ψ) in enumerate(kernels_ft.kernels[idx])
+function create_single_intensity(
+    idx,
+    intensities,
+    kernel_integral,
+    kernels_interp,
+    data,
+    grid,
+)
+    additional_processes = Not(idx)
+    base_intensity =
+        intensities[idx] -
+        sum(kernel_integral .* collect(intensities)[additional_processes])
+    sides = grid2side(grid)
+    data_dep = collect(data)[additional_processes]
+    intensity = [
+        base_intensity + sum(
+            sum(kernels_interp[j](norm(s .- unitless_coords(x))) for x in data_dep[j])
+            for j in eachindex(data_dep)
+        ) for s in Iterators.ProductIterator(sides)
     ]
-    intensity_partial =
-        λ .+
-        (length(freq_version) * prod(step.(freq))) .*
-        fftshift(ifft(ifftshift(freq_version)))
-    grid_sides = fftshift.(fftfreq.(length.(freq), length.(freq) ./ step.(freq)))
-    return georef((intensity = vec(intensity_partial),), side2grid(grid_sides))
+    return georef((intensity = vec(intensity),), grid)
 end
+
+function integrate_prediction_kernel(radii, kernel, ::Val{D}) where {D}
+    A = 2 * pi^(D / 2) / gamma(D / 2)
+    return A * step(radii) * sum(k * r^(D - 1) for (k, r) in zip(kernel, radii))
+end
+
+function prediction_kernel(spec::SpectralEstimate; radii)
+    kernel_ft = prediction_kernel_ft(spec)
+    kernels = _ft2kernel.(Ref(kernel_ft.freq), kernel_ft.kernels, Ref(radii))
+    return (radii = radii, kernels = kernels)
+end
+
+function _ft2kernel(freq::NTuple{D}, kernel_ft, radii) where {D}
+    smooth_width = 5 # TODO: shouldn't be hardcoded
+    return movavg(
+        [
+            prod(step, freq) * real(
+                sum(
+                    f * pcf_weight(radius, k, Val{D}()) for
+                    (f, k) in zip(kernel_ft, Iterators.product(freq...))
+                ),
+            ) for radius in radii
+        ],
+        smooth_width,
+    )
+end
+
 
 # commented out is for anisotropic version
 # function prediction_kernel_ft2space(freq, power::AbstractArray{D,T}) where {D,T<:Number}

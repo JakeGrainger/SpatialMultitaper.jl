@@ -74,7 +74,7 @@ function create_intensities(
     freq = make_freq(nfreq, fmax, dim)
     power = dft2spectralmatrix(J_n)
     spec = SpectralEstimate(freq, power, length(tapers))
-    intensities = mean_estimate(data, region, mean_method)
+    intensities = mean_estimate.(data, Ref(region), mean_method)
     kernels_ft = prediction_kernel_ft(spec)
     return ntuple(
         idx -> create_single_intensity(idx, intensities, kernels_ft, J_n),
@@ -89,7 +89,7 @@ function create_single_intensity(idx, intensities, kernels_ft, J_n)
         StaticArrays.sacollect(SVector{P - 1,Int}, ApplyArray(vcat, 1:idx-1, idx+1:P))
     freq_version = [λ + (K*J[other_idx])[1] for (K, J) in zip(kernels_ft.kernels[idx], J_n)]
     intensity_partial =
-        (length(power) * prod(step.(freq))) .* fftshift(ifft(ifftshift(power)))
+        (length(power) * prod(step.(freq))) .* fftshift(ifft(ifftshift(freq_version)))
     grid_sides = fftshift(fftfreq.(length.(freq), length.(freq) ./ step.(freq)))
     return georef(intensity_partial, side2grid(grid_sides))
 end

@@ -15,7 +15,7 @@ mean_estimate(data::PointSet, region, mean_method) = mean_estimate(
 mean_estimate(data::GeoTable, region, mean_method) =
     mean_estimate(domain(data), values(data)[1], region, mean_method)
 
-function mean_estimate(points::PointSet, marks, region, ::DefaultMean)
+function mean_estimate(points::PointSet, marks::AbstractVector, region, ::DefaultMean)
     sum(marks[i] for i in eachindex(marks) if points[i] ∈ region) / unitless_measure(region)
 end
 

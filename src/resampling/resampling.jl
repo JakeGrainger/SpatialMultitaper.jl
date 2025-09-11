@@ -128,25 +128,101 @@ end
 findgroup(p, groups) = groups[findfirst(g -> p ∈ g, groups)]
 
 ##
+# function partial_shift_resample(
+#     data::NTuple,
+#     region,
+#     statistic,
+#     shift_method::ShiftMethod,
+#     marginal_sampler::Nothing = nothing;
+#     tapers,
+#     nfreq,
+#     fmax,
+#     sampler_radii,
+#     sampler_grid,
+#     kwargs...,
+# )
+#     partial_shift_resample(
+#         data,
+#         region,
+#         statistic,
+#         shift_method,
+#         marginal_sampler = MarginalResampler(
+#             data,
+#             region;
+#             tapers = tapers,
+#             nfreq = nfreq,
+#             fmax = fmax,
+#             radii = sampler_radii,
+#             grid = sampler_grid,
+#         );
+#         tapers,
+#         nfreq,
+#         fmax,
+#         kwargs...,
+#     )
+# end
+
 function partial_shift_resample(
     data::NTuple{P,S},
     region,
     statistic,
-    shift_method::ShiftMethod;
+    shift_method::ShiftMethod,
+    marginal_sampler::MarginalResampler;
     kwargs...,
 ) where {P,S}
-    groups = [1:P, P+1:2P]
-    augmented_data = (data..., deepcopy(data)...)
-    return shift_resample(
-        augmented_data,
-        region,
-        statistic,
-        shift_method,
-        groups;
-        partial_type = SplitPartial(),
-        kwargs...,
+    cross_statistics = shift_resample(data, region, statistic, shift_method; kwargs...)
+    marginal_statistics = ntuple(
+        p -> statistic(
+            (data[1:p-1]..., rand(marginal_sampler[p]), data[p+1:end]...),
+            region;
+            kwargs...,
+        ),
+        Val{P}(),
     )
+    return merge_marginal_and_cross_statistics(cross_statistics, marginal_statistics)
 end
+
+function merge_marginal_and_cross_statistics(marginal, cross::NTuple{P}) where {P}
+    @assert typeof(marginal) == eltype(cross) "marginal and cross statistics should be the same type, but got $(typeof(marginal)) and $(eltype(cross))"
+    argument = getargument(marginal)
+    @assert all(getargument(c) == argument for c in cross) "marginal and cross statistics should have the same argument (values on which the function was evaluated)"
+
+    marginal_estimate = getestimate(marginal)
+    cross_estimates = ntuple(p -> getestimate(cross[p][p, p]), Val{P}())
+    combined_estimate = combine_estimate(marginal_estimate, cross_estimates)
+    return constructorof(marginal)(argument, combined_estimate, getextrafields(marginal)...)
+end
+
+function combine_estimate(
+    marginal_estimate::Array{N,SMatrix{P,P,T,L}},
+    cross_estimates::NTuple{P,Array{N,<:Number}},
+) where {N,P,T,L}
+    [
+        marginal_estimate[i] - diagm(diag(marginal_estimate[i])) +
+        diagm(SVector(getindex.(cross_estimates[i]))) for i in eachindex(marginal_estimate)
+    ]
+end
+
+
+# function partial_shift_resample(
+#     data::NTuple{P,S},
+#     region,
+#     statistic,
+#     shift_method::ShiftMethod;
+#     kwargs...,
+# ) where {P,S}
+#     groups = [1:P, P+1:2P]
+#     augmented_data = (data..., deepcopy(data)...)
+#     return shift_resample(
+#         augmented_data,
+#         region,
+#         statistic,
+#         shift_method,
+#         groups;
+#         partial_type = SplitPartial(),
+#         kwargs...,
+#     )
+# end
 
 ## freq domain null resampling
 function multitaper_estimate_resampled(

@@ -17,11 +17,23 @@ end
     fmax = (2, 2)
     data = (pattern, pattern2, pattern3)
     radii = 0.3:0.1:0.5
+
+    resampler = Spmt.MarginalResampler(
+        data,
+        region;
+        tapers = tapers,
+        nfreq = nfreq,
+        fmax = fmax,
+        radii = 0:0.1:2,
+        grid = CartesianGrid(Point(-1, -1), Point(4, 4), dims = (100, 100)),
+    )
+
     results = partial_shift_resample(
         data,
         region,
         partial_K_function,
-        ToroidalShift(region);
+        ToroidalShift(region),
+        resampler;
         radii = radii,
         tapers = tapers,
         nfreq = nfreq,
@@ -33,7 +45,8 @@ end
         data,
         region,
         partial_K_function,
-        Spmt.StandardShift(Spmt.UniformShift((-0.1, -0.1), (0.1, 0.1)));
+        Spmt.StandardShift(Spmt.UniformShift((-0.1, -0.1), (0.1, 0.1))),
+        resampler;
         radii = radii,
         tapers = tapers,
         nfreq = nfreq,

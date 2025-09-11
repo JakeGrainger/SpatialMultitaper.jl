@@ -75,13 +75,35 @@ function _sdf2C(
 ) where {D,F,P,N}
     freq = getargument(f)
     spectra = getestimate(f)
+    _sdf2C(freq, spectra, zero_atom, radius)
+end
+
+function _sdf2C(
+    freq,
+    power::AbstractArray{<:SArray},
+    zero_atom,
+    radii::AbstractVector{<:Number},
+)
+    [_sdf2C(freq, power, zero_atom, radius) for radius in radii]
+end
+function _sdf2C(freq, power::AbstractArray{<:SArray}, zero_atom, radius::Number)
     prod(step, freq) * real(
         sum(
-            (s - zero_atom) * sphere_weight(radius, k, Val{D}()) for
-            (s, k) in zip(spectra, Iterators.product(freq...))
+            (s - zero_atom) * sphere_weight(radius, k, Val{length(freq)}()) for
+            (s, k) in zip(power, Iterators.product(freq...))
         ),
     )
 end
+
+function _sdf2C(freq, power::AbstractArray{<:SArray}, zero_atom::Nothing, radius::Number)
+    prod(step, freq) * real(
+        sum(
+            s * sphere_weight(radius, k, Val{length(freq)}()) for
+            (s, k) in zip(power, Iterators.product(freq...))
+        ),
+    )
+end
+
 
 function sphere_weight(r, u, ::Val{1})
     x = norm(u)

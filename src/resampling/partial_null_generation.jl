@@ -96,7 +96,7 @@ function create_single_intensity(idx, intensities, kernels_ft, J_n::NTuple{P}) w
         (length(freq_version) * prod(step.(freq))) .*
         fftshift(ifft(ifftshift(freq_version)))
     grid_sides = fftshift.(fftfreq.(length.(freq), length.(freq) ./ step.(freq)))
-    return georef(intensity_partial, side2grid(grid_sides))
+    return georef((intensity = vec(intensity_partial),), side2grid(grid_sides))
 end
 
 # commented out is for anisotropic version

@@ -203,7 +203,7 @@ function combine_estimate(
 ) where {N,P,T,L}
     [
         cross_estimate[i] - diagm(diag(cross_estimate[i])) +
-        diagm(SVector{P,T}(getindex.(marginal_estimates[i]))) for
+        diagm(SVector{P,T}(getindex.(marginal_estimates, i))) for
         i in eachindex(marginal_estimates)
     ]
 end

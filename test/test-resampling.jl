@@ -27,7 +27,6 @@ end
         radii = 0:0.01:2,
         grid = CartesianGrid(Point(-1, -1), Point(4, 4), dims = (100, 100)),
     )
-    println(typeof(rand(resampler[1])))
 
     results = partial_shift_resample(
         data,

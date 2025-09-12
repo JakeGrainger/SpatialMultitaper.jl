@@ -201,6 +201,7 @@ function combine_estimate(
     marginal_estimates::NTuple{P,AbstractArray{<:Number,N}},
     cross_estimate::Array{SMatrix{P,P,T,L},N},
 ) where {N,P,T,L}
+    @assert all(size(m) == size(cross_estimate) for m in marginal_estimates) "marginal and cross estimates should have the same size, but got $(size.(marginal_estimates)) and $(size(cross_estimate))"
     [
         cross_estimate[i] - diagm(diag(cross_estimate[i])) +
         diagm(SVector{P,T}(getindex.(marginal_estimates, i))) for

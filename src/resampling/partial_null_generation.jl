@@ -26,7 +26,7 @@ function MarginalResampler(
     return MarginalResampler(Λ, region)
 end
 
-function Base.rand(m::MarginalResampler)
+function Base.rand(rng::AbstractRNG, m::MarginalResampler)
     Λ, region = m.Λ, m.region
     @assert Λ isa GeoTable "you may need to index your MarginalResampler to get a single intensity, currently it is likely a collection of $(length(Λ)) intensities"
     λ = reshape(first(values(Λ)), size(domain(Λ)))
@@ -34,14 +34,14 @@ function Base.rand(m::MarginalResampler)
 
     λ₀ = maximum(l for l in λ if !isnan(l))
     grid_min = first.(pts)
-    proposal = rand(PoissonProcess(λ₀), region)
+    proposal = rand(rng, PoissonProcess(λ₀), region)
     thinned = eltype(proposal)[]
     for p ∈ proposal
         pcoords = SpatialMultitaper.unitless_coords(p)
         intensity_index = CartesianIndex(
             @. min(floor(Int, (pcoords - grid_min) / step(pts)) + 1, length(pts))
         )
-        if rand() ≤ λ[intensity_index] / λ₀
+        if rand(rng) ≤ λ[intensity_index] / λ₀
             push!(thinned, p)
         end
     end
@@ -111,9 +111,11 @@ function create_single_intensity(
     sides = grid2side(grid)
     data_dep = collect(data)[additional_processes]
     intensity = [
-        base_intensity + sum(
-            sum(kernels_interp[j](norm(s .- unitless_coords(x))) for x in data_dep[j])
-            for j in eachindex(data_dep)
+        max( # max of intensity and zero to avoid negative intensities
+            base_intensity + sum(
+                sum(kernels_interp[j](norm(s .- unitless_coords(x))) for x in data_dep[j]) for j in eachindex(data_dep)
+            ),
+            zero(eltype(base_intensity)),
         ) for s in Iterators.ProductIterator(sides)
     ]
     return georef((intensity = vec(intensity),), grid)
@@ -131,15 +133,34 @@ function prediction_kernel(spec::SpectralEstimate; radii)
 end
 
 function _ft2kernel(freq::NTuple{D}, kernel_ft, radii) where {D}
-    return [
-        prod(step, freq) * real(
-            sum(
-                f * pcf_weight(radius, k, Val{D}()) for
-                (f, k) in zip(kernel_ft, Iterators.product(freq...))
-            ),
-        ) for radius in radii
-    ]
+    smooth_width = 5 # TODO: shouldn't be hardcoded
+    return movingaverage(
+        [
+            prod(step, freq) * real(
+                sum(
+                    f * pcf_weight(radius, k, Val{D}()) for
+                    (f, k) in zip(kernel_ft, Iterators.product(freq...))
+                ),
+            ) for radius in radii
+        ],
+        smooth_width,
+    )
 end
+
+function movingaverage(x, width)
+    y = similar(x)
+    for i in eachindex(x)
+        lo = max(1, i - div(width, 2))
+        hi = min(length(x), i + div(width, 2))
+        y[i] = zero(eltype(x))
+        for idx = lo:hi
+            y[i] += x[idx]
+        end
+        y[i] /= length(lo:hi)
+    end
+    return y
+end
+
 
 # commented out is for anisotropic version
 # function prediction_kernel_ft2space(freq, power::AbstractArray{D,T}) where {D,T<:Number}

@@ -257,7 +257,7 @@ function checkinputs(argument::AbstractVector, estimate)
 end
 
 function checkinputs(argument::NTuple{D,F}, estimate::AbstractArray{<:Number,D}) where {D,F}
-    @assert length.(argument) == size(estimate)
+    @assert length.(argument) == size(estimate) "argument should have same length as each dimension of estimate, but got $(length.(argument)) and $(size(estimate))"
     return 1
 end
 

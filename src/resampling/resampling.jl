@@ -3,31 +3,31 @@ struct UniformShift{D,T} <: SpatialShift
     min::NTuple{D,T}
     max::NTuple{D,T}
 end
-Base.rand(u::UniformShift) = rand.(Uniform.(u.min, u.max))
+Base.rand(rng::AbstractRNG, u::UniformShift) = rand.(rng, Uniform.(u.min, u.max))
 
 struct UniformBallShift{D,T<:Number} <: SpatialShift
     max_shift::T
     UniformBallShift(max_shift::T, dim::Val{D}) where {T,D} = new{D,T}(max_shift)
 end
-function Base.rand(u::UniformBallShift{1})
-    return rand(Uniform(-u.max_shift, u.max_shift))
+function Base.rand(rng::AbstractRNG, u::UniformBallShift{1})
+    return rand(rng, Uniform(-u.max_shift, u.max_shift))
 end
-function Base.rand(u::UniformBallShift{2})
-    radius = rand(Uniform(0, u.max_shift))
-    angle = rand(Uniform(0, 2π))
+function Base.rand(rng::AbstractRNG, u::UniformBallShift{2})
+    radius = rand(rng, Uniform(0, u.max_shift))
+    angle = rand(rng, Uniform(0, 2π))
     return (radius * cos(angle), radius * sin(angle))
 end
-function Base.rand(u::UniformBallShift{3})
-    radius = rand(Uniform(0, u.max_shift))
-    theta = rand(Uniform(0, π))
-    phi = rand(Uniform(0, 2π))
+function Base.rand(rng::AbstractRNG, u::UniformBallShift{3})
+    radius = rand(rng, Uniform(0, u.max_shift))
+    theta = rand(rng, Uniform(0, π))
+    phi = rand(rng, Uniform(0, 2π))
     return (
         radius * sin(theta) * cos(phi),
         radius * sin(theta) * sin(phi),
         radius * cos(theta),
     )
 end
-Base.rand(u::UniformBallShift{D,T}) where {D,T} =
+Base.rand(rng::AbstractRNG, u::UniformBallShift{D,T}) where {D,T} =
     error("Unsupported dimension $D for UniformBallShift")
 
 
@@ -48,7 +48,8 @@ function ToroidalShift(box::Box)
         UniformShift(unitless_coords(centered_box.min), unitless_coords(centered_box.max)),
     )
 end
-Base.rand(shift::ToroidalShift) = ToroidalShift(shift.region, rand(shift.shift))
+Base.rand(rng::AbstractRNG, shift::ToroidalShift) =
+    ToroidalShift(shift.region, rand(rng, shift.shift))
 
 function toroidal_shift(pp::PointSet, region::Box, shift)
     return PointSet([toroidal_shift(p, region, shift) for p in pp])
@@ -78,7 +79,7 @@ A shift method that just applies a shift to all points. Does not make any assump
 """
 StandardShift
 
-Base.rand(shift::StandardShift) = StandardShift(rand(shift.shift))
+Base.rand(rng::AbstractRNG, shift::StandardShift) = StandardShift(rand(rng, shift.shift))
 
 marginal_shift(pp::PointSet, shift_method::StandardShift) =
     Translate(shift_method.shift...)(pp)
@@ -115,9 +116,29 @@ function shift_resample(
     groups = 1:P;
     kwargs...,
 ) where {P,S}
+    shift_resample(
+        Random.default_rng(),
+        data,
+        region,
+        statistic,
+        shift_method,
+        groups;
+        kwargs...,
+    )
+end
+
+function shift_resample(
+    rng::AbstractRNG,
+    data::NTuple{P,S},
+    region,
+    statistic,
+    shift_method::ShiftMethod,
+    groups = 1:P;
+    kwargs...,
+) where {P,S}
     @assert sort(reduce(vcat, groups)) == 1:P "groups of shifts should partition the space"
     group_shifts = Dict{eltype(groups),ShiftMethod}(
-        group => rand(shift_method) for group in @view groups[2:end]
+        group => rand(rng, shift_method) for group in @view groups[2:end]
     )
     group_shifts[groups[1]] = NoShift()
     shifted_processes =
@@ -161,7 +182,6 @@ findgroup(p, groups) = groups[findfirst(g -> p ∈ g, groups)]
 #         kwargs...,
 #     )
 # end
-
 function partial_shift_resample(
     data::NTuple{P,S},
     region,
@@ -170,36 +190,62 @@ function partial_shift_resample(
     marginal_sampler::MarginalResampler;
     kwargs...,
 ) where {P,S}
-    cross_statistics = shift_resample(data, region, statistic, shift_method; kwargs...)
+    partial_shift_resample(
+        Random.default_rng(),
+        data,
+        region,
+        statistic,
+        shift_method,
+        marginal_sampler;
+        kwargs...,
+    )
+end
+
+function partial_shift_resample(
+    rng::AbstractRNG,
+    data::NTuple{P,S},
+    region,
+    statistic,
+    shift_method::ShiftMethod,
+    marginal_sampler::MarginalResampler;
+    kwargs...,
+) where {P,S}
+    cross_statistics = shift_resample(rng, data, region, statistic, shift_method; kwargs...)
     marginal_statistics = ntuple(
         p -> statistic(
-            (data[1:p-1]..., rand(marginal_sampler[p]), data[p+1:end]...),
+            (data[1:p-1]..., rand(rng, marginal_sampler[p]), data[p+1:end]...),
             region;
             kwargs...,
         ),
         Val{P}(),
     )
-    return merge_marginal_and_cross_statistics(cross_statistics, marginal_statistics)
+    return merge_marginal_and_cross_statistics(marginal_statistics, cross_statistics)
 end
 
-function merge_marginal_and_cross_statistics(marginal, cross::NTuple{P}) where {P}
-    @assert typeof(marginal) == eltype(cross) "marginal and cross statistics should be the same type, but got $(typeof(marginal)) and $(eltype(cross))"
-    argument = getargument(marginal)
-    @assert all(getargument(c) == argument for c in cross) "marginal and cross statistics should have the same argument (values on which the function was evaluated)"
+function merge_marginal_and_cross_statistics(marginal::NTuple{P}, cross) where {P}
+    @assert typeof(cross) == eltype(marginal) "marginal and cross statistics should be the same type, but got $(typeof(cross)) and $(eltype(marginal))"
+    argument = getargument(cross)
+    @assert all(getargument(m) == argument for m in marginal) "marginal and cross statistics should have the same argument (values on which the function was evaluated)"
 
-    marginal_estimate = getestimate(marginal)
-    cross_estimates = ntuple(p -> getestimate(cross[p][p, p]), Val{P}())
-    combined_estimate = combine_estimate(marginal_estimate, cross_estimates)
-    return constructorof(marginal)(argument, combined_estimate, getextrafields(marginal)...)
+    cross_estimate = getestimate(cross)
+    marginal_estimates = ntuple(p -> getestimate(marginal[p][p, p]), Val{P}())
+    combined_estimate = combine_estimate(marginal_estimates, cross_estimate)
+    return constructorof(typeof(cross))(
+        argument,
+        combined_estimate,
+        getextrafields(cross)...,
+    )
 end
 
 function combine_estimate(
-    marginal_estimate::Array{N,SMatrix{P,P,T,L}},
-    cross_estimates::NTuple{P,Array{N,<:Number}},
+    marginal_estimates::NTuple{P,AbstractArray{<:Number,N}},
+    cross_estimate::Array{SMatrix{P,P,T,L},N},
 ) where {N,P,T,L}
+    @assert all(size(m) == size(cross_estimate) for m in marginal_estimates) "marginal and cross estimates should have the same size, but got $(size.(marginal_estimates)) and $(size(cross_estimate))"
     [
-        marginal_estimate[i] - diagm(diag(marginal_estimate[i])) +
-        diagm(SVector(getindex.(cross_estimates[i]))) for i in eachindex(marginal_estimate)
+        cross_estimate[i] - diagm(diag(cross_estimate[i])) +
+        diagm(SVector{P,T}(getindex.(marginal_estimates, i))) for
+        i in eachindex(cross_estimate)
     ]
 end
 

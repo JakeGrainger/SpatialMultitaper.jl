@@ -3,31 +3,31 @@ struct UniformShift{D,T} <: SpatialShift
     min::NTuple{D,T}
     max::NTuple{D,T}
 end
-Base.rand(u::UniformShift) = rand.(Uniform.(u.min, u.max))
+Base.rand(rng::AbstractRNG, u::UniformShift) = rand.(rng, Uniform.(u.min, u.max))
 
 struct UniformBallShift{D,T<:Number} <: SpatialShift
     max_shift::T
     UniformBallShift(max_shift::T, dim::Val{D}) where {T,D} = new{D,T}(max_shift)
 end
-function Base.rand(u::UniformBallShift{1})
-    return rand(Uniform(-u.max_shift, u.max_shift))
+function Base.rand(rng::AbstractRNG, u::UniformBallShift{1})
+    return rand(rng, Uniform(-u.max_shift, u.max_shift))
 end
-function Base.rand(u::UniformBallShift{2})
-    radius = rand(Uniform(0, u.max_shift))
-    angle = rand(Uniform(0, 2π))
+function Base.rand(rng::AbstractRNG, u::UniformBallShift{2})
+    radius = rand(rng, Uniform(0, u.max_shift))
+    angle = rand(rng, Uniform(0, 2π))
     return (radius * cos(angle), radius * sin(angle))
 end
-function Base.rand(u::UniformBallShift{3})
-    radius = rand(Uniform(0, u.max_shift))
-    theta = rand(Uniform(0, π))
-    phi = rand(Uniform(0, 2π))
+function Base.rand(rng::AbstractRNG, u::UniformBallShift{3})
+    radius = rand(rng, Uniform(0, u.max_shift))
+    theta = rand(rng, Uniform(0, π))
+    phi = rand(rng, Uniform(0, 2π))
     return (
         radius * sin(theta) * cos(phi),
         radius * sin(theta) * sin(phi),
         radius * cos(theta),
     )
 end
-Base.rand(u::UniformBallShift{D,T}) where {D,T} =
+Base.rand(rng::AbstractRNG, u::UniformBallShift{D,T}) where {D,T} =
     error("Unsupported dimension $D for UniformBallShift")
 
 
@@ -48,7 +48,7 @@ function ToroidalShift(box::Box)
         UniformShift(unitless_coords(centered_box.min), unitless_coords(centered_box.max)),
     )
 end
-Base.rand(shift::ToroidalShift) = ToroidalShift(shift.region, rand(shift.shift))
+Base.rand(rng::AbstractRNG, shift::ToroidalShift) = ToroidalShift(shift.region, rand(rng, shift.shift))
 
 function toroidal_shift(pp::PointSet, region::Box, shift)
     return PointSet([toroidal_shift(p, region, shift) for p in pp])
@@ -78,7 +78,7 @@ A shift method that just applies a shift to all points. Does not make any assump
 """
 StandardShift
 
-Base.rand(shift::StandardShift) = StandardShift(rand(shift.shift))
+Base.rand(rng::AbstractRNG, shift::StandardShift) = StandardShift(rand(rng, shift.shift))
 
 marginal_shift(pp::PointSet, shift_method::StandardShift) =
     Translate(shift_method.shift...)(pp)

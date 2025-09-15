@@ -15,7 +15,8 @@ using Distributions,
     ConstructionBase,
     LazyArrays,
     HypergeometricFunctions,
-    GeoStatsProcesses
+    GeoStatsProcesses,
+    Random
 
 import BSplineKit
 

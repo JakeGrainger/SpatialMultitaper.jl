@@ -48,7 +48,8 @@ function ToroidalShift(box::Box)
         UniformShift(unitless_coords(centered_box.min), unitless_coords(centered_box.max)),
     )
 end
-Base.rand(rng::AbstractRNG, shift::ToroidalShift) = ToroidalShift(shift.region, rand(rng, shift.shift))
+Base.rand(rng::AbstractRNG, shift::ToroidalShift) =
+    ToroidalShift(shift.region, rand(rng, shift.shift))
 
 function toroidal_shift(pp::PointSet, region::Box, shift)
     return PointSet([toroidal_shift(p, region, shift) for p in pp])
@@ -115,6 +116,26 @@ function shift_resample(
     groups = 1:P;
     kwargs...,
 ) where {P,S}
+    shift_resample(
+        Random.default_rng(),
+        data,
+        region,
+        statistic,
+        shift_method,
+        groups;
+        kwargs...,
+    )
+end
+
+function shift_resample(
+    rng::AbstractRNG,
+    data::NTuple{P,S},
+    region,
+    statistic,
+    shift_method::ShiftMethod,
+    groups = 1:P;
+    kwargs...,
+) where {P,S}
     @assert sort(reduce(vcat, groups)) == 1:P "groups of shifts should partition the space"
     group_shifts = Dict{eltype(groups),ShiftMethod}(
         group => rand(shift_method) for group in @view groups[2:end]
@@ -161,7 +182,6 @@ findgroup(p, groups) = groups[findfirst(g -> p ∈ g, groups)]
 #         kwargs...,
 #     )
 # end
-
 function partial_shift_resample(
     data::NTuple{P,S},
     region,
@@ -170,10 +190,30 @@ function partial_shift_resample(
     marginal_sampler::MarginalResampler;
     kwargs...,
 ) where {P,S}
-    cross_statistics = shift_resample(data, region, statistic, shift_method; kwargs...)
+    partial_shift_resample(
+        Random.default_rng(),
+        data,
+        region,
+        statistic,
+        shift_method,
+        marginal_sampler;
+        kwargs...,
+    )
+end
+
+function partial_shift_resample(
+    rng::AbstractRNG,
+    data::NTuple{P,S},
+    region,
+    statistic,
+    shift_method::ShiftMethod,
+    marginal_sampler::MarginalResampler;
+    kwargs...,
+) where {P,S}
+    cross_statistics = shift_resample(rng, data, region, statistic, shift_method; kwargs...)
     marginal_statistics = ntuple(
         p -> statistic(
-            (data[1:p-1]..., rand(marginal_sampler[p]), data[p+1:end]...),
+            (data[1:p-1]..., rand(rng, marginal_sampler[p]), data[p+1:end]...),
             region;
             kwargs...,
         ),

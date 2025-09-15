@@ -138,7 +138,7 @@ function shift_resample(
 ) where {P,S}
     @assert sort(reduce(vcat, groups)) == 1:P "groups of shifts should partition the space"
     group_shifts = Dict{eltype(groups),ShiftMethod}(
-        group => rand(shift_method) for group in @view groups[2:end]
+        group => rand(rng, shift_method) for group in @view groups[2:end]
     )
     group_shifts[groups[1]] = NoShift()
     shifted_processes =

@@ -26,7 +26,7 @@ function MarginalResampler(
     return MarginalResampler(Λ, region)
 end
 
-function Base.rand(m::MarginalResampler)
+function Base.rand(rng::AbstractRNG, m::MarginalResampler)
     Λ, region = m.Λ, m.region
     @assert Λ isa GeoTable "you may need to index your MarginalResampler to get a single intensity, currently it is likely a collection of $(length(Λ)) intensities"
     λ = reshape(first(values(Λ)), size(domain(Λ)))
@@ -34,14 +34,14 @@ function Base.rand(m::MarginalResampler)
 
     λ₀ = maximum(l for l in λ if !isnan(l))
     grid_min = first.(pts)
-    proposal = rand(PoissonProcess(λ₀), region)
+    proposal = rand(rng, PoissonProcess(λ₀), region)
     thinned = eltype(proposal)[]
     for p ∈ proposal
         pcoords = SpatialMultitaper.unitless_coords(p)
         intensity_index = CartesianIndex(
             @. min(floor(Int, (pcoords - grid_min) / step(pts)) + 1, length(pts))
         )
-        if rand() ≤ λ[intensity_index] / λ₀
+        if rand(rng) ≤ λ[intensity_index] / λ₀
             push!(thinned, p)
         end
     end

@@ -53,4 +53,65 @@ end
         fmax = fmax,
     )
     @test results.radii == radii
+
+    rng = Spmt.Random.MersenneTwister(1234)
+    resampled_data_1 = rand(rng, resampler[1])
+    rng = Spmt.Random.MersenneTwister(1234)
+    resampled_data_2 = rand(rng, resampler[1])
+    @test resampled_data_1 == resampled_data_2
+
+    rng = Spmt.Random.MersenneTwister(1234)
+    results1 = shift_resample(
+        rng,
+        data,
+        region,
+        K_function,
+        ToroidalShift(region);
+        radii = radii,
+        tapers = tapers,
+        nfreq = nfreq,
+        fmax = fmax,
+    )
+
+    rng = Spmt.Random.MersenneTwister(1234)
+    results2 = shift_resample(
+        rng,
+        data,
+        region,
+        K_function,
+        ToroidalShift(region);
+        radii = radii,
+        tapers = tapers,
+        nfreq = nfreq,
+        fmax = fmax,
+    )
+    @test results1.K_function == results2.K_function
+
+    rng = Spmt.Random.MersenneTwister(1234)
+    results1 = partial_shift_resample(
+        rng,
+        data,
+        region,
+        partial_K_function,
+        ToroidalShift(region),
+        resampler;
+        radii = radii,
+        tapers = tapers,
+        nfreq = nfreq,
+        fmax = fmax,
+    )
+    rng = Spmt.Random.MersenneTwister(1234)
+    results2 = partial_shift_resample(
+        rng,
+        data,
+        region,
+        partial_K_function,
+        ToroidalShift(region),
+        resampler;
+        radii = radii,
+        tapers = tapers,
+        nfreq = nfreq,
+        fmax = fmax,
+    )
+    @test results1.partial_K_function == results2.partial_K_function
 end

@@ -8,7 +8,7 @@ unitless_measure(region) = measure(region).val
 """
 	points2coords(points::PointSet)
 
-Converts PointSet to a tuple of view of reinterpreted arrays, whose `j'th entry is the `j`th coordinate of each of the points.
+Converts PointSet to a Tuple, whose `j'th entry is a vector of the `j`th element each point.
 """
 function points2coords(points::PointSet)
     points2coords(
@@ -29,7 +29,7 @@ end
 """
 	box2sides(box::Box)
 
-Converts a box to a tuple of tuples, whose `j'th entry is the `j`th coordinate of the minimum and maximum of the box.
+Converts a box to a tuple of tuples, whose `j'th entry is start and end of the `j`th side.
 """
 function box2sides(box::Box)
     return ntuple(
@@ -68,11 +68,11 @@ end
 	pad(x::AbstractArray{T,D}, n::NTuple{D,Int}) where {T,D}
 	pad(x::AbstractArray{T,D}, n::Int) where {T,D}
 
-Pad `x` with zeros to size `n`. 
+Pad `x` with zeros to size `n`.
 Note that `size(x) ≤ n` must hold, and the new array is of size `n` not `size(x).+n`.
 If an integer is provided for `n`, it is interpreted as `ntuple(d->n, Val{D}())`.
 """
-pad(x::AbstractArray{T,D}, n::Int) where {T,D} = pad(x, ntuple(d -> n, Val{D}()))
+pad(x::AbstractArray{T,D}, n::Int) where {T,D} = pad(x, ntuple(Returns(n), Val{D}()))
 function pad(x::AbstractArray{T,D}, n::NTuple{D,Int}) where {T,D}
     @assert all(size(x) .≤ n) "size(x) must be smaller than n"
     y = zeros(T, n)
@@ -100,8 +100,9 @@ Specify `spacing` as an `Int`, for same spacing in all dims.
 Specify `spacing` as an `NTuple{D,Int}` for different spacing.
 Specify `spacing=nothing` to just return `x`.
 """
-downsample(x::AbstractArray{T,D}, spacing::Int) where {D,T} =
+function downsample(x::AbstractArray{T,D}, spacing::Int) where {D,T}
     downsample(x, ntuple(d -> spacing, Val{D}()))
+end
 downsample(x::AbstractArray, ::Nothing) = x
 function downsample(x::AbstractArray{T,D}, spacing::NTuple{D,Int}) where {D,T}
     @assert all(0 .< spacing .< size(x))

@@ -25,7 +25,7 @@ end
         nfreq = nfreq,
         fmax = fmax,
         radii = 0:0.01:2,
-        grid = CartesianGrid(Point(-1, -1), Point(4, 4), dims = (100, 100)),
+        grid = CartesianGrid(Point(-1, -1), Point(4, 4), dims = (100, 100))
     )
 
     results = partial_shift_resample(
@@ -37,7 +37,7 @@ end
         radii = radii,
         tapers = tapers,
         nfreq = nfreq,
-        fmax = fmax,
+        fmax = fmax
     )
     @test results.radii == radii
 
@@ -50,7 +50,7 @@ end
         radii = radii,
         tapers = tapers,
         nfreq = nfreq,
-        fmax = fmax,
+        fmax = fmax
     )
     @test results.radii == radii
 
@@ -70,7 +70,7 @@ end
         radii = radii,
         tapers = tapers,
         nfreq = nfreq,
-        fmax = fmax,
+        fmax = fmax
     )
 
     rng = Spmt.Random.MersenneTwister(1234)
@@ -83,9 +83,21 @@ end
         radii = radii,
         tapers = tapers,
         nfreq = nfreq,
-        fmax = fmax,
+        fmax = fmax
+    )
+    results3 = shift_resample(
+        rng,
+        data,
+        region,
+        K_function,
+        ToroidalShift(region);
+        radii = radii,
+        tapers = tapers,
+        nfreq = nfreq,
+        fmax = fmax
     )
     @test results1.K_function == results2.K_function
+    @test results2.K_function !== results3.K_function
 
     rng = Spmt.Random.MersenneTwister(1234)
     results1 = partial_shift_resample(
@@ -98,7 +110,7 @@ end
         radii = radii,
         tapers = tapers,
         nfreq = nfreq,
-        fmax = fmax,
+        fmax = fmax
     )
     rng = Spmt.Random.MersenneTwister(1234)
     results2 = partial_shift_resample(
@@ -111,7 +123,20 @@ end
         radii = radii,
         tapers = tapers,
         nfreq = nfreq,
-        fmax = fmax,
+        fmax = fmax
+    )
+    results3 = partial_shift_resample(
+        rng,
+        data,
+        region,
+        partial_K_function,
+        ToroidalShift(region),
+        resampler;
+        radii = radii,
+        tapers = tapers,
+        nfreq = nfreq,
+        fmax = fmax
     )
     @test results1.partial_K_function == results2.partial_K_function
+    @test results2.partial_K_function !== results3.partial_K_function
 end

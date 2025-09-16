@@ -3,6 +3,9 @@ using SpatialMultitaper, Test, SafeTestsets
 @safetestset "utils" begin
     include("test-utils.jl")
 end
+@safetestset "fft_interface" begin
+    include("dft_interface/test-fft-interface.jl")
+end
 
 #=
 Don't add your tests to runtests.jl. Instead, create files named

@@ -33,7 +33,7 @@ viz(region)
 
 We can construct discrete tapers for this region using the `make_taper` function:
 ```@example octogon_taper
-    tapers = make_tapers(region, bandwidth = 3.5)
+    tapers, concentrations = make_tapers(region, bandwidth = 3.5)
 ```
 In this case, we obtain 12 well concentrated tapers within this bandwidth. We can visualize the tapers:
 ```@example octogon_taper

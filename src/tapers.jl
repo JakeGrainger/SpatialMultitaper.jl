@@ -1,20 +1,20 @@
 ## types
 
-struct DiscreteTaperSeq{T<:AbstractArray,G<:CartesianGrid}
+struct DiscreteTaperSeq{T <: AbstractArray, G <: CartesianGrid}
     taper::T
     grid::G
     function DiscreteTaperSeq(taper, grid)
-        @assert size(taper) == size(grid) "The taper must have the same size as the grid."
-        new{typeof(taper),typeof(grid)}(taper, grid)
+        @assert size(taper)==size(grid) "The taper must have the same size as the grid."
+        new{typeof(taper), typeof(grid)}(taper, grid)
     end
 end
 struct DiscreteTaperFT{H}
     taper_ft::H
     function DiscreteTaperFT(taper, grid, freq_res)
         freq_res = process_res(freq_res, boundingbox(grid))
-        ft_desc =
-            fft_anydomain(taper, grid, freq_res, 1 ./ (2 .* unitless_spacing(grid))) .*
-            prod(unitless_spacing(grid))
+        ft_desc = fft_anydomain(
+            taper, grid, freq_res, 1 ./ (2 .* unitless_spacing(grid))) .*
+                  prod(unitless_spacing(grid))
         freq = fftshift.(fftfreq.(size(ft_desc), inv.(unitless_spacing(grid))))
 
         ft_interp = linear_interpolation(freq, ft_desc, extrapolation_bc = Periodic())
@@ -26,20 +26,20 @@ struct InterpolatedTaperFunc{H}
     taper::H
 end
 
-struct InterpolatedTaperFT{H,G<:CartesianGrid}
+struct InterpolatedTaperFT{H, G <: CartesianGrid}
     taper_ft::H
     grid::G
 end
 
-struct Taper{F,H}
+struct Taper{F, H}
     taper::F
     taper_ft::H
 end
-const DiscreteTaper = Taper{<:DiscreteTaperSeq,<:DiscreteTaperFT}
-const InterpolatedTaper = Taper{<:InterpolatedTaperFunc,<:InterpolatedTaperFT}
-const ContinuousTaper = Union{InterpolatedTaper,Taper{<:Function,<:Function}}
+const DiscreteTaper = Taper{<:DiscreteTaperSeq, <:DiscreteTaperFT}
+const InterpolatedTaper = Taper{<:InterpolatedTaperFunc, <:InterpolatedTaperFT}
+const ContinuousTaper = Union{InterpolatedTaper, Taper{<:Function, <:Function}}
 
-struct TaperFamily{M,T<:NTuple{M,Taper}}
+struct TaperFamily{M, T <: NTuple{M, Taper}}
     tapers::T
 end
 Base.eachindex(taper::TaperFamily) = eachindex(taper.tapers)
@@ -48,10 +48,10 @@ Base.getindex(taper::TaperFamily, i) = taper.tapers[i]
 
 ## functions
 function discretetaper(
-    taper::AbstractArray,
-    grid::CartesianGrid;
-    freq_res = size(grid),
-    rescale = true,
+        taper::AbstractArray,
+        grid::CartesianGrid;
+        freq_res = size(grid),
+        rescale = true
 )
     @assert size(taper) == size(grid)
     taper_scaled = if rescale
@@ -72,10 +72,10 @@ end
 The L₂ inner product of interpolated sequences `g` and `h` recorded on grid `grid`.
 """
 function L2_inner_product_interpolated(
-    h::AbstractArray{T,D},
-    g::AbstractArray{T,D},
-    grid::CartesianGrid,
-) where {T,D}
+        h::AbstractArray{T, D},
+        g::AbstractArray{T, D},
+        grid::CartesianGrid
+) where {T, D}
     @assert size(h) == size(g) == size(grid)
 
     v_set = Iterators.product(ntuple(d -> 0:1, Val{D}())...)
@@ -83,27 +83,28 @@ function L2_inner_product_interpolated(
     h_padded = centerpad(h, 1)
 
     prod(unitless_spacing(grid)) * sum(
-        prod((1 + (v[d] == v_prime[d])) / 6 for d = 1:D) * sum(
-            gx * hx for (gx, hx) in zip(
-                view(g_padded, ntuple(d -> v[d] .+ (1:size(g, d).+1), Val{D}())...),
-                view(h_padded, ntuple(d -> v_prime[d] .+ (1:size(h, d).+1), Val{D}())...),
-            )
+        prod((1 + (v[d] == v_prime[d])) / 6 for d in 1:D) * sum(
+            gx * hx
+        for (gx, hx) in zip(
+            view(g_padded, ntuple(d -> v[d] .+ (1:(size(g, d) .+ 1)), Val{D}())...),
+            view(h_padded, ntuple(d -> v_prime[d] .+ (1:(size(h, d) .+ 1)), Val{D}())...)
+        )
         ) for v in v_set, v_prime in v_set
     )
 end
 
 function interpolate_tapers(raw_tapers, grid; freq_res = size(grid))
-    sides = grid2side(grid)
-    scaled_taper =
-        raw_tapers ./ sqrt(L2_inner_product_interpolated(raw_tapers, raw_tapers, grid))
+    sides = grid2sides(grid)
+    scaled_taper = raw_tapers ./
+                   sqrt(L2_inner_product_interpolated(raw_tapers, raw_tapers, grid))
     taper_interp = linear_interpolation(
         sides,
         scaled_taper,
-        extrapolation_bc = zero(eltype(raw_tapers)),
+        extrapolation_bc = zero(eltype(raw_tapers))
     )
     Taper(
         InterpolatedTaperFunc(taper_interp),
-        InterpolatedTaperFT(DiscreteTaperFT(scaled_taper, grid, freq_res), grid),
+        InterpolatedTaperFT(DiscreteTaperFT(scaled_taper, grid, freq_res), grid)
     )
 end
 
@@ -119,28 +120,33 @@ function taper_ft(taper::Taper, x)
     taper.taper_ft(x)
 end
 
-(f::InterpolatedTaperFunc)(x::NTuple{D,Real}) where {D,Real} = f.taper(x...)
-(f::InterpolatedTaperFunc)(x::NTuple{1,Real}) = f.taper(x[1])
-(f::InterpolatedTaperFunc)(x::NTuple{2,Real}) = f.taper(x[1], x[2])
-(f::InterpolatedTaperFunc)(x::NTuple{3,Real}) = f.taper(x[1], x[2], x[3])
+(f::InterpolatedTaperFunc)(x::NTuple{D, Real}) where {D, Real} = f.taper(x...)
+(f::InterpolatedTaperFunc)(x::NTuple{1, Real}) = f.taper(x[1])
+(f::InterpolatedTaperFunc)(x::NTuple{2, Real}) = f.taper(x[1], x[2])
+(f::InterpolatedTaperFunc)(x::NTuple{3, Real}) = f.taper(x[1], x[2], x[3])
 
-(f::InterpolatedTaperFT)(k::NTuple{D,Real}) where {D,Real} =
-    f.taper_ft(k) * prod(sinc(unitless_spacing(f.grid)[d] * k[d])^2 for d = 1:D)
+function (f::InterpolatedTaperFT)(k::NTuple{D, Real}) where {D, Real}
+    f.taper_ft(k) * prod(sinc(unitless_spacing(f.grid)[d] * k[d])^2 for d in 1:D)
+end
 
-(f::DiscreteTaperFT)(x::NTuple{D,Real}) where {D,Real} = f.taper_ft(x...)
-(f::DiscreteTaperFT)(x::NTuple{1,Real}) = f.taper_ft(x[1])
-(f::DiscreteTaperFT)(x::NTuple{2,Real}) = f.taper_ft(x[1], x[2])
-(f::DiscreteTaperFT)(x::NTuple{3,Real}) = f.taper_ft(x[1], x[2], x[3])
+(f::DiscreteTaperFT)(x::NTuple{D, Real}) where {D, Real} = f.taper_ft(x...)
+(f::DiscreteTaperFT)(x::NTuple{1, Real}) = f.taper_ft(x[1])
+(f::DiscreteTaperFT)(x::NTuple{2, Real}) = f.taper_ft(x[1], x[2])
+(f::DiscreteTaperFT)(x::NTuple{3, Real}) = f.taper_ft(x[1], x[2], x[3])
 
 ## show methods
-Base.show(io::IO, ::MIME"text/plain", taper::ContinuousTaper) =
+function Base.show(io::IO, ::MIME"text/plain", taper::ContinuousTaper)
     print(io, "A continuous taper function.")
-Base.show(io::IO, ::MIME"text/plain", taper::DiscreteTaper) =
+end
+function Base.show(io::IO, ::MIME"text/plain", taper::DiscreteTaper)
     print(io, "A discrete taper function.")
-Base.show(io::IO, ::MIME"text/plain", taper::InterpolatedTaper) =
+end
+function Base.show(io::IO, ::MIME"text/plain", taper::InterpolatedTaper)
     print(io, "A continuous interpolated taper function.")
-Base.show(io::IO, ::MIME"text/plain", taper::TaperFamily) =
+end
+function Base.show(io::IO, ::MIME"text/plain", taper::TaperFamily)
     print(io, "A family of $(length(taper)) taper functions.")
+end
 
 struct NoGrid end
 """
@@ -163,26 +169,24 @@ function tapers_on_grid(tapers::TaperFamily, ::NoGrid; freq_res = 500) # current
     return tapers
 end
 function tapers_on_grid(
-    tapers::TaperFamily{M},
-    grid::CartesianGrid;
-    freq_res = 500,
+        tapers::TaperFamily{M},
+        grid::CartesianGrid;
+        freq_res = 500
 ) where {M}
     return TaperFamily(
         ntuple(i -> single_taper_on_grid(tapers[i], grid; freq_res = freq_res), Val{M}()),
     )
 end
 function single_taper_on_grid(taper::ContinuousTaper, grid::CartesianGrid; freq_res = 500)
-    taper_evaluated = [taper(x) for x in Iterators.ProductIterator(grid2side(grid))]
+    taper_evaluated = reshape(
+        map(i -> taper(centroid(grid, i)), eachindex(grid)), size(grid))
     return discretetaper(taper_evaluated, grid, freq_res = freq_res, rescale = false) # don't rescale as taper transform gets rescaled later and we account for this in the norm
 end
 
 function tapers_normalisations(taper_families)
-    [
-        [
-            single_taper_normalisations(taper_families[j][i]) for
-            i in eachindex(taper_families[j])
-        ] for j in eachindex(taper_families)
-    ]
+    [[single_taper_normalisations(taper_families[j][i])
+      for
+      i in eachindex(taper_families[j])] for j in eachindex(taper_families)]
 end
 function single_taper_normalisations(::ContinuousTaper)
     1.0 # assumed normalised in this case
@@ -197,7 +201,7 @@ function taper_concentrations(taper_families, bandwidth; resolution = 100)
         length(first(taper_families)),
         length(first(taper_families)),
         length(taper_families),
-        length(taper_families),
+        length(taper_families)
     )
     for l in axes(concentrations, 4),
         k in axes(concentrations, 3),
@@ -209,7 +213,7 @@ function taper_concentrations(taper_families, bandwidth; resolution = 100)
                 taper_families[k][i],
                 taper_families[l][j],
                 bandwidth,
-                resolution = resolution,
+                resolution = resolution
             )
         else
             concentrations[i, j, k, l] = conj.(concentrations[j, i, l, k])
@@ -223,17 +227,15 @@ function single_taper_concentration(taper1, taper2, concentration_domain; resolu
     concentration_grid = CartesianGrid(
         minimum(concentration_bb),
         maximum(concentration_bb),
-        dims = resolution,
+        dims = resolution
     )
-    concentration =
-        prod(unitless_spacing(concentration_grid)) * sum(
-            taper_ft(taper1, x) * conj(taper_ft(taper2, x)) for
-            x in Iterators.ProductIterator(grid2side(concentration_grid)) if
-            Point(x) ∈ concentration_domain
-        )
-    return concentration
-end
+    concentration = sum(taper_ft(taper1, centroid(concentration_grid, i)) *
+                        conj(taper_ft(taper2, centroid(concentration_grid, i)))
+    for i in eachindex(concentration_grid)
+    if centroid(concentration_grid, i) ∈ concentration_domain)
 
+    return prod(unitless_spacing(concentration_grid)) * concentration
+end
 
 """
     choose_concentration_resolution(tapers_on_grids, concentration_region)
@@ -300,24 +302,23 @@ However, when using interpolated tapers, you may also need to increase the resol
 - `min_concentration`: The minimum concentration of the tapers before they are considered invalid and an error is thrown.
 """
 function check_tapers_for_data(
-    data,
-    tapers,
-    bandwidth;
-    freq_res = 1000,
-    tol = 1e-1,
-    min_concentration = 0.95,
+        data,
+        tapers,
+        bandwidth;
+        freq_res = 1000,
+        tol = 1e-1,
+        min_concentration = 0.95
 )
-    normalisations, concentrations =
-        taper_checks(data, tapers, bandwidth, freq_res = freq_res)
-    concentrations_diag = [
-        concentrations[i, i, k, l] for i in axes(concentrations, 1),
-        k in axes(concentrations, 3), l in axes(concentrations, 4)
-    ]
-    concentrations_off_diag = [
-        i == j ? zero(eltype(concentrations)) : concentrations[i, j, k, l] for
-        i in axes(concentrations, 1), j in axes(concentrations, 2),
-        k in axes(concentrations, 3), l in axes(concentrations, 4)
-    ]
+    normalisations, concentrations = taper_checks(
+        data, tapers, bandwidth, freq_res = freq_res)
+    concentrations_diag = [concentrations[i, i, k, l]
+                           for i in axes(concentrations, 1),
+    k in axes(concentrations, 3), l in axes(concentrations, 4)]
+    concentrations_off_diag = [i == j ? zero(eltype(concentrations)) :
+                               concentrations[i, j, k, l]
+                               for
+                               i in axes(concentrations, 1), j in axes(concentrations, 2),
+    k in axes(concentrations, 3), l in axes(concentrations, 4)]
     @assert all(x -> abs(x - 1) < tol, stack(normalisations)) "All tapers must have an L2 norm of 1, but found largest difference of $(maximum(x->abs(x-1), stack(normalisations)))"
     @assert all(x -> real(x) > min_concentration, concentrations_diag) "The worst taper concentration was $(minimum(x->real(x), concentrations_diag))"
     @assert all(x -> abs(x) < tol, concentrations_off_diag) "All tapers must have no cross-concentration, but found largest difference of $(maximum(x->abs(x), concentrations_off_diag))"
@@ -326,16 +327,16 @@ function check_tapers_for_data(
 end
 
 function taper_checks(data, tapers, bandwidth; freq_res = 500)
-    @assert bandwidth > 0 "Bandwidth must be positive"
+    @assert bandwidth>0 "Bandwidth must be positive"
 
     observational_types = unique(get_grid.(data))
-    tapers_on_grids =
-        [tapers_on_grid(tapers, grid; freq_res = freq_res) for grid in observational_types]
+    tapers_on_grids = [tapers_on_grid(tapers, grid; freq_res = freq_res)
+                       for grid in observational_types]
     concentration_region = Ball(Point(ntuple(i -> 0.0, _getdims(data[1]))), bandwidth)
     conc_res = choose_concentration_resolution(tapers_on_grids, concentration_region)
     normalisations = tapers_normalisations(tapers_on_grids) # checks on each family
-    concentrations =
-        taper_concentrations(tapers_on_grids, concentration_region; resolution = conc_res) # has to check across the sampled and non sampled versions
+    concentrations = taper_concentrations(
+        tapers_on_grids, concentration_region; resolution = conc_res) # has to check across the sampled and non sampled versions
     return normalisations, concentrations
 end
 
@@ -343,7 +344,7 @@ end
 """
 	interpolated_taper_family(raw_tapers, grid; freq_res=size(grid))
 
-Constructs a multitaper object from multiple taper discrete impulse responses on a grid. 
+Constructs a multitaper object from multiple taper discrete impulse responses on a grid.
 
 # Arguments
 - `raw_tapers`: A `Vector` of `AbstractArray`s containing the taper impulse response.
@@ -356,17 +357,17 @@ Constructs a multitaper object from multiple taper discrete impulse responses on
 	- interval `unitless_spacing(grid)/freq_res`.
 """
 function interpolated_taper_family(
-    raw_tapers::Vector{<:AbstractArray},
-    grid::CartesianGrid;
-    freq_res = size(grid),
+        raw_tapers::Vector{<:AbstractArray},
+        grid::CartesianGrid;
+        freq_res = size(grid)
 )
     check_interpolated_tapers_cross(raw_tapers, grid; tol = 1e-2)
 
     interpolated_tapers = TaperFamily(
         ntuple(
-            d -> interpolate_tapers(raw_tapers[d], grid, freq_res = freq_res),
-            length(raw_tapers),
-        ),
+        d -> interpolate_tapers(raw_tapers[d], grid, freq_res = freq_res),
+        length(raw_tapers)
+    ),
     )
     return interpolated_tapers
 end
@@ -378,18 +379,19 @@ Checks how much the interpolation changes the orthogonality of the tapers. If th
 """
 function check_interpolated_tapers_cross(raw_tapers, grid; tol = 1e-2)
     max_cross = maximum(
-        abs(L2_inner_product_interpolated(raw_tapers[i], raw_tapers[j], grid)) for
-        i in eachindex(raw_tapers) for j = i+1:length(raw_tapers)
+        abs(L2_inner_product_interpolated(raw_tapers[i], raw_tapers[j], grid))
+    for
+    i in eachindex(raw_tapers) for j in (i + 1):length(raw_tapers)
     )
     if max_cross > tol
         max_discrete_cross = maximum(
-            abs(sum(h * g for (h, g) in zip(raw_tapers[i], raw_tapers[j]))) for
-            i in eachindex(raw_tapers) for j = i+1:length(raw_tapers)
+            abs(sum(h * g for (h, g) in zip(raw_tapers[i], raw_tapers[j])))
+        for
+        i in eachindex(raw_tapers) for j in (i + 1):length(raw_tapers)
         )
         @warn "The tapers are significantly not orthogonal. The maximum cross-correlation is $max_cross. You may wish to increase the resolution of the grid used for the discrete tapers, or check that the discrete tapers are orthogonal (the discrete tapers has a max-cross L2 norm of $max_discrete_cross)."
     end
 end
-
 
 """
 	make_sin_tapers(lbw, region::Box, gridsize)
@@ -407,8 +409,8 @@ h_m(x) = \\sqrt{2} * \\sin(πxm)
 ```
 """
 function sin_taper_family(ntapers, region::Box)
-    tapers =
-        [make_sin_taper(d, region) for d in Iterators.ProductIterator(range.(1, ntapers))]
+    tapers = [make_sin_taper(d, region)
+              for d in Iterators.ProductIterator(range.(1, ntapers))]
     TaperFamily(ntuple(d -> tapers[d], length(tapers)))
 end
 
@@ -418,12 +420,13 @@ function make_sin_taper(m, region)
     phase = exp(-2π * 1im * sum(region_start))
     function _single_sin_taper(x)
         prod(
-            sin_taper(x[d] - region_start[d], m[d], region_sides[d]) for
-            d = 1:embeddim(region)
+            sin_taper(x[d] - region_start[d], m[d], region_sides[d])
+        for
+        d in 1:embeddim(region)
         )
     end
     function _single_sin_taper_ft(k)
-        prod(sin_ft(k[d], m[d], region_sides[d]) for d = 1:embeddim(region)) * phase
+        prod(sin_ft(k[d], m[d], region_sides[d]) for d in 1:embeddim(region)) * phase
     end
     return Taper(_single_sin_taper, _single_sin_taper_ft)
 end
@@ -447,7 +450,7 @@ sin_ft(k, m, l) = sin_ft_base(k * l, m) * sqrt(l)
     make_tapers(region; bandwidth, threshold = 0.99, space_res = 100, freq_res = 500, freq_generate_res = 500, ntapers_max = 30)
 
 A function to create tapers for a given region.
-	
+
 # Arguments
 - `region`: The region to create the tapers on.
 - `bandwidth`: The bandwidth of the tapers
@@ -457,17 +460,17 @@ A function to create tapers for a given region.
 - `freq_generate_res`: The resolution of the frequency grid to generate the tapers on.
 - `ntapers_max`: The maximum number of tapers to generate.
 
-As a rough rule of thumb, setting the bandwidth to an integer multiple (say `x`) of a side length of the bounding square of a region will 
+As a rough rule of thumb, setting the bandwidth to an integer multiple (say `x`) of a side length of the bounding square of a region will
 produce `x^d` tapers (note this is a very crude approximation, but you will find out how many good tapers you can make when you create them).
 """
 function make_tapers(
-    region;
-    bandwidth,
-    threshold = 0.99,
-    space_res = 100,
-    freq_res = 500,
-    freq_generate_res = 500,
-    ntapers_max = 30,
+        region;
+        bandwidth,
+        threshold = 0.99,
+        space_res = 100,
+        freq_res = 500,
+        freq_generate_res = 500,
+        ntapers_max = 30
 )
     bbox = boundingbox(region)
     space_res_processed = process_res(space_res, bbox)
@@ -487,7 +490,7 @@ function make_tapers(
         freq_res = freq_generate_res_processed,
         freq_downsample = nothing,
         tol = 1e-8,
-        check_grid = false,
+        check_grid = false
     )
     @info "...tapers computed."
     ## process tapers
@@ -508,7 +511,7 @@ function make_tapers(
 end
 
 function process_res(space_res::NTuple, bbox::Box)
-    @assert embeddim(bbox) == length(space_res) "space_res must have the same dimension as the bounding box"
+    @assert embeddim(bbox)==length(space_res) "space_res must have the same dimension as the bounding box"
     space_res
 end
 process_res(space_res::Int, bbox::Box) = ntuple(i -> space_res, Val{embeddim(bbox)}())

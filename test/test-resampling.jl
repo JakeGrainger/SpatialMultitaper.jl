@@ -7,6 +7,13 @@
     @test all(x -> -50 ≤ x ≤ 50, shift_0)
 end
 
+@testset "intensity_index" begin
+    pcoords = 5.23
+    grid_min = 5.0
+    grid_spacing = 0.1
+    @test Spmt.intensity_index(pcoords, grid_min, grid_spacing) == CartesianIndex(3)
+end
+
 @testset "partial K resampling" begin
     region = Box(Point(0, 0), Point(100, 100))
     pattern = rand(Spmt.PoissonProcess(0.01), region)
@@ -25,7 +32,7 @@ end
         nfreq = nfreq,
         fmax = fmax,
         radii = 0:0.01:2,
-        grid = CartesianGrid(Point(-1, -1), Point(4, 4), dims = (100, 100))
+        grid = CartesianGrid(Point(-1, -1), Point(101, 101), dims = (100, 100))
     )
 
     results = partial_shift_resample(

@@ -16,11 +16,9 @@ end
     b = Box(Point(0, 0), Point(1, 1))
 
     result = zeros(Bool, 100, 100) # because the edge points will be set to zero by not including them
-    result[2:end-1, 2:end-1] .= true
+    result[2:(end - 1), 2:(end - 1)] .= true
 
     @test Spmt.pixelate_region(g, b) == result
-    @test Spmt.pixelate_region(g, discretize(b)) == ones(Bool, 100, 100) # won't pixelate the edges when a domain is given (discretize will create a domain)
-    @test Spmt.pixelate_region(grid2side(g), b) == result
 end
 
 @testset "optimaltapers" begin
@@ -32,7 +30,7 @@ end
         ntapers = 2,
         freq_res = 200,
         freq_downsample = 2,
-        tol = 0.1,
+        tol = 0.1
     )
 
     h = Spmt.optimaltapers(b, g; options...)

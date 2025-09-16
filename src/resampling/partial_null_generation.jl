@@ -1,4 +1,4 @@
-struct MarginalResampler{T,G}
+struct MarginalResampler{T, G}
     Λ::T
     region::G
 end
@@ -6,13 +6,13 @@ end
 Base.getindex(m::MarginalResampler, i) = MarginalResampler(m.Λ[i], m.region)
 
 function MarginalResampler(
-    data::NTuple{P,PointSet},
-    region;
-    tapers,
-    nfreq,
-    fmax,
-    radii,
-    grid,
+        data::NTuple{P, PointSet},
+        region;
+        tapers,
+        nfreq,
+        fmax,
+        radii,
+        grid
 ) where {P}
     Λ = create_intensities(
         data,
@@ -21,7 +21,7 @@ function MarginalResampler(
         nfreq = nfreq,
         fmax = fmax,
         radii = radii,
-        grid = grid,
+        grid = grid
     )
     return MarginalResampler(Λ, region)
 end
@@ -30,22 +30,25 @@ function Base.rand(rng::AbstractRNG, m::MarginalResampler)
     Λ, region = m.Λ, m.region
     @assert Λ isa GeoTable "you may need to index your MarginalResampler to get a single intensity, currently it is likely a collection of $(length(Λ)) intensities"
     λ = reshape(first(values(Λ)), size(domain(Λ)))
-    pts = grid2side(domain(Λ))
 
     λ₀ = maximum(l for l in λ if !isnan(l))
-    grid_min = first.(pts)
+    grid_min = unitless_minimum(domain(Λ))
+    grid_spacing = unitless_spacing(domain(Λ))
     proposal = rand(rng, PoissonProcess(λ₀), region)
     thinned = eltype(proposal)[]
-    for p ∈ proposal
+    for p in proposal
         pcoords = SpatialMultitaper.unitless_coords(p)
-        intensity_index = CartesianIndex(
-            @. min(floor(Int, (pcoords - grid_min) / step(pts)) + 1, length(pts))
-        )
-        if rand(rng) ≤ λ[intensity_index] / λ₀
+        if rand(rng) ≤ λ[intensity_index(pcoords, grid_min, grid_spacing)] / λ₀
             push!(thinned, p)
         end
     end
     mask(Meshes.PointSet(thinned), region)
+end
+
+function intensity_index(pcoords, grid_min, grid_spacing)
+    CartesianIndex(
+        @. ceil(Int, (pcoords - grid_min) / grid_spacing)
+    )
 end
 
 """
@@ -58,30 +61,30 @@ Constructs the internal intensities for each of the processes partial on all the
 where ``\\tilde\\psi_j(k) = [f_{XZ}(k)f_{ZZ}(k)^{-1}]_j`` is the Fourier transform of the jth prediction kernel.
 """
 function create_intensities(
-    data::NTuple{P,PointSet},
-    region;
-    tapers,
-    nfreq,
-    fmax,
-    radii,
-    grid,
-    mean_method::MeanEstimationMethod = DefaultMean(),
+        data::NTuple{P, PointSet},
+        region;
+        tapers,
+        nfreq,
+        fmax,
+        radii,
+        grid,
+        mean_method::MeanEstimationMethod = DefaultMean()
 ) where {P}
     spec = multitaper_estimate(data, region; tapers = tapers, nfreq = nfreq, fmax = fmax)
     intensity = mean_estimate(data, region, mean_method)
     kernels = prediction_kernel(spec, radii = radii)
-    kernel_integral =
-        integrate_prediction_kernel.(Ref(radii), kernels.kernels, Val{embeddim(region)}())
+    kernel_integral = integrate_prediction_kernel.(
+        Ref(radii), kernels.kernels, Val{embeddim(region)}())
     kernels_interp = ntuple(
         j -> ntuple(
             p -> linear_interpolation(
                 radii,
                 getindex.(kernels.kernels[j], p),
-                extrapolation_bc = 0.0,
+                extrapolation_bc = 0.0
             ),
-            Val{P - 1}(),
+            Val{P - 1}()
         ),
-        Val{P}(),
+        Val{P}()
     )
     ntuple(
         j -> create_single_intensity(
@@ -90,35 +93,32 @@ function create_intensities(
             kernel_integral[j],
             kernels_interp[j],
             data,
-            grid,
+            grid
         ),
-        Val{P}(),
+        Val{P}()
     )
 end
 
 function create_single_intensity(
-    idx,
-    intensities,
-    kernel_integral,
-    kernels_interp,
-    data,
-    grid,
+        idx,
+        intensities,
+        kernel_integral,
+        kernels_interp,
+        data,
+        grid
 )
     additional_processes = Not(idx)
-    base_intensity =
-        intensities[idx] -
-        sum(kernel_integral .* collect(intensities)[additional_processes])
-    sides = grid2side(grid)
+    base_intensity = intensities[idx] -
+                     sum(kernel_integral .* collect(intensities)[additional_processes])
     data_dep = collect(data)[additional_processes]
-    intensity = [
-        max( # max of intensity and zero to avoid negative intensities
-            base_intensity + sum(
-                sum(kernels_interp[j](norm(s .- unitless_coords(x))) for x in data_dep[j]) for j in eachindex(data_dep)
-            ),
-            zero(eltype(base_intensity)),
-        ) for s in Iterators.ProductIterator(sides)
-    ]
-    return georef((intensity = vec(intensity),), grid)
+    intensity = [max( # max of intensity and zero to avoid negative intensities
+                     base_intensity + sum(
+                         sum(kernels_interp[j](norm(centroid(grid, i) - x).val)
+                         for x in data_dep[j]) for j in eachindex(data_dep)
+                     ),
+                     zero(eltype(base_intensity))
+                 ) for i in eachindex(grid)]
+    return georef((intensity = intensity,), grid)
 end
 
 function integrate_prediction_kernel(radii, kernel, ::Val{D}) where {D}
@@ -135,15 +135,14 @@ end
 function _ft2kernel(freq::NTuple{D}, kernel_ft, radii) where {D}
     smooth_width = 5 # TODO: shouldn't be hardcoded
     return movingaverage(
-        [
-            prod(step, freq) * real(
-                sum(
-                    f * pcf_weight(radius, k, Val{D}()) for
-                    (f, k) in zip(kernel_ft, Iterators.product(freq...))
-                ),
-            ) for radius in radii
-        ],
-        smooth_width,
+        [prod(step, freq) * real(
+             sum(
+             f * pcf_weight(radius, k, Val{D}())
+         for
+         (f, k) in zip(kernel_ft, Iterators.product(freq...))
+         ),
+         ) for radius in radii],
+        smooth_width
     )
 end
 
@@ -153,14 +152,13 @@ function movingaverage(x, width)
         lo = max(1, i - div(width, 2))
         hi = min(length(x), i + div(width, 2))
         y[i] = zero(eltype(x))
-        for idx = lo:hi
+        for idx in lo:hi
             y[i] += x[idx]
         end
         y[i] /= length(lo:hi)
     end
     return y
 end
-
 
 # commented out is for anisotropic version
 # function prediction_kernel_ft2space(freq, power::AbstractArray{D,T}) where {D,T<:Number}
@@ -177,17 +175,15 @@ end
 #     reinterpret(reshape, T, x)
 # end
 
-
 """
     prediction_kernel_ft(spec)
 
 Computes the Fourier transform of the prediction kernel given estimates of the spectral density function.
 """
-function prediction_kernel_ft(spec::SpectralEstimate{D,F,P,N,T}) where {D,F,P,N,T}
+function prediction_kernel_ft(spec::SpectralEstimate{D, F, P, N, T}) where {D, F, P, N, T}
     kernels = ntuple(
-        idx ->
-            apply_transform(single_prediction_kernel_ft, spec.power, idx, spec.ntapers),
-        Val{P}(),
+        idx -> apply_transform(single_prediction_kernel_ft, spec.power, idx, spec.ntapers),
+        Val{P}()
     )
     return (freq = spec.freq, kernels = kernels)
 end
@@ -203,14 +199,14 @@ end
 Computes the Fourier transform of the prediction kernel for a single variable given an estimate of the spectral density function.
 """
 function single_prediction_kernel_ft(
-    S_mat::SMatrix{P,P,T,L},
-    idx::Int,
-    ::Nothing,
-) where {P,T,L}
+        S_mat::SMatrix{P, P, T, L},
+        idx::Int,
+        ::Nothing
+) where {P, T, L}
     @boundscheck checkbounds(1:P, idx)
-    other_idx =
-        StaticArrays.sacollect(SVector{P - 1,Int}, ApplyArray(vcat, 1:idx-1, idx+1:P))
-    S_XZ = S_mat[SVector{1,Int}(idx), other_idx]
+    other_idx = StaticArrays.sacollect(
+        SVector{P - 1, Int}, ApplyArray(vcat, 1:(idx - 1), (idx + 1):P))
+    S_XZ = S_mat[SVector{1, Int}(idx), other_idx]
     S_ZZ = S_mat[other_idx, other_idx]
     return S_XZ / S_ZZ
 end

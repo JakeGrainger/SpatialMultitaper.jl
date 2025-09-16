@@ -7,18 +7,18 @@ Note that this will have been fftshifted so that the zero frequency is in the mi
 `x` can have more dimensions than `grid` but the first dimensions must be the same as the grid (up to the size of the grid).
 """
 function fft_anydomain(
-    x::Array,
-    grid::Grid,
-    nfreq::NTuple{D,Int},
-    fmax::NTuple{D,Number};
-    kwargs...,
+        x::Array,
+        grid::Grid,
+        nfreq::NTuple{D, Int},
+        fmax::NTuple{D, Number};
+        kwargs...
 ) where {D}
     embeddim(grid) ≤ ndims(x) ||
         throw(ArgumentError("x must have at least $(embeddim(grid)) dimensions"))
     size(x)[1:embeddim(grid)] == size(grid) || throw(
         ArgumentError(
-            "x and grid must have the same size in overlapping dimensions (the first $(embeddim(grid))), but size of x is $(size(x)) and size of grid is $(size(grid))",
-        ),
+        "x and grid must have the same size in overlapping dimensions (the first $(embeddim(grid))), but size of x is $(size(x)) and size of grid is $(size(grid))",
+    ),
     ) # need to improve this message
 
     # check that fmax is a integer multiple of nyquist
@@ -32,9 +32,9 @@ function fft_anydomain(
     padded_x_size = if ndims(x) === embeddim(grid)
         nfreq .* oversample
     else
-        (nfreq .* oversample..., size(x)[embeddim(grid)+1:ndims(x)]...)
+        (nfreq .* oversample..., size(x)[(embeddim(grid) + 1):ndims(x)]...)
     end
-    padded_x = pad(x, padded_x_size)
+    padded_x = padto(x, padded_x_size)
 
     # compute fft over the dimensions corresponding to the grid (spatial variation)
     J = fftshift(fft(padded_x, 1:embeddim(grid); kwargs...), 1:embeddim(grid))
@@ -45,7 +45,7 @@ function fft_anydomain(
     else
         CartesianIndices((
             freq_downsample_index.(nfreq, oversample)...,
-            axes(x)[embeddim(grid)+1:ndims(x)]...,
+            axes(x)[(embeddim(grid) + 1):ndims(x)]...
         ))
     end
     J_downsample = J[down_ind] # this does not happen inside unwrap_fft_output as this first copies, and then downsamples, which would result in very large intermediate arrays
@@ -62,8 +62,8 @@ function fft_anydomain(
             J_unwrapped,
             (
                 size(J_unwrapped)[1:embeddim(grid)]...,
-                prod(size(J_unwrapped)[embeddim(grid)+1:end]),
-            ),
+                prod(size(J_unwrapped)[(embeddim(grid) + 1):end])
+            )
         )
     end
 
@@ -100,7 +100,7 @@ end
 
 Copies the result of the fft to give something which goes up to some multiple of the nyquist frequency (whilst keeping the number of output frequencies).
 """
-function unwrap_fft_output(J::AbstractArray, fmaxrel::NTuple{D,Int}) where {D}
+function unwrap_fft_output(J::AbstractArray, fmaxrel::NTuple{D, Int}) where {D}
     if all(fmaxrel .== 1)
         return J
     end
@@ -108,7 +108,8 @@ function unwrap_fft_output(J::AbstractArray, fmaxrel::NTuple{D,Int}) where {D}
     ind = if ndims(J) === D
         CartesianIndices(unwrap_index.(size(J), fmaxrel))
     else
-        CartesianIndices((unwrap_index.(size(J)[1:D], fmaxrel)..., axes(J)[D+1:ndims(J)]...))
+        CartesianIndices((
+            unwrap_index.(size(J)[1:D], fmaxrel)..., axes(J)[(D + 1):ndims(J)]...))
     end
 
     repeat_times = if ndims(J) === D # repeats fmaxrel times in transformed dimensions is fmaxrel is odd, or fmaxrel+1 times if fmaxrel is even (does not repeat in the extra dimensions)
@@ -128,15 +129,15 @@ The indices required to unwrap the fft output to go up to `n` with a given overs
 function unwrap_index(n, a)
     if iseven(n) || a == 1
         if iseven(a)
-            return n ÷ 2 + 1 .+ (0:a:(n-1)*a) # a even n even
+            return n ÷ 2 + 1 .+ (0:a:((n - 1) * a)) # a even n even
         else
-            return 1:a:n*a # a odd n even or a == 1
+            return 1:a:(n * a) # a odd n even or a == 1
         end
     else
         if iseven(a)
-            return (a + n - 1) ÷ 2 + 1 .+ (0:a:(n-1)*a) # a even n odd
+            return (a + n - 1) ÷ 2 + 1 .+ (0:a:((n - 1) * a)) # a even n odd
         else
-            return ((a-1)÷2)+1:a:n*a # a odd n odd
+            return (((a - 1) ÷ 2) + 1):a:(n * a) # a odd n odd
         end
     end
 end

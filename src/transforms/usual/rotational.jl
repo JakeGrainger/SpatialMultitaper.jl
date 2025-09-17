@@ -33,7 +33,7 @@ _rotational_estimate(a, radii, kernel) = RotationalEstimate(a, radii, kernel)
 function rotational_estimate(
         f::AnisotropicEstimate{D, P};
         radii,
-        kernel = Rect(mean(diff(radii)))
+        kernel = RectKernel(mean(diff(radii)))
 ) where {D, P}
     _rotational_estimate(f, radii, kernel)
 end

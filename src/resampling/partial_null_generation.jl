@@ -12,7 +12,8 @@ function MarginalResampler(
         nfreq,
         fmax,
         radii,
-        grid
+        grid,
+        smooth_width = nothing
 ) where {P}
     Λ = create_intensities(
         data,
@@ -21,7 +22,8 @@ function MarginalResampler(
         nfreq = nfreq,
         fmax = fmax,
         radii = radii,
-        grid = grid
+        grid = grid,
+        smooth_width = smooth_width
     )
     return MarginalResampler(Λ, region)
 end
@@ -52,7 +54,7 @@ function intensity_index(pcoords, grid_min, grid_spacing)
 end
 
 """
-    create_intensities(data::NTuple{P,PointSet}, region; tapers, nfreq, fmax, radii, grid) where {P}
+    create_intensities(data::NTuple{P,PointSet}, region; tapers, nfreq, fmax, radii, grid, smooth_width) where {P}
 
 Constructs the internal intensities for each of the processes partial on all the others.
 
@@ -68,11 +70,12 @@ function create_intensities(
         fmax,
         radii,
         grid,
-        mean_method::MeanEstimationMethod = DefaultMean()
+        mean_method::MeanEstimationMethod = DefaultMean(),
+        smooth_width = nothing
 ) where {P}
     spec = multitaper_estimate(data, region; tapers = tapers, nfreq = nfreq, fmax = fmax)
     intensity = mean_estimate(data, region, mean_method)
-    kernels = prediction_kernel(spec, radii = radii)
+    kernels = prediction_kernel(spec, radii = radii, smooth_width = smooth_width)
     kernel_integral = integrate_prediction_kernel.(
         Ref(radii), kernels.kernels, Val{embeddim(region)}())
     kernels_interp = ntuple(
@@ -126,24 +129,26 @@ function integrate_prediction_kernel(radii, kernel, ::Val{D}) where {D}
     return A * step(radii) * sum(k * r^(D - 1) for (k, r) in zip(kernel, radii))
 end
 
-function prediction_kernel(spec::SpectralEstimate; radii)
+function prediction_kernel(spec::SpectralEstimate; radii, smooth_width = nothing)
     kernel_ft = prediction_kernel_ft(spec)
-    kernels = _ft2kernel.(Ref(kernel_ft.freq), kernel_ft.kernels, Ref(radii))
+    kernels = _ft2kernel.(Ref(kernel_ft.freq), kernel_ft.kernels, Ref(radii), smooth_width)
     return (radii = radii, kernels = kernels)
 end
 
-function _ft2kernel(freq::NTuple{D}, kernel_ft, radii) where {D}
-    smooth_width = 5 # TODO: shouldn't be hardcoded
-    return movingaverage(
-        [prod(step, freq) * real(
-             sum(
-             f * pcf_weight(radius, k, Val{D}())
-         for
-         (f, k) in zip(kernel_ft, Iterators.product(freq...))
-         ),
-         ) for radius in radii],
-        smooth_width
-    )
+function _ft2kernel(freq::NTuple{D}, kernel_ft, radii, smooth_width::Int) where {D}
+    raw = _ft2kernel(freq, kernel_ft, radii, nothing)
+    return movingaverage(raw[1], smooth_width)
+end
+
+function _ft2kernel(
+        freq::NTuple{D}, kernel_ft, radii, smooth_width::Nothing = nothing) where {D}
+    return [prod(step, freq) * real(
+                sum(
+                f * pcf_weight(radius, k, Val{D}())
+            for
+            (f, k) in zip(kernel_ft, Iterators.product(freq...))
+            ),
+            ) for radius in radii]
 end
 
 function movingaverage(x, width)

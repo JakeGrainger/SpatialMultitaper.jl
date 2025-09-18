@@ -1,15 +1,15 @@
-struct PairCorrelationFunction{R,T,D,P} <: IsotropicEstimate{D,P}
+struct PairCorrelationFunction{R, T, D, P} <: IsotropicEstimate{D, P}
     radii::R
     paircorrelation_function::T
-    function PairCorrelationFunction(radii::R, pcf::T, ::Val{D}) where {R,T,D}
+    function PairCorrelationFunction(radii::R, pcf::T, ::Val{D}) where {R, T, D}
         P = checkinputs(radii, pcf)
-        new{R,T,D,P}(radii, pcf)
+        new{R, T, D, P}(radii, pcf)
     end
 end
 
 getargument(f::PairCorrelationFunction) = f.radii
 getestimate(f::PairCorrelationFunction) = f.paircorrelation_function
-getextrafields(::PairCorrelationFunction{R,T,D,P}) where {R,T,D,P} = (Val{D}(),)
+getextrafields(::PairCorrelationFunction{R, T, D, P}) where {R, T, D, P} = (Val{D}(),)
 
 abstract type PCFMethod end
 struct PCFMethodA <: PCFMethod end
@@ -49,46 +49,47 @@ function K2paircorrelation(radii, k, ::Val{2}, penalty, ::PCFMethodD)
 end
 
 function paircorrelation_function(
-    k::KFunction{R,T,D,P};
-    penalty = 0.0,
-    method = PCFMethodC(),
-) where {R,T<:Dict,D,P}
+        k::KFunction{R, T, D, P};
+        penalty = 0.0,
+        method = PCFMethodC()
+) where {R, T <: Dict, D, P}
     pcf = Dict(
-        index => K2paircorrelation(k.radii, val, Val{D}(), penalty, method) for
-        (index, val) in k.K_function
+        index => K2paircorrelation(k.radii, val, Val{D}(), penalty, method)
+    for
+    (index, val) in k.K_function
     )
     return PairCorrelationFunction(k.radii, pcf, Val{D}())
 end
 
 function paircorrelation_function(
-    k::KFunction{R,T,D,P};
-    penalty = 0.0,
-    method = PCFMethodC(),
-) where {R,T,D,P}
+        k::KFunction{R, T, D, P};
+        penalty = 0.0,
+        method = PCFMethodC()
+) where {R, T, D, P}
     pcf = Dict(
         (i, j) => K2paircorrelation(
             k.radii,
             getindex.(k.K_function, i, j),
             Val{D}(),
             penalty,
-            method,
-        ) for i = 1:P for j = i:P
+            method
+        ) for i in 1:P for j in i:P
     )
     return PairCorrelationFunction(k.radii, pcf, Val{D}())
 end
 
 function paircorrelation_function(
-    data,
-    region;
-    radii,
-    penalty = 0.0,
-    method::PCFMethod = PCFMethodC(),
-    nfreq,
-    fmax,
-    tapers,
-    mean_method::MeanEstimationMethod = DefaultMean(),
-    freq_radii = default_rotational_radii(nfreq, fmax),
-    rotational_method = default_rotational_kernel(freq_radii),
+        data,
+        region;
+        radii,
+        penalty = 0.0,
+        method::PCFMethod = PCFMethodC(),
+        nfreq,
+        fmax,
+        tapers,
+        mean_method::MeanEstimationMethod = DefaultMean(),
+        freq_radii = default_rotational_radii(nfreq, fmax),
+        rotational_method = default_rotational_kernel(freq_radii)
 )
     k = K_function(
         data,
@@ -99,19 +100,20 @@ function paircorrelation_function(
         tapers = tapers,
         mean_method = mean_method,
         freq_radii = freq_radii,
-        rotational_method = rotational_method,
+        rotational_method = rotational_method
     )
     return paircorrelation_function(k; penalty = penalty, method = method)
 end
 
 ## direct method
 # todo: update direct method to use faster SArray approach when possible
+# also needs to pass atoms around
 function paircorrelation_function_direct(
-    f::SpectralEstimate{D,F,P,N},
-    λ;
-    radii,
-    indices = default_indices(f),
-) where {D,F,P,N}
+        f::SpectralEstimate{D, F, P, N},
+        λ;
+        radii,
+        indices = default_indices(f)
+) where {D, F, P, N}
     check_spectral_indices(indices, f)
     pcf = Dict(
         index => sdf2pcf(f[index...], λ[index[1]], λ[index[2]], radii) for index in indices
@@ -120,14 +122,14 @@ function paircorrelation_function_direct(
 end
 
 function paircorrelation_function_direct(
-    data,
-    region;
-    radii,
-    indices = default_indices(data),
-    nfreq,
-    fmax,
-    tapers,
-    mean_method::MeanEstimationMethod = DefaultMean(),
+        data,
+        region;
+        radii,
+        indices = default_indices(data),
+        nfreq,
+        fmax,
+        tapers,
+        mean_method::MeanEstimationMethod = DefaultMean()
 )
     check_spectral_indices(indices, data)
     f = multitaper_estimate(
@@ -136,12 +138,11 @@ function paircorrelation_function_direct(
         tapers = tapers,
         nfreq = nfreq,
         fmax = fmax,
-        mean_method = mean_method,
+        mean_method = mean_method
     )
     λ = mean_estimate(data, region, mean_method)
     return paircorrelation_function_direct(f, λ, radii = radii, indices = indices)
 end
-
 
 function sdf2pcf(f, λ1, λ2, radii::AbstractVector{<:Number})
     [sdf2pcf(f, λ1, λ2, radius) for radius in radii]
@@ -153,20 +154,20 @@ end
 Takes some form of spectra and returns the C function for the `radius`.
 """
 function sdf2pcf(
-    f::Union{SpectralEstimate{D,F,P,N},PartialSpectra{D,F,P,N}},
-    λ1,
-    λ2,
-    radius::Number,
-) where {D,F,P,N}
+        f::Union{SpectralEstimate{D, F, P, N}, PartialSpectra{D, F, P, N}},
+        λ1,
+        λ2,
+        radius::Number
+) where {D, F, P, N}
     freq = getargument(f)
     spectra = getestimate(f)
-    pcf_unweighted =
-        prod(step, freq) * real(
-            sum(
-                f * pcf_weight(radius, k, Val{D}()) for
-                (f, k) in zip(spectra, Iterators.product(freq...))
-            ),
-        )
+    pcf_unweighted = prod(step, freq) * real(
+        sum(
+        (f - atom) * pcf_weight(radius, k, Val{D}())
+    for
+    (f, k) in zip(spectra, Iterators.product(freq...))
+    ),
+    )
     return pcf_unweighted ./ (λ1 * λ2) .+ 1
 end
 

@@ -53,49 +53,25 @@ function intensity_index(pcoords, grid_min, grid_spacing)
     )
 end
 
-"""
-    create_intensities(data::NTuple{P,PointSet}, region; tapers, nfreq, fmax, radii, grid, smooth_width) where {P}
-
-Constructs the internal intensities for each of the processes partial on all the others.
-
-``\\lambda_{X\\cdot Z}(u) = \\lambda_X - \\sum_{p} \\lambda_{Z_p} \\int \\psi_j(x)d x + \\sum_{p} \\sum_{x \\in Z_p} \\psi_j(u - x)``
-
-where ``\\tilde\\psi_j(k) = [f_{XZ}(k)f_{ZZ}(k)^{-1}]_j`` is the Fourier transform of the jth prediction kernel.
-"""
 function create_intensities(
         data::NTuple{P, PointSet},
         region;
         tapers,
         nfreq,
         fmax,
-        radii,
         grid,
-        mean_method::MeanEstimationMethod = DefaultMean(),
-        smooth_width = nothing
+        mean_method::MeanEstimationMethod = DefaultMean()
 ) where {P}
     spec = multitaper_estimate(data, region; tapers = tapers, nfreq = nfreq, fmax = fmax)
     intensity = mean_estimate(data, region, mean_method)
-    kernels = prediction_kernel(spec, radii = radii, smooth_width = smooth_width)
-    kernel_integral = integrate_prediction_kernel.(
-        Ref(radii), kernels.kernels, Val{embeddim(region)}())
-    kernels_interp = ntuple(
-        j -> ntuple(
-            p -> linear_interpolation(
-                radii,
-                getindex.(kernels.kernels[j], p),
-                extrapolation_bc = 0.0
-            ),
-            Val{P - 1}()
-        ),
-        Val{P}()
-    )
+    data_ft = fft_only.(data, Ref(region), nfreq = nfreq, fmax = fmax)
+    kernel_ft = prediction_kernel_ft(spec)
     ntuple(
         j -> create_single_intensity(
             j,
             intensity,
-            kernel_integral[j],
-            kernels_interp[j],
-            data,
+            data_ft,
+            kernel_ft,
             grid
         ),
         Val{P}()
@@ -103,26 +79,88 @@ function create_intensities(
 end
 
 function create_single_intensity(
-        idx,
-        intensities,
-        kernel_integral,
-        kernels_interp,
-        data,
-        grid
-)
-    additional_processes = Not(idx)
-    base_intensity = intensities[idx] -
-                     sum(kernel_integral .* collect(intensities)[additional_processes])
-    data_dep = collect(data)[additional_processes]
-    intensity = [max( # max of intensity and zero to avoid negative intensities
-                     base_intensity + sum(
-                         sum(kernels_interp[j](norm(centroid(grid, i) - x).val)
-                         for x in data_dep[j]) for j in eachindex(data_dep)
-                     ),
-                     zero(eltype(base_intensity))
-                 ) for i in eachindex(grid)]
-    return georef((intensity = intensity,), grid)
+        idx, intensities::Ntuple{P, T}, data_ft, kernel_ft, grid) where {P, T}
+    freq = kernel_ft.freq
+    ker = kernel_ft.kernels[idx]
+    λz = SVector{P - 1, T}((intensities[1:(idx - 1)]..., intensities[(idx + 1):P]...))
+    # TODO: got here
+    base = intensities[idx] - ker[findfirst.(Ref(iszero), freq)] * λz
 end
+
+function fft_only(points::PointSet, region; nfreq, fmax)
+    nufft_anydomain(region, nfreq, fmax, points, ones(length(points)), -1, 1e-14) # TODO: make work for grid data
+end
+
+# """
+#     create_intensities(data::NTuple{P,PointSet}, region; tapers, nfreq, fmax, radii, grid, smooth_width) where {P}
+
+# Constructs the internal intensities for each of the processes partial on all the others.
+
+# ``\\lambda_{X\\cdot Z}(u) = \\lambda_X - \\sum_{p} \\lambda_{Z_p} \\int \\psi_j(x)d x + \\sum_{p} \\sum_{x \\in Z_p} \\psi_j(u - x)``
+
+# where ``\\tilde\\psi_j(k) = [f_{XZ}(k)f_{ZZ}(k)^{-1}]_j`` is the Fourier transform of the jth prediction kernel.
+# """
+# function create_intensities(
+#         data::NTuple{P, PointSet},
+#         region;
+#         tapers,
+#         nfreq,
+#         fmax,
+#         radii,
+#         grid,
+#         mean_method::MeanEstimationMethod = DefaultMean(),
+#         smooth_width = nothing
+# ) where {P}
+#     spec = multitaper_estimate(data, region; tapers = tapers, nfreq = nfreq, fmax = fmax)
+#     intensity = mean_estimate(data, region, mean_method)
+#     kernels = prediction_kernel(spec, radii = radii, smooth_width = smooth_width)
+#     kernel_integral = integrate_prediction_kernel.(
+#         Ref(radii), kernels.kernels, Val{embeddim(region)}())
+#     kernels_interp = ntuple(
+#         j -> ntuple(
+#             p -> linear_interpolation(
+#                 radii,
+#                 getindex.(kernels.kernels[j], p),
+#                 extrapolation_bc = 0.0
+#             ),
+#             Val{P - 1}()
+#         ),
+#         Val{P}()
+#     )
+#     ntuple(
+#         j -> create_single_intensity(
+#             j,
+#             intensity,
+#             kernel_integral[j],
+#             kernels_interp[j],
+#             data,
+#             grid
+#         ),
+#         Val{P}()
+#     )
+# end
+
+# function create_single_intensity(
+#         idx,
+#         intensities,
+#         kernel_integral,
+#         kernels_interp,
+#         data,
+#         grid
+# )
+#     additional_processes = Not(idx)
+#     base_intensity = intensities[idx] -
+#                      sum(kernel_integral .* collect(intensities)[additional_processes])
+#     data_dep = collect(data)[additional_processes]
+#     intensity = [max( # max of intensity and zero to avoid negative intensities
+#                      base_intensity + sum(
+#                          sum(kernels_interp[j](norm(centroid(grid, i) - x).val)
+#                          for x in data_dep[j]) for j in eachindex(data_dep)
+#                      ),
+#                      zero(eltype(base_intensity))
+#                  ) for i in eachindex(grid)]
+#     return georef((intensity = intensity,), grid)
+# end
 
 function integrate_prediction_kernel(radii, kernel, ::Val{D}) where {D}
     A = 2 * pi^(D / 2) / gamma(D / 2)

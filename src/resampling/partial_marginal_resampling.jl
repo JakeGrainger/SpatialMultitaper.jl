@@ -98,7 +98,8 @@ function create_single_intensity(
     adjustment .*= prod(step, freq)
 
     intensity = base .+ real.(adjustment)
-    grid = CartesianGrid(length.(freq), ntuple(zero, length(freq)), 1 ./ step.(freq))
+    grid = CartesianGrid(
+        length.(freq), ntuple(zero, length(freq)), 1 ./ (length(freq) .* step.(freq)))
     georef((intensity = vec(intensity),), grid)
 end
 

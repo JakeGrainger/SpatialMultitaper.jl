@@ -90,7 +90,7 @@ function create_single_intensity(
     ker = kernel_ft.kernels[idx]
     λz = SVector{P - 1, T}((intensities[1:(idx - 1)]..., intensities[(idx + 1):P]...))
 
-    base = intensities[idx] - ker[findfirst.(Ref(iszero), freq)] * λz
+    base = intensities[idx] - ker[findfirst.(Ref(iszero), freq)...] * λz
 
     idx_other = static_not(Val{P}(), idx)
     adjustment_ft = kernel_ft .* getindex.(data_ft, idx_other)

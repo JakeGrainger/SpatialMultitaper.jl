@@ -110,11 +110,8 @@ function dft2spectralmatrix!(
     # we want to return a n_1 x ... x n_D array of static P x P matrices (TODO maybe even hermitian symmetric ones later)
     @assert all(size(S_mat) == size(J)[1:(end - 1)] for J in J_n) "S_mat should have the same size as the first N-1 dimensions of each J_n"
     for i in CartesianIndices(S_mat)
-        S_mat[i] = mean(
-            spectral_matrix(SVector(ntuple(j -> J_n[j][i, m], Val{P}())))
-        for
-        m in axes(J_n[1], N)
-        )
+        S_mat[i] = mean(spectral_matrix(SVector(ntuple(j -> J_n[j][i, m], Val{P}())))
+        for m in axes(J_n[1], N))
     end
     return S_mat
 end

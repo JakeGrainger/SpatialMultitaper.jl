@@ -25,8 +25,8 @@ function create_resampler_precompute(
     freq = make_freq(nfreq, fmax, dim)
     power = dft2spectralmatrix(J_n)
 
-    f_inv_cross = ones(
-        Array{SVector{P - 2, eltype(power)}, ndims(power)}, P - 1, P - 1)
+    f_inv_cross = [ones(SVector{P - 2, eltype(power)}, ndims(power))
+                   for p in 1:(P - 1), q in (p + 1):P]
     for p in 1:(P - 1), q in (p + 1):P
         idx = static_not(Val{P}(), p, q)
         f_inv_cross[p, q - p] = getindex.(power, Ref(idx), Ref(idx)) .\

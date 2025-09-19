@@ -111,12 +111,13 @@ Does a non-uniform FFT of points, but moves them so the origin of the bounding b
 Makes no adjustments for tapering etc.
 """
 function fft_only(points::PointSet, region; nfreq, fmax)
-    bbox = boundingbox(region)
-    translation = Translate(.-Meshes.to(minimum(bbox)).coords)
-    t_points = translation(points) # translate to origin
-    t_region = translation(region)
+    # bbox = boundingbox(region)
+    # translation = Translate(.-Meshes.to(minimum(bbox)).coords)
+    # t_points = translation(points) # translate to origin
+    # t_region = translation(region)
+    # shifts will cancel out due to the other transforms also having the same shift
     out = nufft_anydomain(
-        t_region, nfreq, fmax, t_points, ones(ComplexF64, length(points)), -1, 1e-14) # TODO: make work for grid data
+        region, nfreq, fmax, points, ones(ComplexF64, length(points)), -1, 1e-14) # TODO: make work for grid data
     return reshape(out, size(out)[1:(end - 1)]) # last dimension is singletons
 end
 

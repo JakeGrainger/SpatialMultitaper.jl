@@ -7,5 +7,6 @@ function apply_transform(
 end
 
 function apply_transform(transform, power::AbstractArray{<:Number, D}, args...) where {D}
-    mapslices(transform, power, dims = (1, 2), args...)
+    transform_wrapped(x) = transform(x, args...)
+    mapslices(transform_wrapped, power, dims = (1, 2))
 end

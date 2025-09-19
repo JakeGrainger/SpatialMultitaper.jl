@@ -64,7 +64,10 @@ include("transforms/spatial/partial_centered_L_function.jl")
 include("transforms/spatial/pair_correlation_function.jl")
 include("transforms/spatial/partial_pair_correlation_function.jl")
 
-include("resampling/partial_null_generation.jl")
+# include("resampling/partial_null_generation.jl")
+include("resampling/partial_cross_resampling.jl")
+include("resampling/partial_marginal_resampling.jl")
+include("resampling/partial_resampling.jl")
 include("resampling/resampling.jl")
 
 export multitaper_estimate,

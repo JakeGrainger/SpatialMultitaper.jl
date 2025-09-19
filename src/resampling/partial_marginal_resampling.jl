@@ -96,5 +96,6 @@ function create_single_intensity(
 end
 
 function fft_only(points::PointSet, region; nfreq, fmax)
-    nufft_anydomain(region, nfreq, fmax, points, ones(length(points)), -1, 1e-14) # TODO: make work for grid data
+    nufft_anydomain(
+        region, nfreq, fmax, points, ones(ComplexF64, length(points)), -1, 1e-14) # TODO: make work for grid data
 end

@@ -65,7 +65,13 @@ function create_intensities(
 ) where {P}
     spec = multitaper_estimate(data, region; tapers = tapers, nfreq = nfreq, fmax = fmax)
     intensity = mean_estimate(data, region, mean_method)
-    data_ft = SVector.(fft_only.(data, Ref(region), nfreq = nfreq, fmax = fmax)) # now an Array of SVectors
+    data_ft_full = fft_only.(data, Ref(region), nfreq = nfreq, fmax = fmax)
+    data_ft = zeros(SVector{P, eltype(first(data_ft_full))}, size(first(data_ft_full)))
+    for i in eachindex(first(data_ft_full))
+        data_ft[i] = SVector{P, eltype(first(data_ft_full))}(getindex.(
+            data_ft_full, Ref(i)))
+    end
+
     kernel_ft = prediction_kernel_ft(spec)
     ntuple(
         j -> create_single_intensity(
@@ -86,7 +92,8 @@ function create_single_intensity(
 
     base = intensities[idx] - ker[findfirst.(Ref(iszero), freq)] * λz
 
-    adjustment_ft = kernel_ft .* data_ft
+    idx_other = static_not(Val{P}(), idx)
+    adjustment_ft = kernel_ft .* getindex.(data_ft, idx_other)
     adjustment = bfft(adjustment_ft)
     adjustment .*= prod(step, freq)
 

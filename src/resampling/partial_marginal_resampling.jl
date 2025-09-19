@@ -110,8 +110,9 @@ Makes no adjustments for tapering etc.
 """
 function fft_only(points::PointSet, region; nfreq, fmax)
     bbox = boundingbox(region)
-    t_points = Translate(-unitless_minimum(bbox))(points) # translate to origin
-    t_region = Translate(-unitless_minimum(bbox))(region)
+    translation = Translate(.-Meshes.to(minimum(bbox)).coords)
+    t_points = translation(points) # translate to origin
+    t_region = translation(region)
     nufft_anydomain(
         t_region, nfreq, fmax, t_points, ones(ComplexF64, length(points)), -1, 1e-14) # TODO: make work for grid data
 end

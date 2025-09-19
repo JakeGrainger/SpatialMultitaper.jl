@@ -113,6 +113,7 @@ function fft_only(points::PointSet, region; nfreq, fmax)
     translation = Translate(.-Meshes.to(minimum(bbox)).coords)
     t_points = translation(points) # translate to origin
     t_region = translation(region)
-    nufft_anydomain(
+    out = nufft_anydomain(
         t_region, nfreq, fmax, t_points, ones(ComplexF64, length(points)), -1, 1e-14) # TODO: make work for grid data
+    return reshape(out, size(out)[1:(end - 1)]) # last dimension is singletons
 end

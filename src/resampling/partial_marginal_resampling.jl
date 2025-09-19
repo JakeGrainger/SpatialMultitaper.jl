@@ -93,7 +93,7 @@ function create_single_intensity(
     base = intensities[idx] - (ker[findfirst.(Ref(iszero), freq)...] * λz)[1]
 
     idx_other = static_not(Val{P}(), idx)
-    adjustment_ft = getindex.(ker .* getindex.(data_ft, idx_other), 1)
+    adjustment_ft = getindex.(ker .* getindex.(data_ft, Ref(idx_other)), 1)
     adjustment = bfft(adjustment_ft)
     adjustment .*= prod(step, freq)
 

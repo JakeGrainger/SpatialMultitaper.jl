@@ -97,7 +97,7 @@ function create_single_intensity(
     adjustment = bfft(adjustment_ft)
     adjustment .*= prod(step, freq)
 
-    intensity = base .+ real.(adjustment)
+    intensity = base .+ (adjustment)
     grid = CartesianGrid(
         length.(freq), ntuple(zero, length(freq)), 1 ./
                                                    (length.(freq) .* step.(freq)))

@@ -117,3 +117,51 @@ function fft_only(points::PointSet, region; nfreq, fmax)
         t_region, nfreq, fmax, t_points, ones(ComplexF64, length(points)), -1, 1e-14) # TODO: make work for grid data
     return reshape(out, size(out)[1:(end - 1)]) # last dimension is singletons
 end
+
+"""
+    prediction_kernel_ft(spec)
+
+Computes the Fourier transform of the prediction kernel given estimates of the spectral density function.
+"""
+function prediction_kernel_ft(spec::SpectralEstimate{D, F, P, N, T}) where {D, F, P, N, T}
+    kernels = ntuple(
+        idx -> apply_transform(single_prediction_kernel_ft, spec.power, idx, spec.ntapers),
+        Val{P}()
+    )
+    return (freq = spec.freq, kernels = kernels)
+end
+
+function single_prediction_kernel_ft(S_mat::AbstractMatrix, idx::Int, ntapers::Int)
+    scaling = ntapers / (ntapers - size(S_mat, 1) + 1)
+    return single_prediction_kernel_ft(S_mat, idx, nothing) .* scaling
+end
+
+"""
+    single_prediction_kernel_ft(S_mat::SMatrix{P,P,T,L}, idx::Int, ::Nothing)
+
+Computes the Fourier transform of the prediction kernel for a single variable given an estimate of the spectral density function.
+"""
+function single_prediction_kernel_ft(
+        S_mat::SMatrix{P, P, T, L},
+        idx::Int,
+        ::Nothing
+) where {P, T, L}
+    @boundscheck checkbounds(1:P, idx)
+    other_idx = StaticArrays.sacollect(
+        SVector{P - 1, Int}, ApplyArray(vcat, 1:(idx - 1), (idx + 1):P))
+    S_XZ = S_mat[SVector{1, Int}(idx), other_idx]
+    S_ZZ = S_mat[other_idx, other_idx]
+    return S_XZ / S_ZZ
+end
+
+"""
+    single_prediction_kernel_ft(S_mat::AbstractMatrix, idx::Int, ::Nothing)
+
+Computes the Fourier transform of the prediction kernel for a single variable given an estimate of the spectral density function.
+"""
+function single_prediction_kernel_ft(S_mat::AbstractMatrix, idx::Int, ::Nothing)
+    @boundscheck checkbounds(1:size(S_mat, 1), idx)
+    S_XZ = S_mat[idx, Not(idx)]
+    S_ZZ = S_mat[Not(idx), Not(idx)]
+    return S_XZ / S_ZZ
+end

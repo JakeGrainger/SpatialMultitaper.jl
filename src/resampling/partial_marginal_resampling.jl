@@ -102,7 +102,16 @@ function create_single_intensity(
     georef((intensity = vec(intensity),), grid)
 end
 
+"""
+    fft_only(points::PointSet, region; nfreq, fmax)
+
+Does a non-uniform FFT of points, but moves them so the origin of the bounding box of the region is at zero.
+Makes no adjustments for tapering etc.
+"""
 function fft_only(points::PointSet, region; nfreq, fmax)
+    bbox = boundingbox(region)
+    t_points = Translate(-unitless_minimum(bbox))(points) # translate to origin
+    t_region = Translate(-unitless_minimum(bbox))(region)
     nufft_anydomain(
-        region, nfreq, fmax, points, ones(ComplexF64, length(points)), -1, 1e-14) # TODO: make work for grid data
+        t_region, nfreq, fmax, t_points, ones(ComplexF64, length(points)), -1, 1e-14) # TODO: make work for grid data
 end

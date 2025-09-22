@@ -34,22 +34,24 @@ function Base.rand(rng::AbstractRNG, m::PartialMarginalResampler{<:GeoTable})
     λ = reshape(first(values(Λ)), size(domain(Λ)))
 
     λ₀ = maximum(l for l in λ if !isnan(l))
-    grid_min = unitless_minimum(domain(Λ))
-    grid_spacing = unitless_spacing(domain(Λ))
+    grid_min = minimum(domain(Λ))
+    grid_spacing = spacing(domain(Λ))
     proposal = rand(rng, PoissonProcess(λ₀), region)
-    thinned = eltype(proposal)[]
-    for p in proposal
-        pcoords = SpatialMultitaper.unitless_coords(p)
-        if rand(rng) ≤ λ[intensity_index(pcoords, grid_min, grid_spacing)] / λ₀
-            push!(thinned, p)
+    thinned = similar(parent(proposal))
+    count = 1
+    for point in proposal
+        if rand(rng) ≤ λ[intensity_index(point, grid_min, grid_spacing)] / λ₀
+            thinned[count] = point
+            count += 1
         end
     end
+    thinned = thinned[1:(count - 1)]
     mask(Meshes.PointSet(thinned), region)
 end
 
-function intensity_index(pcoords, grid_min, grid_spacing)
+function intensity_index(point, grid_min, grid_spacing)
     CartesianIndex(
-        @. ceil(Int, (pcoords - grid_min) / grid_spacing)
+        ceil.(Int, (point - grid_min) ./ grid_spacing).data
     )
 end
 

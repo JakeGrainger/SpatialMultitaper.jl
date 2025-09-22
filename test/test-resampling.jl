@@ -8,10 +8,9 @@
 end
 
 @testset "intensity_index" begin
-    pcoords = 5.23
-    grid_min = 5.0
-    grid_spacing = 0.1
-    @test Spmt.intensity_index(pcoords, grid_min, grid_spacing) == CartesianIndex(3)
+    point = Point(5.23)
+    grid = CartesianGrid((10,), Point(5.0), (0.1,))
+    @test Spmt.intensity_index(point, minimum(grid), spacing(grid)) == CartesianIndex(3)
 end
 
 @testset "partial K resampling" begin
@@ -31,6 +30,8 @@ end
         tapers = tapers,
         nfreq = nfreq,
         fmax = fmax,
+        nfreq_marginal_compute = (50, 50),
+        fmax_marginal_compute = (0.2, 0.2),
         shift_method = ToroidalShift(region)
     )
 
@@ -47,6 +48,8 @@ end
         tapers = tapers,
         nfreq = nfreq,
         fmax = fmax,
+        nfreq_marginal_compute = (50, 50),
+        fmax_marginal_compute = (0.2, 0.2),
         shift_method = Spmt.StandardShift(Spmt.UniformShift((-0.1, -0.1), (0.1, 0.1)))
     )
 

@@ -1,15 +1,17 @@
-struct PairCorrelationFunction{R, T, D, P} <: IsotropicEstimate{D, P}
+struct PairCorrelationFunction{R, G, I, T, D, P, Q} <: IsotropicEstimate{D, P, Q}
     radii::R
-    paircorrelation_function::T
-    function PairCorrelationFunction(radii::R, pcf::T, ::Val{D}) where {R, T, D}
-        P = checkinputs(radii, pcf)
-        new{R, T, D, P}(radii, pcf)
+    paircorrelation_function::G
+    processinformation::I
+    estimationinformation::T
+    function PairCorrelationFunction(radii::R, pcf::G, processinfo::ProcessInformation{D},
+            estimationinfo::T) where {R, G, T, D}
+        P = checkinputs(radii, pcf, processinfo)
+        new{R, G, typeof(processinfo), T, D, P, Q}(radii, pcf, processinfo, estimationinfo)
     end
 end
 
 getargument(f::PairCorrelationFunction) = f.radii
 getestimate(f::PairCorrelationFunction) = f.paircorrelation_function
-getextrafields(::PairCorrelationFunction{R, T, D, P}) where {R, T, D, P} = (Val{D}(),)
 
 abstract type PCFMethod end
 struct PCFMethodA <: PCFMethod end
@@ -58,7 +60,8 @@ function paircorrelation_function(
     for
     (index, val) in k.K_function
     )
-    return PairCorrelationFunction(k.radii, pcf, Val{D}())
+    return PairCorrelationFunction(
+        k.radii, pcf, getprocessinformation(k), getestimationinformation(k))
 end
 
 function paircorrelation_function(
@@ -75,7 +78,8 @@ function paircorrelation_function(
             method
         ) for i in 1:P for j in i:P
     )
-    return PairCorrelationFunction(k.radii, pcf, Val{D}())
+    return PairCorrelationFunction(
+        k.radii, pcf, getprocessinformation(k), getestimationinformation(k))
 end
 
 function paircorrelation_function(
@@ -163,7 +167,7 @@ function sdf2pcf(
     spectra = getestimate(f)
     pcf_unweighted = prod(step, freq) * real(
         sum(
-        (f - atom) * pcf_weight(radius, k, Val{D}())
+        (f - atoms) * pcf_weight(radius, k, Val{D}())
     for
     (f, k) in zip(spectra, Iterators.product(freq...))
     ),

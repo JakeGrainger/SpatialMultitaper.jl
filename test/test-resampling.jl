@@ -21,50 +21,46 @@ end
     pattern3 = rand(Spmt.PoissonProcess(0.01), region)
     tapers = sin_taper_family((4, 4), region)
     nfreq = (100, 100)
-    fmax = (2, 2)
+    fmax = (nfreq .- 1) ./ (2 .* 100)
     data = (pattern, pattern2, pattern3)
     radii = 0.3:0.1:0.5
 
-    resampler = Spmt.MarginalResampler(
+    resampler = Spmt.PartialResampler(
         data,
         region;
         tapers = tapers,
         nfreq = nfreq,
         fmax = fmax,
-        radii = 0:0.01:2,
-        grid = CartesianGrid(Point(-1, -1), Point(101, 101), dims = (100, 100))
+        shift_method = ToroidalShift(region)
     )
 
     results = partial_shift_resample(
-        data,
-        region,
         partial_K_function,
-        ToroidalShift(region),
         resampler;
-        radii = radii,
-        tapers = tapers,
-        nfreq = nfreq,
-        fmax = fmax
+        radii = radii
     )
     @test results.radii == radii
 
-    results = partial_shift_resample(
+    resampler_2 = Spmt.PartialResampler(
         data,
-        region,
-        partial_K_function,
-        Spmt.StandardShift(Spmt.UniformShift((-0.1, -0.1), (0.1, 0.1))),
-        resampler;
-        radii = radii,
+        region;
         tapers = tapers,
         nfreq = nfreq,
-        fmax = fmax
+        fmax = fmax,
+        shift_method = Spmt.StandardShift(Spmt.UniformShift((-0.1, -0.1), (0.1, 0.1)))
+    )
+
+    results = partial_shift_resample(
+        partial_K_function,
+        resampler_2;
+        radii = radii
     )
     @test results.radii == radii
 
     rng = Spmt.Random.MersenneTwister(1234)
-    resampled_data_1 = rand(rng, resampler[1])
+    resampled_data_1 = rand(rng, resampler.marginal_resampler[1])
     rng = Spmt.Random.MersenneTwister(1234)
-    resampled_data_2 = rand(rng, resampler[1])
+    resampled_data_2 = rand(rng, resampler.marginal_resampler[1])
     @test resampled_data_1 == resampled_data_2
 
     rng = Spmt.Random.MersenneTwister(1234)
@@ -109,40 +105,22 @@ end
     rng = Spmt.Random.MersenneTwister(1234)
     results1 = partial_shift_resample(
         rng,
-        data,
-        region,
         partial_K_function,
-        ToroidalShift(region),
         resampler;
-        radii = radii,
-        tapers = tapers,
-        nfreq = nfreq,
-        fmax = fmax
+        radii = radii
     )
     rng = Spmt.Random.MersenneTwister(1234)
     results2 = partial_shift_resample(
         rng,
-        data,
-        region,
         partial_K_function,
-        ToroidalShift(region),
         resampler;
-        radii = radii,
-        tapers = tapers,
-        nfreq = nfreq,
-        fmax = fmax
+        radii = radii
     )
     results3 = partial_shift_resample(
         rng,
-        data,
-        region,
         partial_K_function,
-        ToroidalShift(region),
         resampler;
-        radii = radii,
-        tapers = tapers,
-        nfreq = nfreq,
-        fmax = fmax
+        radii = radii
     )
     @test results1.partial_K_function == results2.partial_K_function
     @test results2.partial_K_function !== results3.partial_K_function

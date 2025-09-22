@@ -10,26 +10,25 @@ function PartialMarginalResampler(
         region;
         tapers,
         nfreq,
-        fmax,
-        radii,
-        grid,
-        smooth_width = nothing
+        fmax
 ) where {P}
     Λ = create_intensities(
         data,
         region;
         tapers = tapers,
         nfreq = nfreq,
-        fmax = fmax,
-        radii = radii,
-        grid = grid,
-        smooth_width = smooth_width
+        fmax = fmax
     )
     return PartialMarginalResampler(Λ, region)
 end
 
 ## sampling
-function Base.rand(rng::AbstractRNG, m::PartialMarginalResampler)
+function Base.rand(
+        rng::AbstractRNG, m::PartialMarginalResampler{NTuple{P, T}}) where {P, T}
+    ntuple(p -> Base.rand(rng, m[p]), Val{P}())
+end
+
+function Base.rand(rng::AbstractRNG, m::PartialMarginalResampler{<:GeoTable})
     Λ, region = m.Λ, m.region
     @assert Λ isa GeoTable "you may need to index your PartialMarginalResampler to get a single intensity, currently it is likely a collection of $(length(Λ)) intensities"
     λ = reshape(first(values(Λ)), size(domain(Λ)))
@@ -85,7 +84,7 @@ function create_intensities(
 end
 
 function create_single_intensity(
-        idx, intensities::NTuple{P, T}, data_ft, kernel_ft) where {P, T}
+        idx, intensities::SVector{P, T}, data_ft, kernel_ft) where {P, T}
     freq = kernel_ft.freq
     ker = kernel_ft.kernels[idx]
     λz = SVector{P - 1, T}((intensities[1:(idx - 1)]..., intensities[(idx + 1):P]...))
@@ -126,9 +125,11 @@ end
 
 Computes the Fourier transform of the prediction kernel given estimates of the spectral density function.
 """
-function prediction_kernel_ft(spec::SpectralEstimate{D, F, P, N, T}) where {D, F, P, N, T}
+function prediction_kernel_ft(spec::SpectralEstimate{
+        F, N, I, T, D, P, P}) where {F, N, I, T, D, P}
     kernels = ntuple(
-        idx -> apply_transform(single_prediction_kernel_ft, spec.power, idx, spec.ntapers),
+        idx -> apply_transform(single_prediction_kernel_ft, spec.power,
+            idx, getestimationinformation(spec).ntapers),
         Val{P}()
     )
     return (freq = spec.freq, kernels = kernels)

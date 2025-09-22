@@ -56,14 +56,14 @@ end
 
     @testset "2d" begin
         # Error: mismatched fmaxrel
-        @test_throws ArgumentError unwrap_fft_output(ones(10, 10), (1,))
+        @test_throws ArgumentError unwrap_fft_output(ones(10, 10), (1, 1, 1))
         # Error: negative fmaxrel
         @test_throws ArgumentError unwrap_fft_output(ones(10, 10), (1, -1))
     end
 
     @testset "3d" begin
         # Error: mismatched fmaxrel
-        @test_throws ArgumentError unwrap_fft_output(ones(10, 10, 10), (1, 1))
+        @test_throws ArgumentError unwrap_fft_output(ones(10, 10, 10), (1, 1, 1, 1))
         # Error: negative fmaxrel
         @test_throws ArgumentError unwrap_fft_output(ones(10, 10, 10), (1, 1, -1))
     end

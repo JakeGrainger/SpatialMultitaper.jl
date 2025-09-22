@@ -7,25 +7,75 @@ end
     include("dft_interface/test-fft-interface.jl")
 end
 
-#=
-Don't add your tests to runtests.jl. Instead, create files named
-
-    test-title-for-my-test.jl
-
-The file will be automatically included inside a `@testset` with title "Title For My Test".
-=#
-
 include("SpatialMultitaperTestingUtils.jl")
 using .SpatialMultitaperTestingUtils
 import SpatialMultitaper as Spmt
-for (root, dirs, files) in walkdir(@__DIR__)
-    for file in files
-        if isnothing(match(r"^test-.*\.jl$", file))
-            continue
-        end
-        title = titlecase(replace(splitext(file[6:end])[1], "-" => " "))
-        @testset "$title" begin
-            include(joinpath(root, file))
-        end
-    end
+@testset "General Tapers" begin
+    include("test-general-tapers.jl")
+end
+@testset "Input Checking" begin
+    include("test-input-checking.jl")
+end
+@testset "Mean" begin
+    include("test-mean.jl")
+end
+@testset "Resampling" begin
+    include("test-resampling.jl")
+end
+@testset "Spectral Estimate" begin
+    include("test-spectral-estimate.jl")
+end
+@testset "Tapered Dft" begin
+    include("test-tapered-dft.jl")
+end
+@testset "Tapers" begin
+    include("test-tapers.jl")
+end
+@testset "Diagonalisation" begin
+    include("SlepianSolver/test-diagonalisation.jl")
+end
+@testset "Operator" begin
+    include("SlepianSolver/test-operator.jl")
+end
+@testset "Frequencies" begin
+    include("dft_interface/test-frequencies.jl")
+end
+@testset "Nufft Interface" begin
+    include("dft_interface/test-nufft-interface.jl")
+end
+@testset "Partial Complex Coherence" begin
+    include("transforms/partial/test-partial-complex-coherence.jl")
+end
+@testset "Partial Magnitude Coherence" begin
+    include("transforms/partial/test-partial-magnitude-coherence.jl")
+end
+@testset "Partial Magnitude Coherence2" begin
+    include("transforms/partial/test-partial-magnitude-coherence2.jl")
+end
+@testset "Partial Phase" begin
+    include("transforms/partial/test-partial-phase.jl")
+end
+@testset "Partial Spectra" begin
+    include("transforms/partial/test-partial-spectra.jl")
+end
+@testset "C Function" begin
+    include("transforms/spatial/test-C-function.jl")
+end
+@testset "Partial K Function" begin
+    include("transforms/spatial/test-partial-K-function.jl")
+end
+@testset "Complex Coherence" begin
+    include("transforms/usual/test-complex-coherence.jl")
+end
+@testset "Magnitude Coherence" begin
+    include("transforms/usual/test-magnitude-coherence.jl")
+end
+@testset "Magnitude Coherence2" begin
+    include("transforms/usual/test-magnitude-coherence2.jl")
+end
+@testset "Phase" begin
+    include("transforms/usual/test-phase.jl")
+end
+@testset "Rotational" begin
+    include("transforms/usual/test-rotational.jl")
 end

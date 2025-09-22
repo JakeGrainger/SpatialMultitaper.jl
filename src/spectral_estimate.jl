@@ -1,15 +1,18 @@
-struct SpectralEstimate{D, F, P, N, T <: Union{Int, Nothing}} <: AnisotropicEstimate{D, P}
+struct SpectralEstimate{F, N, I, T, D, P, Q} <:
+       AnisotropicEstimate{D, P, Q}
     freq::NTuple{D, F}
     power::N
-    ntapers::T
-    function SpectralEstimate(freq::NTuple{D, F}, power, ntapers) where {D, F}
-        P = checkinputs(freq, power)
-        new{D, F, P, typeof(power), typeof(ntapers)}(freq, power, ntapers)
+    processinformation::I
+    estimationinformation::T
+    function SpectralEstimate(
+            freq::NTuple{D, F}, power, processinfo, estimationinfo) where {D, F}
+        P, Q = checkinputs(freq, power, processinfo)
+        new{F, typeof(power), typeof(processinfo), typeof(estimationinfo), D, P, Q}(
+            freq, power, processinfo, estimationinfo)
     end
 end
 getargument(est::SpectralEstimate) = est.freq
 getestimate(est::SpectralEstimate) = est.power
-getextrafields(est::SpectralEstimate) = (est.ntapers,)
 
 """
 	multitaper_estimate(data, region; nfreq, fmax, tapers, mean_method = DefaultMean())
@@ -61,11 +64,18 @@ function multitaper_estimate(
 )
     mask.(data, Ref(region))
     data, dim = check_spatial_data(data)
-    mean_method = check_mean_method(mean_method, data)
     J_n = tapered_dft(data, tapers, nfreq, fmax, region, mean_method)
     freq = make_freq(nfreq, fmax, dim)
     power = dft2spectralmatrix(J_n)
-    return SpectralEstimate(freq, power, length(tapers))
+
+    zero_atom = atom_estimate(data, region)
+    λ = mean_estimate(data, region, mean_method)
+    processinformation = ProcessInformation(
+        1:length(data), 1:length(data), λ * λ', zero_atom, Val{dim}())
+
+    estimationinformation = EstimationInformation(length(tapers))
+
+    return SpectralEstimate(freq, power, processinformation, estimationinformation)
 end
 
 """

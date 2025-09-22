@@ -18,32 +18,3 @@ function check_spatial_data(data)
     end
     return copied_data, dim
 end
-
-function check_mean_method(
-    mean_method::MeanEstimationMethod,
-    data::NTuple{N,Union{GeoTable,PointSet}},
-) where {N}
-    return ntuple(i -> mean_method, Val{N}())
-end
-
-function check_mean_method(
-    mean_method::NTuple{P,MeanEstimationMethod},
-    data::NTuple{N,Union{GeoTable,PointSet}},
-) where {P,N}
-    P === N ||
-        throw(ArgumentError("Number of mean methods should match number of processes"))
-    return mean_method
-end
-
-function check_mean_method(mean_method::MeanEstimationMethod, data::AbstractVector)
-    return fill(mean_method, length(data))
-end
-
-function check_mean_method(
-    mean_method::AbstractVector{MeanEstimationMethod},
-    data::AbstractVector,
-)
-    length(mean_method) == length(data) ||
-        throw(ArgumentError("Number of mean methods should match number of processes"))
-    return mean_method
-end

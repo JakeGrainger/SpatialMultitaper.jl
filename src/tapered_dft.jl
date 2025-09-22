@@ -7,7 +7,7 @@ Note that for small numbers of processes, it is more efficient to use the `NTupl
 The `mean_method` should be the same length at the `data`.
 """
 function tapered_dft(data::AbstractVector, tapers, nfreq, fmax, region, mean_method)
-    @assert length(data)==length(mean_method) "data and mean_method must have the same length, got $(length(data)) and $(length(mean_method))."
+    checkmeanmethod(data, mean_method)
     dfts = stack(
         single_tapered_dft(data[p], tapers, nfreq, fmax, region, mean_method[p])
     for
@@ -31,7 +31,7 @@ function tapered_dft(
         region,
         mean_method
 ) where {P}
-    @assert length(data)==length(mean_method) "data and mean_method must have the same length, got $(length(data)) and $(length(mean_method))."
+    checkmeanmethod(data, mean_method)
     dfts = ntuple(
         p -> single_tapered_dft(data[p], tapers, nfreq, fmax, region, mean_method[p]),
         Val{P}()

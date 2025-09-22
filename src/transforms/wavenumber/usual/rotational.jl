@@ -1,18 +1,25 @@
-struct RotationalEstimate{T, S, D, P} <: IsotropicEstimate{D, P}
-    radii::T
+struct RotationalEstimate{R, S, I, T, D, P, Q} <: IsotropicEstimate{D, P, Q}
+    radii::R
     estimate::S
-    function RotationalEstimate(a::AnisotropicEstimate{D, P}, radii, kernel) where {D, P}
+    processinformation::I
+    estimationinformation::T
+    function RotationalEstimate(
+            a::AnisotropicEstimate{D, P, Q}, radii, kernel) where {D, P, Q}
         estimate = smoothed_rotational(getargument(a), getestimate(a), radii, kernel)
-        new{typeof(radii), typeof(estimate), D, P}(radii, estimate)
+        RotationalEstimate(
+            radii, estimate, getprocessinformation(a), getestimationinformation(a))
     end
     function RotationalEstimate(
-            radii::T, estimate::S, ::Val{D}, ::Val{P}) where {T, S, D, P}
-        new{T, S, D, P}(radii, estimate)
+            radii::R, estimate::S, processinfo::ProcessInformation{D},
+            estimationinfo) where {R, S, D}
+        P = size(processinfo.atoms, 1)
+        Q = size(processinfo.atoms, 2)
+        new{R, S, typeof(processinfo), typeof(estimationinfo), D, P, Q}(
+            radii, estimate, processinfo, estimationinfo)
     end
 end
 getargument(f::IsotropicEstimate) = f.radii
 getestimate(f::IsotropicEstimate) = f.estimate
-getextrafields(::RotationalEstimate{R, S, D, P}) where {R, S, D, P} = (Val{D}(), Val{P}())
 
 struct NoRotational end # just indicates not to do rotational averaging
 struct GaussKernel{T <: Real}

@@ -12,8 +12,10 @@ function PartialResampler(
         tapers,
         nfreq,
         fmax,
+        mean_method = DefaultMean(),
         shift_method,
-        mean_method = DefaultMean()
+        nfreq_marginal_compute,
+        fmax_marginal_compute
 ) where {P}
     precompute = create_resampler_precompute(
         data, region; nfreq = nfreq, fmax = fmax, tapers = tapers, mean_method = mean_method
@@ -22,7 +24,8 @@ function PartialResampler(
         data, shift_method
     )
     marginal_resampler = PartialMarginalResampler(
-        data, region; tapers = tapers, nfreq = nfreq, fmax = fmax
+        data, region; tapers = tapers, nfreq = nfreq_marginal_compute,
+        fmax = fmax_marginal_compute
     )
     mt_kwargs = (tapers = tapers, nfreq = nfreq, fmax = fmax, mean_method = mean_method)
     return PartialResampler(

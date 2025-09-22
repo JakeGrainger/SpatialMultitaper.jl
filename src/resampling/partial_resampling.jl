@@ -183,8 +183,8 @@ function partial_from_resampled(
         end
         for p in 1:(P - 1), q in (p + 1):P
             other_idx = ApplyArray(vcat, 1:(p - 1), (p + 1):(q - 1), (q + 1):P)
-            J_p = J_marginal[p]
-            J_q = J_marginal[q]
+            J_p = J_cross[p]
+            J_q = J_cross[q]
             f_pq = mean(J_p[i, m] * conj(J_q[i, m]) for m in axes(J_p, N))
             f_px = mean(J_p[i, m] *
                         SVector(ntuple(j -> J_original[other_idx[j]][i, m], Val{P - 2}()))'

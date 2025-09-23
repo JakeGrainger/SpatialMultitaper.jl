@@ -39,6 +39,8 @@ include("spectral_estimate.jl")
 include("atoms.jl")
 
 include("transforms/spectral_matrix_transforms.jl")
+include("transforms/marginal_transform.jl")
+
 include("transforms/wavenumber/usual/complex_coherence.jl")
 include("transforms/wavenumber/usual/magnitude_coherence.jl")
 include("transforms/wavenumber/usual/magnitude_coherence2.jl")
@@ -108,6 +110,7 @@ export multitaper_estimate,
        partial_shift_resample,
        make_tapers,
        taper_ft,
-       check_tapers_for_data
+       check_tapers_for_data,
+       mask
 
 end

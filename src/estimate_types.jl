@@ -8,6 +8,14 @@ abstract type IsotropicEstimate{D, P, Q} <: AbstractEstimate{D, P, Q, 1} end
 # default assumptions are that these fields exists with the names estimationinformation and processinformation
 getestimationinformation(est::AbstractEstimate) = est.estimationinformation
 getprocessinformation(est::AbstractEstimate) = est.processinformation
+function getargument(est::AbstractEstimate)
+    throw(ArgumentError("no getargument method defined for $(typeof(est))"))
+end
+function getestimate(est::AbstractEstimate)
+    throw(ArgumentError("no getestimate method defined for $(typeof(est))"))
+end
+getextrainformation(est::AbstractEstimate) = () # if you need additional information, override this method
+getestimatename(est::AbstractEstimate) = nameof(typeof(est)) # if you want a different name, override this method
 
 struct ProcessInformation{D, I1, I2, M, A}
     process_indices_1::I1
@@ -215,7 +223,8 @@ function Base.getindex(
         getargumentindex(estimate, i...),
         getestimateindex(estimate, p, q, i...),
         getprocessinformationindex(estimate, p, q),
-        getestimationinformation(estimate)
+        getestimationinformation(estimate),
+        getextrainformation(estimate)...
     )
 end
 
@@ -225,7 +234,8 @@ function Base.getindex(estimate::AbstractEstimate, p, q)
         getargument(estimate),
         getestimateindex(estimate, p, q),
         getprocessinformationindex(estimate, p, q),
-        getestimationinformation(estimate)
+        getestimationinformation(estimate),
+        getextrainformation(estimate)...
     )
 end
 

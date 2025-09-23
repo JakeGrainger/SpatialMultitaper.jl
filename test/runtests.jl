@@ -43,6 +43,9 @@ end
 @testset "Nufft Interface" begin
     include("dft_interface/test-nufft-interface.jl")
 end
+@testset "Marginal Transform" begin
+    include("transforms/test-marginal.jl")
+end
 @testset "Partial Complex Coherence" begin
     include("transforms/partial/test-partial-complex-coherence.jl")
 end

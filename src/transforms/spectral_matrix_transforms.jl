@@ -1,8 +1,8 @@
 function apply_transform(
         transform::F,
-        power::AbstractArray{SMatrix{P, P, T, L}, D},
+        power::AbstractArray{<:SMatrix, D},
         args...
-) where {F, P, T, L, D}
+) where {F, D}
     return transform.(power, Ref.(args)...)
 end
 

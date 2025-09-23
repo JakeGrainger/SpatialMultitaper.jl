@@ -1,0 +1,8 @@
+mt_est = make_simple_example()
+real(mt_est[1, 2]).estimate == real.(mt_est[1, 2].power)
+imag(mt_est[1, 2]).estimate == imag.(mt_est[1, 2].power)
+abs2(mt_est[1, 2]).estimate == abs2.(mt_est[1, 2].power)
+abs(mt_est[1, 2]).estimate == abs.(mt_est[1, 2].power)
+conj(mt_est[1, 2]).estimate == conj.(mt_est[1, 2].power)
+log(abs(mt_est[1, 1])).estimate == log.(abs.(mt_est[1, 1].power))
+exp(mt_est[1, 2]).estimate == exp.(mt_est[1, 2].power)

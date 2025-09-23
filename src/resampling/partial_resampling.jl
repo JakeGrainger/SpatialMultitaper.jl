@@ -6,6 +6,21 @@ struct PartialResampler{P, C, M, K, R}
     region::R
 end
 
+"""
+    PartialResampler(
+        data::NTuple{P, PointSet},
+        region;
+        tapers,
+        nfreq,
+        fmax,
+        mean_method = DefaultMean(),
+        shift_method,
+        nfreq_marginal_compute,
+        fmax_marginal_compute
+) where {P}
+
+Creates a `PartialResampler` object that can be used to generate partial spectra.
+"""
 function PartialResampler(
         data::NTuple{P, PointSet},
         region;

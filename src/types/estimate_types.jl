@@ -19,6 +19,13 @@ end
 getextrainformation(est::AbstractEstimate) = () # if you need additional information, override this method
 getestimatename(est::AbstractEstimate) = nameof(typeof(est)) # if you want a different name, override this method
 
+Meshes.embeddim(::AbstractEstimate{D}) where {D} = D
+Base.size(::AbstractEstimate{D, P, Q}) where {D, P, Q} = (P, Q)
+function processnames(estimate::AbstractEstimate)
+    processinfo = getprocessinformation(estimate)
+    (processinfo.process_indices_1, processinfo.process_indices_2)
+end
+
 struct ProcessInformation{D, I1, I2, M, A}
     process_indices_1::I1
     process_indices_2::I2

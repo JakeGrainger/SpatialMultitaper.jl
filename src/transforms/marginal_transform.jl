@@ -16,6 +16,11 @@ struct MarginallyTransformedEstimate{A, E, T, S, F, O, D, P, Q, N} <:
             argument, estimate, processinfo, estimationinfo, transform, originaltype)
     end
 end
+
+function getestimatename(est::MarginallyTransformedEstimate)
+    "$(est.transform)($(est.originaltype))"
+end
+
 function getestimate(est::MarginallyTransformedEstimate)
     est.estimate
 end

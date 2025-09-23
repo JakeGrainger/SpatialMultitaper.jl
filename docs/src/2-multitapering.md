@@ -1,6 +1,6 @@
 # Multitapering
 
-Multitapering is a popular technique for estimating the spectral density function of a signal in time. Multitapering can also be extended to spatial processes, including both random fields [hanssen1997multidimensional](@citep), point processes [rajala2023what](@citep) and multivariate processes which are a mixture of the two [grainger2023spectral](@citep).
+Multitapering is a popular technique for estimating the spectral density function of a signal in time. Multitapering can also be extended to spatial processes, including both random fields [hanssen1997multidimensional](@citep), point processes [rajala2023what](@citep) and multivariate processes which are a mixture of the two [grainger2025spectral](@citep).
 
 ## Data format
 

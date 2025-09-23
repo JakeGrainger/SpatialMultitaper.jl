@@ -54,7 +54,10 @@ makedocs(;
     format = Documenter.HTML(;
         canonical = "https://JakeGrainger.github.io/SpatialMultitaper.jl"),
     plugins = [bib],
-    pages = ["index.md"; "tutorials" => "tutorials/basic_estimation.md"; numbered_pages]
+    pages = ["index.md";
+             "tutorials" => ["basics" => "tutorials/basic_estimation.md",
+                 "tapers" => "tutorials/tapers.md"]
+             numbered_pages]
 )
 
 deploydocs(; repo = "github.com/JakeGrainger/SpatialMultitaper.jl")

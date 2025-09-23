@@ -4,6 +4,12 @@ EditURL = "../../literate/tutorials/basic_estimation.jl"
 
 # Basic Estimation
 
+Multitapering is a popular technique for estimating the spectral density function of a
+signal in time[thomson1982spectrum](@citep). Multitapering can also be extended to spatial processes, including both
+random fields [hanssen1997multidimensional](@citep),
+point processes [rajala2023what](@citep) and multivariate processes which are a mixture of
+the two [grainger2025spectral](@citep).
+
 This tutorial demonstrates the basic usage of the `SpatialMultitaper.jl` package for
 spectral estimation on spatial data. We will cover how to prepare your data, perform
 spectral estimation, and visualize the results.
@@ -12,6 +18,12 @@ spectral estimation, and visualize the results.
 using SpatialMultitaper, GeoStatsProcesses
 
 import CairoMakie as Mke
+````
+
+Set default aspect ratio for plots
+
+````@example basic_estimation
+Mke.set_theme!(; Axis = (aspect = Mke.DataAspect(),))
 ````
 
 ## Preparing Your Data
@@ -31,17 +43,15 @@ region:
 region = Box(Point(0, 0), Point(100, 100))
 X = rand(PoissonProcess(0.01), region)
 Y = rand(PoissonProcess(0.01), region)
-Z = rand(PoissonProcess(0.01), region)
-data = (X, Y, Z)
+data = (X, Y)
 ````
 
 We can visualise this as follows:
 
 ````@example basic_estimation
-viz(region, color = :gray)
+viz(boundary(region), color = :gray)
 viz!(X, color = :black)
-viz!(Y, color = :blue)
-viz!(Z, color = :red)
+viz!(Y, color = :red)
 Mke.current_figure()
 ````
 
@@ -53,7 +63,9 @@ specify the tapers to use, the number of frequencies we want to compute in each 
 
 ````@example basic_estimation
 tapers = sin_taper_family((4, 4), region)
-spec = multitaper_estimate(data, region; tapers = tapers, nfreq = (100, 100), fmax = (1, 1))
+nfreq = (100, 100)
+fmax = (0.1, 0.1)
+spec = multitaper_estimate(data, region; tapers = tapers, nfreq = nfreq, fmax = fmax)
 ````
 
 ## Visualising the output
@@ -67,6 +79,39 @@ processes.
 spec11 = spec[1, 1]
 Mke.heatmap(spec11.freq..., real.(spec11.power))
 ````
+
+## A more interesting example
+Let's consider a more interesting example, where we have a bivariate process with some
+cross-correlation. We can simulate a very simple process by
+
+````@example basic_estimation
+region = Box(Point(0, 0), Point(100, 100))
+shift = 10.0
+big_region = Box(Point(-shift, -shift), Point(100 + shift, 100 + shift))
+X = rand(PoissonProcess(0.01), big_region)
+Y = Translate(shift, shift)(X)
+data = mask.((X, Y), Ref(region))
+
+tapers = sin_taper_family((4, 4), region)
+nfreq = (100, 100)
+fmax = (0.1, 0.1)
+spec = multitaper_estimate(data, region; tapers = tapers, nfreq = nfreq, fmax = fmax)
+
+Mke.heatmap(collect(real(spec[1, 2]))...)
+
+example_coh = magnitude_coherence(spec)
+example_phase = phase(spec)
+fig = Mke.Figure()
+Mke.heatmap(fig[1, 1], collect(example_coh[1, 2])..., colorrange = (0, 1))
+Mke.heatmap(fig[1, 2], collect(example_phase[1, 2])..., colorrange = (-π, π))
+fig
+````
+
+## References
+
+```@bibliography
+Pages = ["basic_estimation.md"]
+```
 
 ---
 

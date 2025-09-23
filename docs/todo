@@ -1,0 +1,11 @@
+[] basic multitaper
+[] data input
+[] transformations (spectral usual)
+[] partial spectra
+[] K function
+[] partial K function
+
+## Advanced
+[] fft interface
+[] nufft interface
+[] adding your own transformations

@@ -39,8 +39,8 @@ function centered_L_function(
 )
     k = K_function(
         data,
-        region,
-        radii;
+        region;
+        radii = radii,
         nfreq = nfreq,
         fmax = fmax,
         tapers = tapers,

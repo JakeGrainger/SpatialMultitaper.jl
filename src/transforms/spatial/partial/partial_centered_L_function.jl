@@ -16,11 +16,8 @@ getargument(f::PartialCenteredLFunction) = f.radii
 getestimate(f::PartialCenteredLFunction) = f.partial_centered_L_function
 
 function partial_centered_L_function(l::PartialLFunction{R, T, D, P}) where {R, T, D, P}
-    return PartialCenteredLFunction(
-        l.radii,
-        L2centeredL(l.radii, l.partial_L_function),
-        Val{D}()
-    )
+    PartialCenteredLFunction(l.radii, L2centeredL(l.radii, l.L_function),
+        getprocessinformation(l), getestimationinformation(l))
 end
 
 function partial_centered_L_function(k::PartialKFunction)

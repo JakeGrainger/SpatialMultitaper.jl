@@ -1,4 +1,6 @@
 # should be a struct implementing getargument and getestimate
+# if the estimate is anisotropic, then the argument should be a tuple of length D
+# if the estimate is isotropic, then the argument can either be a single `AbstractVector` or a tuple of length 1
 # it is a good idea to use checkinputs when constructing these
 abstract type AbstractEstimate{D, P, Q, N} end
 abstract type AnisotropicEstimate{D, P, Q} <: AbstractEstimate{D, P, Q, D} end
@@ -81,11 +83,17 @@ end
 
 Produces a Tuple containing the arguments and the estimate.
 """
-Base.collect(estimate::AbstractEstimate) = tuple(
-    getargument(estimate)..., getestimate(estimate))
-function Base.collect(estimate::IsotropicEstimate)
-    tuple(getargument(estimate), getestimate(estimate))
+function Base.collect(estimate::AbstractEstimate)
+    tuple(getargumenttuple(estimate)..., getestimate(estimate))
 end
+function getargumenttuple(estimate::AbstractEstimate)
+    getargument(estimate)::Tuple
+end
+function getargumenttuple(estimate::IsotropicEstimate)
+    _argument2tuple(getargument(estimate))
+end
+_argument2tuple(x::Tuple) = x
+_argument2tuple(x) = (x,)
 
 ## bounds checking
 function Base.checkbounds(

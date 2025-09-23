@@ -26,7 +26,7 @@ getextrainformation(est::MarginallyTransformedEstimate) = (est.transform, est.or
 
 function apply_marginal_transform(transform::F, est::AbstractEstimate) where {F}
     MarginallyTransformedEstimate(
-        getargument(est), apply_marginal_transform(transform, getestimate(est)),
+        getargumenttuple(est), apply_marginal_transform(transform, getestimate(est)),
         getprocessinformation(est), getestimationinformation(est),
         transform, getestimatename(est))
 end

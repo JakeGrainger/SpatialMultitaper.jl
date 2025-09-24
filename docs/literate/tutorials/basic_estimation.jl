@@ -14,10 +14,7 @@
 
 using SpatialMultitaper, GeoStatsProcesses
 
-import CairoMakie as Mke
-
-# Set default aspect ratio for plots
-Mke.set_theme!(; Axis = (aspect = Mke.DataAspect(),))
+import GLMakie as Mke
 
 # ## Preparing Your Data
 # First, we need to load and prepare our spatial data. Data should be passed into
@@ -37,7 +34,7 @@ Y = rand(PoissonProcess(0.01), region)
 data = (X, Y)
 
 # We can visualise this as follows:
-viz(boundary(region), color = :gray)
+viz(boundary(region), color = :gray, axis = (aspect = 1,))
 viz!(X, color = :black)
 viz!(Y, color = :red)
 Mke.current_figure()
@@ -81,8 +78,10 @@ Mke.heatmap(collect(real(spec[1, 2]))...)
 example_coh = magnitude_coherence(spec)
 example_phase = phase(spec)
 fig = Mke.Figure()
-Mke.heatmap(fig[1, 1], collect(example_coh[1, 2])..., colorrange = (0, 1))
-Mke.heatmap(fig[1, 2], collect(example_phase[1, 2])..., colorrange = (-π, π))
+ax_coh = Mke.Axis(fig[1, 1], title = "Magnitude Coherence", aspect = 1)
+Mke.heatmap!(ax_coh, collect(example_coh[1, 2])..., colorrange = (0, 1))
+ax_phase = Mke.Axis(fig[1, 2], title = "Phase", aspect = 1)
+Mke.heatmap!(ax_phase, collect(example_phase[1, 2])..., colorrange = (-π, π))
 fig
 
 # ## References

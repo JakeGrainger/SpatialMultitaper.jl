@@ -1,14 +1,10 @@
-using SpatialMultitaper
-using Documenter
-using DocumenterCitations
+using SpatialMultitaper, Documenter, DocumenterCitations, DocumenterMermaid, Literate
 
 ## Literate preprocessing, maybe move to a separate script later for faster builds
 
 # to run with LiveServer and avoid infinite loops, use
 # servedocs(literate_dir=joinpath("docs","literate","tutorials"),skip_dir = joinpath("docs","src","tutorials"))
 # adapting `tutorials` to whatever subdir you are working on
-
-using Literate
 
 LITERATE_INPUT = joinpath(@__DIR__, "literate")
 LITERATE_OUTPUT = joinpath(@__DIR__, "src")

@@ -19,7 +19,7 @@
 
 using SpatialMultitaper
 
-import CairoMakie as Mke
+import GLMakie as Mke
 
 # We can also construct families of tapers for other regions of interest, using the methodology proposed by [simons2011spatiospectral](@cite).
 # For example, say we are interested in an octagonal region

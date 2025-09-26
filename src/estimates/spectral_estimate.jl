@@ -26,54 +26,32 @@ Computes the multitaper spectral estimate from a tapered dft.
 - `nfreq::NTuple{D,Int}`: The number of frequencies in each dimension.
 - `fmax::NTuple{D,Real}`: The maximum frequency in each dimension.
 - `tapers`: A tuple of taper functions.
-- `mean_method`: The method to estimate the mean. Default is `DefaultMean`, but can use `KnownMean(x)` to specify this if known.
+- `mean_method`: The method to estimate the mean. Default is `DefaultMean`.
 
 # Output:
 The output is a `Spectra` object, with a `freq` and `power` field.
-Say `nfreq = (n_1,...,n_D)`, then `freq` is a `D` dimensional `NTuple` of arrays of frequencies in each dimension.
+Say `nfreq = (n_1,...,n_D)`, then `freq` is a `D` dimensional `NTuple` of arrays of
+frequencies in each dimension.
 Power can be in the following forms:
 - If `data` is a single process, then `power` is a `n_1 x ... x n_D` array.
-- If `data` has `P` processes and is passed as an `NTuple`, then `power` is an `n_1 x ... x n_D` array of `SMatrix{P,P,T,P*P}`.
+- If `data` is an `NTuple{P}`, then `power` is a `n_1 x ... x n_D` array of `SMatrix{P, P}`.
 - If `data` is a vector of `P` processes, then `power` is a `P x P x n_1 x ... x n_D` array.
 
-In any case, indexing into a `Spectra` will provide a `Spectra` object with the same `freq` and a subset of the `power` array corresponding to the processes in the chosen index.
+In any case, indexing into a `Spectra` will provide a `Spectra` object with the same `freq`
+and a subset of the `power` array corresponding to the processes in the chosen index.
+
+`KnownMean(x)` can be used to specify the mean when it is known.
 """
-function spectra(
-        data::Union{GeoTable, PointSet},
-        region;
-        nfreq,
-        fmax,
-        tapers,
-        mean_method::MeanEstimationMethod = DefaultMean()
-)
-    return spectra(
-        (data,),
-        region,
-        nfreq = nfreq,
-        fmax = fmax,
-        tapers = tapers,
-        mean_method = mean_method
-    )
+function spectra(data, region::Meshes.Geometry; kwargs...)
+    return spectra(spatial_data(data, region); kwargs...)
 end
-function spectra(
-        data,
-        region;
-        nfreq,
-        fmax,
-        tapers,
-        mean_method::MeanEstimationMethod = DefaultMean()
-)
-    mask.(data, Ref(region))
-    data, dim = check_spatial_data(data)
-    J_n = tapered_dft(data, tapers, nfreq, fmax, region, mean_method)
-    freq = make_freq(nfreq, fmax, dim)
-    power = dft2spectralmatrix(J_n)
+function spectra(data::SpatialData; nfreq, fmax, tapers,
+        mean_method::MeanEstimationMethod = DefaultMean())
+    freq = make_freq(nfreq, fmax, embeddim(data))
+    J_n = tapered_dft(data, tapers, nfreq, fmax, mean_method)
+    power = dft2spectralmatrix(J_n, Val{ncol(data)}())
 
-    zero_atom = covariance_zero_atom(data, region)
-    λ = mean_estimate(data, region, mean_method)
-    processinformation = ProcessInformation(
-        1:length(data), 1:length(data), λ * λ', zero_atom, Val{dim}())
-
+    processinformation = ProcessInformation(data; mean_method = mean_method)
     estimationinformation = EstimationInformation(length(tapers))
 
     return Spectra{MarginalTrait}(
@@ -83,27 +61,38 @@ end
 multitaper_estimate = spectra
 
 """
-    dft2spectralmatrix(J_n::AbstractArray)
+    dft2spectralmatrix(J_n::AbstractArray, Val{P})
 
-Computes the spectral matrix from the DFTs, assuming that the DFTs are stored as one large array which is P x M x n_1 x ... x n_D.
+Computes the spectral matrix from the DFTs, assuming that the DFTs are stored as one large
+array which is P x M x n_1 x ... x n_D.
 """
-dft2spectralmatrix(J_n::AbstractArray) = mapslices(
-    x -> spectral_matrix(x), J_n, dims = (1, 2))
+function dft2spectralmatrix(J_n::AbstractArray, ::Val{P}) where {P}
+    @argcheck size(J_n, 1) == P
+    mapslices(x -> spectral_matrix(x), J_n, dims = (1, 2))
+end
 
 """
-    dft2spectralmatrix(J_n::NTuple{P, AbstractArray{T, N}}) where {P, T, N}
+    dft2spectralmatrix(J_n::AbstractArray, Val{1})
 
-Computes the spectral matrix from the DFTs, assuming that the DFTs are stored as a tuple of P arrays of size n_1 x ... x n_D x M.
+Computes the spectral matrix from the DFTs, assuming that we have a single DFT stored as one
+large which is n_1 x ... x n_D x M.
 """
-function dft2spectralmatrix(J_n::NTuple{P, AbstractArray{T, N}}) where {P, T, N}
+function dft2spectralmatrix(J_n::AbstractArray, ::Val{1})
+    reshape(mapslices(x -> mean(abs2, x), J_n, dims = ndims(J_n)), size(J_n)[1:(end - 1)])
+end
+
+"""
+    dft2spectralmatrix(J_n::NTuple{P, AbstractArray{T, N}}, Val{P}) where {P, T, N}
+
+Computes the spectral matrix from the DFTs, assuming that the DFTs are stored as a tuple of
+P arrays of size n_1 x ... x n_D x M.
+"""
+function dft2spectralmatrix(J_n::NTuple{P, AbstractArray{T, N}}, ::Val{P}) where {P, T, N}
     S_mat = preallocate_spectralmatrix(J_n)
     dft2spectralmatrix!(S_mat, J_n)
     return S_mat
 end
 
-function preallocate_spectralmatrix(J_n::NTuple{1, AbstractArray{T, N}}) where {T, N}
-    return Array{T, N - 1}(undef, size(J_n[1])[1:(end - 1)])
-end
 function preallocate_spectralmatrix(J_n::NTuple{P, AbstractArray{T, N}}) where {P, T, N}
     return Array{SMatrix{P, P, T, P * P}, N - 1}(undef, size(J_n[1])[1:(end - 1)])
 end

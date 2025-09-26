@@ -48,32 +48,29 @@ struct ProcessInformation{D, I1, I2, M, A}
     process_indices_2::I2
     mean_product::M
     atoms::A
-    function ProcessInformation(
-            process_indices_1,
-            process_indices_2,
-            mean_product,
-            atoms,
-            ::Val{D}
-    ) where {D}
-        new{D, typeof(process_indices_1), typeof(process_indices_2),
-            typeof(mean_product), typeof(atoms)}(
-            process_indices_1,
-            process_indices_2,
-            mean_product,
-            atoms
-        )
+    function ProcessInformation{D}(process_indices_1::I1, process_indices_2::I2,
+            mean_product::M, atoms::A) where {D, I1, I2, M, A}
+        new{D, I1, I2, M, A}(process_indices_1, process_indices_2, mean_product, atoms)
+    end
+    function ProcessInformation(data::SpatialData; mean_method = DefaultMean())
+        process_indices_1 = copy(propertynames(data))
+        process_indices_2 = copy(propertynames(data))
+        λ = mean_estimate(data, mean_method)
+        mean_product = λ * λ'
+        zero_atom = covariance_zero_atom(data)
+        D = embeddim(data)
+        ProcessInformation{D}(process_indices_1, process_indices_2, mean_product, zero_atom)
     end
 end
-Base.ndims(::ProcessInformation{D}) where {D} = D
+Meshes.embeddim(::ProcessInformation{D}) where {D} = D
 
 function getprocessinformationindex(est::AbstractEstimate, p, q)
     processinformation = getprocessinformation(est)
-    return ProcessInformation(
+    return ProcessInformation{embeddim(processinformation)}(
         processinformation.process_indices_1[p],
         processinformation.process_indices_2[q],
         processinformation.mean_product[p, q],
-        processinformation.atoms[p, q],
-        Val{ndims(processinformation)}()
+        processinformation.atoms[p, q]
     )
 end
 

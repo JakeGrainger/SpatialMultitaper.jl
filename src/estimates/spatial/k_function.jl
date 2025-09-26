@@ -14,10 +14,10 @@ getbaseestimatename(::Type{<:KFunction}) = "K function"
 getargument(f::KFunction) = f.radii
 getestimate(f::KFunction) = f.value
 
-function k_function(data, region; kwargs...)
-    return k_function(c_function(data, region; kwargs...))
+k_function(data, region; kwargs...) = k_function(spatial_data(data, region); kwargs...)
+function k_function(data::SpatialData; kwargs...)
+    return k_function(c_function(data; kwargs...))
 end
-
 function k_function(c::CFunction{E, D}) where {E, D}
     mean_prod = getprocessinformation(c).mean_product
     radii = getargument(c)
@@ -31,7 +31,10 @@ function k_function(spectrum::NormalOrRotationalSpectra; kwargs...)
 end
 
 function partial_k_function(data, region; kwargs...)
-    k_function(partial_c_function(data, region; kwargs...))
+    partial_k_function(spatial_data(data, region); kwargs...)
+end
+function partial_k_function(data::SpatialData; kwargs...)
+    k_function(partial_c_function(data; kwargs...))
 end
 function partial_k_function(spectrum::NormalOrRotationalSpectra{PartialTrait}; kwargs...)
     k_function(spectrum; kwargs...)

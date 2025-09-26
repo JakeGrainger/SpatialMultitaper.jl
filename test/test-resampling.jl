@@ -68,13 +68,12 @@ end
         resampled_data_1 = rand(rng, resampler.marginal_resampler[1])
         rng = Random.MersenneTwister(1234)
         resampled_data_2 = rand(rng, resampler.marginal_resampler[1])
-        @test resampled_data_1 == resampled_data_2
+        @test observations(resampled_data_1) == observations(resampled_data_2)
 
         rng = Random.MersenneTwister(1234)
         results1 = shift_resample(
             rng,
-            data,
-            region,
+            spatial_data(data, region),
             k_function,
             ToroidalShift(region);
             radii = radii,
@@ -86,8 +85,7 @@ end
         rng = Random.MersenneTwister(1234)
         results2 = shift_resample(
             rng,
-            data,
-            region,
+            spatial_data(data, region),
             k_function,
             ToroidalShift(region);
             radii = radii,
@@ -97,8 +95,7 @@ end
         )
         results3 = shift_resample(
             rng,
-            data,
-            region,
+            spatial_data(data, region),
             k_function,
             ToroidalShift(region);
             radii = radii,

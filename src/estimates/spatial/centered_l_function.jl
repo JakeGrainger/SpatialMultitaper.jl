@@ -15,7 +15,10 @@ getargument(f::CenteredLFunction) = f.radii
 getestimate(f::CenteredLFunction) = f.value
 
 function centered_l_function(data, region; kwargs...)
-    return centered_l_function(l_function(data, region; kwargs...))
+    centered_l_function(spatial_data(data, region); kwargs...)
+end
+function centered_l_function(data::SpatialData; kwargs...)
+    return centered_l_function(l_function(data; kwargs...))
 end
 function centered_l_function(spectrum::NormalOrRotationalSpectra; kwargs...)
     centered_l_function(l_function(spectrum; kwargs...))
@@ -31,7 +34,10 @@ function centered_l_function(l::LFunction{E, D}) where {E, D}
 end
 
 function partial_centered_l_function(data, region; kwargs...)
-    centered_l_function(partial_k_function(data, region; kwargs...))
+    partial_centered_l_function(spatial_data(data, region); kwargs...)
+end
+function partial_centered_l_function(data::SpatialData; kwargs...)
+    centered_l_function(partial_l_function(data; kwargs...))
 end
 function partial_centered_l_function(
         spectrum::NormalOrRotationalSpectra{PartialTrait}; kwargs...)

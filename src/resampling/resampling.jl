@@ -87,9 +87,12 @@ function marginal_shift(pp::PointSet, shift_method::StandardShift)
     Translate(shift_method.shift...)(pp)
 end
 
+function marginal_shift(pp::PointPattern, shift_method)
+    spatial_data(marginal_shift(observations(pp), shift_method), getregion(pp))
+end
+
 function shift_resample(
-        data::NTuple{P},
-        region,
+        data::MultipleSpatialDataTuple{P},
         statistic,
         shift_method::ShiftMethod,
         groups = 1:P;
@@ -98,7 +101,6 @@ function shift_resample(
     shift_resample(
         Random.default_rng(),
         data,
-        region,
         statistic,
         shift_method,
         groups;
@@ -108,8 +110,7 @@ end
 
 function shift_resample(
         rng::AbstractRNG,
-        data::NTuple{P},
-        region,
+        data::MultipleSpatialDataTuple{P},
         statistic,
         shift_method::ShiftMethod,
         groups = 1:P;
@@ -119,9 +120,13 @@ function shift_resample(
     group_shifts = Dict{eltype(groups), ShiftMethod}(
         group => rand(rng, shift_method) for group in groups
     )
-    shifted_processes = ntuple(
-        p -> marginal_shift(data[p], group_shifts[findgroup(p, groups)]), Val{P}())
-    statistic(shifted_processes, region; kwargs...)
+    shifted_processes = spatial_data(
+        ntuple(
+            p -> observations(
+                marginal_shift(data[p], group_shifts[findgroup(p, groups)])),
+            Val{P}()),
+        getregion(data))
+    statistic(shifted_processes; kwargs...)
 end
 
 findgroup(p, groups) = groups[findfirst(g -> p ∈ g, groups)]

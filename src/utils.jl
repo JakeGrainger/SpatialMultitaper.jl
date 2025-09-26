@@ -213,34 +213,3 @@ function upsample(x::AbstractArray, grid::CartesianGrid, freq_downsample)
     x_intp = linear_interpolation(x_sides, x, extrapolation_bc = Interpolations.Line())
     return [x_intp(a...) for a in Iterators.product(sides...)]
 end
-
-"""
-    mask(pp::PointSet, region)
-    mask(geotable::GeoTable, region)
-
-Masks a PointSet or GeoTable to only include points within the specified region.
-"""
-function mask(pp::PointSet, region)
-    return PointSet([p for p in pp if p ∈ region])
-end
-function mask(geotable::GeoTable, region)
-    _mask(values(geotable), domain(geotable), region)
-end
-function _mask(data, grid::CartesianGrid, region)
-    newdata = deepcopy(data)
-    for i in eachindex(newdata)
-        for j in eachindex(newdata[i])
-            if centroid(grid, j) ∉ region
-                newdata[i][j] = NaN
-            end
-        end
-    end
-    return georef(newdata, grid)
-end
-
-function _mask(data, pts::PointSet, region)
-    @assert length(data) == 1
-    newmarks = [m for (m, p) in zip(data[1], pts) if p ∈ region]
-    newpoints = mask(pts, region)
-    return georef((mark = newmarks,), newpoints)
-end

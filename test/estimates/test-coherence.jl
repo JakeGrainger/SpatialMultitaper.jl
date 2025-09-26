@@ -272,6 +272,6 @@ end
 
         # Single process coherence should be 1 everywhere
         estimate = getestimate(coh)
-        @test all(x ≈ 1.0 for x in estimate)
+        @test all(x[1] ≈ 1.0 for x in estimate)
     end
 end

@@ -11,10 +11,12 @@ Base.getindex(m::KnownMean, i) = KnownMean(m.value[i])
 Base.lastindex(m::KnownMean) = lastindex(m.value)
 
 checkmeanmethod(data, ::DefaultMean) = nothing
-function checkmeanmethod(data, m::KnownMean)
-    if length(data) != length(m.value)
-        throw(ArgumentError("data and mean_method must have the same length, got $(length(data)) and $(length(m.value))."))
-    end
+function checkmeanmethod(data, mean_method::KnownMean)
+    @argcheck ncol(data) != length(mean_method.value)
+end
+
+function mean_estimate(data::SpatialData, mean_method)
+    mean_estimate(observations(data), getregion(data), mean_method)
 end
 
 function mean_estimate(data::NTuple{D}, region, mean_method) where {D}

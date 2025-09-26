@@ -14,11 +14,12 @@ getbaseestimatename(::Type{<:CFunction}) = "C function"
 getargument(f::CFunction) = f.radii
 getestimate(f::CFunction) = f.value
 
+c_function(data, region; kwargs...) = c_function(spatial_data(data, region); kwargs...)
 function c_function(
-        data, region; radii, nfreq, fmax,
+        data::SpatialData; radii, nfreq, fmax,
         freq_radii = default_rotational_radii(nfreq, fmax),
         rotational_method = default_rotational_kernel(nfreq, fmax), spectra_kwargs...)
-    spectrum = spectra(data, region; nfreq, fmax, spectra_kwargs...)
+    spectrum = spectra(data; nfreq, fmax, spectra_kwargs...)
     return c_function(spectrum; radii = radii, freq_radii = freq_radii,
         rotational_method = rotational_method)
 end
@@ -42,9 +43,12 @@ function c_function(spectrum::RotationalSpectra{E}; radii) where {E}
         radii, value, getprocessinformation(spectrum), getestimationinformation(spectrum))
 end
 
+function partial_c_function(data, region; kwargs...)
+    partial_c_function(spatial_data(data, region); kwargs...)
+end
 function partial_c_function(
-        data, region; radii, nfreq, fmax, spectra_kwargs...)
-    f_mt = partial_spectra(data, region; nfreq, fmax, spectra_kwargs...)
+        data::SpatialData; radii, nfreq, fmax, spectra_kwargs...)
+    f_mt = partial_spectra(data; nfreq, fmax, spectra_kwargs...)
     return c_function(f_mt; radii = radii)
 end
 

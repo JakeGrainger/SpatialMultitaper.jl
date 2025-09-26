@@ -14,8 +14,11 @@ end
 getargument(f::PairCorrelationFunction) = f.radii
 getestimate(f::PairCorrelationFunction) = f.value
 
-function pair_correlation_function(data, region; pcf_method = PCFMethodC(), kwargs...)
-    pair_correlation_function(k_function(data, region; kwargs...); pcf_method = pcf_method)
+function pair_correlation_function(data, region; kwargs...)
+    pair_correlation_function(spatial_data(data, region); kwargs...)
+end
+function pair_correlation_function(data::SpatialData; pcf_method = PCFMethodC(), kwargs...)
+    pair_correlation_function(k_function(data; kwargs...); pcf_method = pcf_method)
 end
 function pair_correlation_function(est::KFunction{E}; pcf_method = PCFMethodC()) where {E}
     radii = getargument(est)
@@ -28,12 +31,14 @@ function pair_correlation_function(spectrum::Spectra; kwargs...)
     pair_correlation_function(k_function(spectrum); kwargs...)
 end
 
-function partial_pair_correlation_function(
-        data, region; pcf_method = PCFMethodC(), kwargs...)
-    pair_correlation_function(
-        partial_k_function(data, region; kwargs...); pcf_method = pcf_method)
+function partial_pair_correlation_function(data, region; kwargs...)
+    partial_pair_correlation_function(spatial_data(data, region); kwargs...)
 end
-
+function partial_pair_correlation_function(
+        data::SpatialData; pcf_method = PCFMethodC(), kwargs...)
+    pair_correlation_function(
+        partial_k_function(data; kwargs...); pcf_method = pcf_method)
+end
 function partial_pair_correlation_function(spectrum::Spectra{MarginalTrait}; kwargs...)
     pair_correlation_function(partial_spectra(spectrum); kwargs...)
 end
@@ -48,8 +53,11 @@ function partial_pair_correlation_function(est::CFunction{PartialTrait}; kwargs.
 end
 
 ## direct method
-function paircorrelation_function_direct(data, region; radii, spectra_kwargs...)
-    spectrum = spectra(data, region; spectra_kwargs...)
+function paircorrelation_function_direct(data, region; kwargs...)
+    paircorrelation_function_direct(spatial_data(data, region); kwargs...)
+end
+function paircorrelation_function_direct(data::SpatialData; radii, spectra_kwargs...)
+    spectrum = spectra(data; spectra_kwargs...)
     return paircorrelation_function_direct(spectrum, radii = radii)
 end
 
@@ -60,8 +68,12 @@ function paircorrelation_function_direct(f::Spectra{E}; radii) where {E}
     return PairCorrelationFunction{E}(radii, value, processinfo, estimationinfo)
 end
 
-function partial_pair_correlation_function_direct(data, region; radii, spectra_kwargs...)
-    spectrum = partial_spectra(data, region; spectra_kwargs...)
+function partial_pair_correlation_function_direct(data, region; kwargs...)
+    partial_pair_correlation_function_direct(spatial_data(data, region); kwargs...)
+end
+function partial_pair_correlation_function_direct(
+        data::SpatialData; radii, spectra_kwargs...)
+    spectrum = partial_spectra(data; spectra_kwargs...)
     return pair_correlation_function_direct(spectrum, radii = radii)
 end
 function partial_pair_correlation_function_direct(spectrum::Spectra{PartialTrait}; radii)

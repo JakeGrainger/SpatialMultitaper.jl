@@ -6,26 +6,24 @@ end
 Base.getindex(m::PartialMarginalResampler, i) = PartialMarginalResampler(m.Λ[i], m.region)
 
 function PartialMarginalResampler(
-        data::NTuple{P, PointSet},
-        region;
+        data::SpatialData;
         tapers,
         nfreq,
         fmax
-) where {P}
+)
     Λ = create_intensities(
-        data,
-        region;
+        data;
         tapers = tapers,
         nfreq = nfreq,
         fmax = fmax
     )
-    return PartialMarginalResampler(Λ, region)
+    return PartialMarginalResampler(Λ, getregion(data))
 end
 
 ## sampling
 function Base.rand(
         rng::AbstractRNG, m::PartialMarginalResampler{<:NTuple{P}}) where {P}
-    ntuple(p -> Base.rand(rng, m[p]), Val{P}())
+    return spatial_data(ntuple(p -> observations(Base.rand(rng, m[p])), Val{P}()), m.region)
 end
 
 function Base.rand(rng::AbstractRNG, m::PartialMarginalResampler{<:GeoTable})
@@ -46,7 +44,7 @@ function Base.rand(rng::AbstractRNG, m::PartialMarginalResampler{<:GeoTable})
         end
     end
     thinned = thinned[1:(count - 1)]
-    mask(Meshes.PointSet(thinned), region)
+    return spatial_data(PointSet(thinned), region)
 end
 
 function intensity_index(point, grid_min, grid_spacing)
@@ -55,16 +53,16 @@ end
 
 ## construction
 function create_intensities(
-        data::NTuple{P, PointSet},
-        region;
+        data::MultipleSpatialDataTuple{P};
         tapers,
         nfreq,
         fmax,
         mean_method::MeanEstimationMethod = DefaultMean()
 ) where {P}
-    spec = spectra(data, region; tapers = tapers, nfreq = nfreq, fmax = fmax)
-    intensity = mean_estimate(data, region, mean_method)
-    data_ft_full = fft_only.(data, Ref(region), nfreq = nfreq, fmax = fmax)
+    spec = spectra(data; tapers = tapers, nfreq = nfreq, fmax = fmax)
+    intensity = mean_estimate(data, mean_method)
+    data_ft_full = fft_only.(
+        observations(data), Ref(getregion(data)), nfreq = nfreq, fmax = fmax)
     data_ft = zeros(SVector{P, eltype(first(data_ft_full))}, size(first(data_ft_full)))
     for i in eachindex(first(data_ft_full))
         data_ft[i] = SVector{P, eltype(first(data_ft_full))}(getindex.(

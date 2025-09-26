@@ -7,8 +7,10 @@ function partial_spectra(spectrum::Spectra)
         getprocessinformation(spectrum), getestimationinformation(spectrum)
     )
 end
-partial_spectra(data, region; kwargs...) = partial_spectra(spectra(data, region; kwargs...))
-
+function partial_spectra(data, region; kwargs...)
+    partial_spectra(spatial_data(data, region); kwargs...)
+end
+partial_spectra(data::SpatialData; kwargs...) = partial_spectra(spectra(data; kwargs...))
 function partial_spectra_uncorrected(spectrum::Spectra)
     return Spectra{PartialTrait}(
         getargument(spectrum),

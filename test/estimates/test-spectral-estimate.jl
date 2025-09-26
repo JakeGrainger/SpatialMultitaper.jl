@@ -13,7 +13,7 @@ import SpatialMultitaper: Spectra, getargument, getestimate, dft2spectralmatrix,
         # Create test data
         freq = (1:10, 1:10)
         power = rand(rng, ComplexF64, 2, 2, 10, 10)
-        processinfo = ProcessInformation([1, 2], [1, 2], ones(2, 2), ones(2, 2), Val{2}())
+        processinfo = ProcessInformation{2}([1, 2], [1, 2], ones(2, 2), ones(2, 2))
         estimationinfo = EstimationInformation(5)
 
         spec = Spectra{MarginalTrait}(freq, power, processinfo, estimationinfo)
@@ -26,7 +26,7 @@ import SpatialMultitaper: Spectra, getargument, getestimate, dft2spectralmatrix,
     @testset "Single process case" begin
         freq = (1:10,)
         power = rand(rng, Float64, 10)
-        processinfo = ProcessInformation([1], [1], ones(1, 1), ones(1, 1), Val{1}())
+        processinfo = ProcessInformation{1}([1], [1], ones(1, 1), ones(1, 1))
         estimationinfo = EstimationInformation(3)
 
         spec = Spectra{MarginalTrait}(freq, power, processinfo, estimationinfo)
@@ -83,7 +83,7 @@ end
     @testset "Matrix input" begin
         # P x M x n1 x n2 array
         J_n = rand(rng, ComplexF64, 3, 10, 8, 8)  # 3 processes, 10 tapers, 8x8 frequencies
-        S_mat = dft2spectralmatrix(J_n)
+        S_mat = dft2spectralmatrix(J_n, Val{3}())
 
         @test size(S_mat) == (3, 3, 8, 8)
         @test eltype(S_mat) <: ComplexF64  # Should be ComplexF64
@@ -95,15 +95,19 @@ end
         J_2 = rand(rng, ComplexF64, 8, 8, 10)
         J_n = (J_1, J_2)
 
-        S_mat = dft2spectralmatrix(J_n)
+        S_mat = dft2spectralmatrix(J_n, Val{2}())
         @test size(S_mat) == (8, 8)
         @test eltype(S_mat) <: SMatrix
 
         # Single process case
         J_single = (J_1,)
-        S_single = dft2spectralmatrix(J_single)
+        S_single_tuple = dft2spectralmatrix(J_single, Val{1}())
+        S_single = dft2spectralmatrix(J_1, Val{1}())
+        @test size(S_single_tuple) == (8, 8)
         @test size(S_single) == (8, 8)
-        @test eltype(S_single) <: Number
+        @test eltype(S_single_tuple) <: SMatrix{1, 1}
+        @test eltype(S_single) == Float64
+        @test getindex.(S_single_tuple, 1) ≈ S_single
     end
 end
 

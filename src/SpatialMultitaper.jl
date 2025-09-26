@@ -5,20 +5,11 @@ module SpatialMultitaper
 using Reexport
 @reexport using Meshes, GeoTables
 
-using Distributions,
-      FFTW,
-      FINUFFT,
-      Interpolations,
-      InvertedIndices,
-      LinearAlgebra,
-      SpecialFunctions,
-      StaticArrays,
-      StatsBase,
-      ConstructionBase,
-      LazyArrays,
-      HypergeometricFunctions,
-      GeoStatsProcesses,
-      Random
+using Distributions, FFTW, FINUFFT, Interpolations, InvertedIndices, LinearAlgebra,
+      SpecialFunctions, StaticArrays, StatsBase, ConstructionBase, LazyArrays,
+      HypergeometricFunctions, GeoStatsProcesses, Random, ArgCheck
+
+import DataAPI: ncol
 
 import BSplineKit
 
@@ -31,11 +22,12 @@ include("dft_interface/frequencies.jl")
 include("dft_interface/nufft_interface.jl")
 include("dft_interface/fft_interface.jl")
 
+include("input_data.jl")
 include("utils.jl")
 include("tapers/tapers.jl")
 include("mean.jl")
 include("tapered_dft.jl")
-include("input_checking.jl")
+include("input_checking.jl") # to remove
 include("covariance_zero_atom.jl")
 
 include("estimates/estimate_types.jl")
@@ -61,6 +53,8 @@ include("resampling/partial_cross_resampling.jl")
 include("resampling/partial_marginal_resampling.jl")
 include("resampling/partial_resampling.jl")
 include("resampling/resampling.jl")
+
+export ncol, observations, getregion, spatial_data
 
 export spectra,
        multitaper_estimate,

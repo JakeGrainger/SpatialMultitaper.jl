@@ -14,15 +14,14 @@ getbaseestimatename(::Type{<:LFunction}) = "L function"
 getargument(f::LFunction) = f.radii
 getestimate(f::LFunction) = f.value
 
-function l_function(data, region; kwargs...)
-    return l_function(k_function(data, region; kwargs...))
+l_function(data, region; kwargs...) = l_function(spatial_data(data, region); kwargs...)
+function l_function(data::SpatialData; kwargs...)
+    return l_function(k_function(data; kwargs...))
 end
-
 l_function(c::CFunction) = l_function(k_function(c))
 function l_function(spec::NormalOrRotationalSpectra; kwargs...)
     l_function(k_function(spec; kwargs...))
 end
-
 function l_function(k::KFunction{E, D}) where {E, D}
     radii = getargument(k)
     value = K2L(getestimate(k), Val{D}())
@@ -32,7 +31,10 @@ function l_function(k::KFunction{E, D}) where {E, D}
 end
 
 function partial_l_function(data, region; kwargs...)
-    l_function(partial_k_function(data, region; kwargs...))
+    partial_l_function(spatial_data(data, region); kwargs...)
+end
+function partial_l_function(data::SpatialData; kwargs...)
+    l_function(partial_k_function(data; kwargs...))
 end
 function partial_l_function(spectrum::NormalOrRotationalSpectra{PartialTrait}; kwargs...)
     k_function(spectrum; kwargs...)

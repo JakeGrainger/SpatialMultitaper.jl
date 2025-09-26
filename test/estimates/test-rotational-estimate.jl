@@ -263,7 +263,7 @@ end
         grids, region = make_grids_example(rng, n_processes = 1, grid_dims = (20, 30))
         # nyquist is 20/4/2 = 2.5, 30/6/2 = 2.5
 
-        spec = spectra(grids, region, nfreq = (16, 16), fmax = (2.5, 2.5),
+        spec = spectra(grids[1], region, nfreq = (16, 16), fmax = (2.5, 2.5),
             tapers = sin_taper_family((3, 3), region))
 
         rot_spec = rotational_estimate(spec)

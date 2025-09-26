@@ -21,9 +21,10 @@ end
 
 Creates a `PartialResampler` object that can be used to generate partial spectra.
 """
+PartialResampler(data, region; kwargs...) = PartialResampler(
+    spatial_data(data, region); kwargs...)
 function PartialResampler(
-        data::NTuple{P, PointSet},
-        region;
+        data::SpatialData;
         tapers,
         nfreq,
         fmax,
@@ -31,20 +32,20 @@ function PartialResampler(
         shift_method,
         nfreq_marginal_compute,
         fmax_marginal_compute
-) where {P}
+)
     precompute = create_resampler_precompute(
-        data, region; nfreq = nfreq, fmax = fmax, tapers = tapers, mean_method = mean_method
+        data; nfreq = nfreq, fmax = fmax, tapers = tapers, mean_method = mean_method
     )
     cross_resampler = PartialCrossResampler(
         data, shift_method
     )
     marginal_resampler = PartialMarginalResampler(
-        data, region; tapers = tapers, nfreq = nfreq_marginal_compute,
+        data; tapers = tapers, nfreq = nfreq_marginal_compute,
         fmax = fmax_marginal_compute
     )
     mt_kwargs = (tapers = tapers, nfreq = nfreq, fmax = fmax, mean_method = mean_method)
     return PartialResampler(
-        precompute, cross_resampler, marginal_resampler, mt_kwargs, region)
+        precompute, cross_resampler, marginal_resampler, mt_kwargs, getregion(data))
 end
 
 function Base.rand(rng::AbstractRNG, resampler::PartialResampler)
@@ -57,11 +58,11 @@ function Base.rand(rng::AbstractRNG, resampler::PartialResampler)
     d_cross = rand(rng, resampler.cross_resampler)
     d_marginal = rand(rng, resampler.marginal_resampler)
 
-    J_cross = tapered_dft(d_cross, tapers, nfreq, fmax, region, mean_method[1:(end - 1)])
-    mean_cross = mean_estimate(d_cross, region, mean_method[1:(end - 1)])
-    J_marginal = tapered_dft(d_marginal, tapers, nfreq, fmax, region, mean_method)
-    mean_marginal = mean_estimate(d_marginal, region, mean_method)
-    atoms = covariance_zero_atom(d_marginal, region) # because cross doesn't have atoms
+    J_cross = tapered_dft(d_cross, tapers, nfreq, fmax, mean_method[1:(end - 1)])
+    mean_cross = mean_estimate(d_cross, mean_method[1:(end - 1)])
+    J_marginal = tapered_dft(d_marginal, tapers, nfreq, fmax, mean_method)
+    mean_marginal = mean_estimate(d_marginal, mean_method)
+    atoms = covariance_zero_atom(d_marginal) # because cross doesn't have atoms
 
     return partial_from_resampled(
         J_cross, mean_cross,
@@ -77,15 +78,13 @@ function Base.rand(rng::AbstractRNG, resampler::PartialResampler)
 end
 
 function create_resampler_precompute(
-        data::NTuple{P}, region; nfreq, fmax, tapers, mean_method = DefaultMean()) where {P}
-    mask.(data, Ref(region))
-    data, dim = check_spatial_data(data)
-    J_n = tapered_dft(data, tapers, nfreq, fmax, region, mean_method)
-    freq = make_freq(nfreq, fmax, dim)
-    power = dft2spectralmatrix(J_n)
+        data::MultipleSpatialDataTuple; nfreq, fmax, tapers, mean_method = DefaultMean())
+    freq = make_freq(nfreq, fmax, embeddim(data))
+    J_n = tapered_dft(data, tapers, nfreq, fmax, mean_method)
+    power = dft2spectralmatrix(J_n, Val{ncol(data)}())
     f_inv_cross = create_f_inv_cross(power)
     f_inv_marginal = create_f_inv_marginal(power)
-    mean_original = mean_estimate(data, region, mean_method)
+    mean_original = mean_estimate(data, mean_method)
 
     return (freq = freq, J_original = J_n, f_inv_cross = f_inv_cross,
         f_inv_marginal = f_inv_marginal,
@@ -225,7 +224,7 @@ function partial_from_resampled(
         mean_product = setindex(mean_product, x, q, p)
     end
 
-    process_information = ProcessInformation(1:P, 1:P, mean_product, atoms, Val{D}()) # should get the means for each part separately, means we should have means that are a matrix of products
+    process_information = ProcessInformation{D}(1:P, 1:P, mean_product, atoms) # should get the means for each part separately, means we should have means that are a matrix of products
     return Spectra{PartialTrait}(
         freq, output, process_information, EstimationInformation(ntapers))
 end

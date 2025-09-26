@@ -1,5 +1,5 @@
 using SpatialMultitaper, Test
-import SpatialMultitaper: tapered_dft, single_tapered_dft, apply_taper, sin_taper_family,
+import SpatialMultitaper: tapered_dft, _single_tapered_dft, _apply_taper,
                           DefaultMean, KnownMean
 include("test_utilities/TestUtils.jl")
 using .TestUtils
@@ -16,7 +16,7 @@ using .TestUtils
         tapers = [taper_family[1], taper_family[2]]  # Use first two tapers
 
         # Apply tapers
-        tapered_marks = apply_taper(points, marks, tapers)
+        tapered_marks = _apply_taper(points, marks, tapers)
 
         @test length(tapered_marks) == length(points) * length(tapers)
         @test eltype(tapered_marks) == ComplexF64
@@ -24,7 +24,7 @@ using .TestUtils
     end
 end
 
-@testset "single_tapered_dft" begin
+@testset "_single_tapered_dft" begin
     using StableRNGs
     rng = StableRNG(42)
 
@@ -39,8 +39,9 @@ end
         taper_family = sin_taper_family((2, 2), region)  # 2x2 = 4 tapers
         tapers = [taper_family[1], taper_family[2]]  # Use first two tapers
 
-        # Test single_tapered_dft
-        result = single_tapered_dft(points, tapers, nfreq, fmax, region, DefaultMean())
+        # Test _single_tapered_dft
+        result = _single_tapered_dft(
+            spatial_data(points, region), tapers, nfreq, fmax, DefaultMean())
 
         @test size(result) == (4, 4, 2)  # nfreq[1] x nfreq[2] x n_tapers
         @test eltype(result) == ComplexF64
@@ -61,7 +62,8 @@ end
         taper_family = sin_taper_family((2, 2), region)  # 2x2 = 4 tapers
         tapers = [taper_family[1], taper_family[2]]  # Use first two tapers
 
-        result = single_tapered_dft(data, tapers, nfreq, fmax, region, DefaultMean())
+        result = _single_tapered_dft(
+            spatial_data(data, region), tapers, nfreq, fmax, DefaultMean())
 
         @test size(result) == (6, 6, 2)
         @test eltype(result) == ComplexF64
@@ -86,8 +88,8 @@ end
         taper_family = sin_taper_family((2, 1), region)  # 2x1 = 2 tapers
         tapers = [taper_family[1], taper_family[2]]
 
-        result = single_tapered_dft(domain(grid_data), values(grid_data)[1],
-            tapers, nfreq, fmax, region, DefaultMean())
+        result = _single_tapered_dft(
+            spatial_data(grid_data, region), tapers, nfreq, fmax, DefaultMean())
 
         @test size(result) == (4, 4, 2)
         @test eltype(result) == ComplexF64
@@ -112,7 +114,7 @@ end
         tapers = [taper_family[1]]
         mean_method = DefaultMean()  # Single method for all processes
 
-        result = tapered_dft(points, tapers, nfreq, fmax, region, mean_method)
+        result = tapered_dft(spatial_data(points, region), tapers, nfreq, fmax, mean_method)
 
         @test size(result) == (3, 1, 4, 4)  # n_processes x n_tapers x nfreq[1] x nfreq[2]
         @test eltype(result) == ComplexF64
@@ -132,7 +134,8 @@ end
         tapers = [taper_family[1], taper_family[2]]
         mean_method = DefaultMean()  # Single method for all processes
 
-        result = tapered_dft(points_data, tapers, nfreq, fmax, region, mean_method)
+        result = tapered_dft(
+            spatial_data(points_data, region), tapers, nfreq, fmax, mean_method)
         @test isa(result, Tuple{Array{ComplexF64, 3}, Array{ComplexF64, 3}})
         @test size(result[1]) == (5, 5, 2)  # nfreq[1] x nfreq[2] x n_tapers
         @test size(result[2]) == (5, 5, 2)
@@ -158,7 +161,8 @@ end
         tapers = [taper_family[1]]
         mean_method = DefaultMean()  # Single method for all processes
 
-        result = tapered_dft(mixed_data, tapers, nfreq, fmax, region, mean_method)
+        result = tapered_dft(
+            spatial_data(mixed_data, region), tapers, nfreq, fmax, mean_method)
 
         @test size(result) == (3, 1, 4, 4)  # 3 processes (point, grid, marked) x 1 taper x 4 x 4 freqs
         @test eltype(result) == ComplexF64
@@ -183,10 +187,10 @@ end
     tapers = [taper_family[1]]
 
     @testset "DefaultMean vs KnownMean" begin
-        result_default_mean = single_tapered_dft(
-            data, tapers, nfreq, fmax, region, DefaultMean())
-        result_known_mean = single_tapered_dft(
-            data, tapers, nfreq, fmax, region, KnownMean(0.5))
+        result_default_mean = _single_tapered_dft(
+            spatial_data(data, region), tapers, nfreq, fmax, DefaultMean())
+        result_known_mean = _single_tapered_dft(
+            spatial_data(data, region), tapers, nfreq, fmax, KnownMean(0.5))
 
         @test size(result_default_mean) ==
               size(result_known_mean) == (6, 6, 1)
@@ -215,7 +219,7 @@ end
     #     taper_family = sin_taper_family((1, 1), region)  # 1x1 = 1 taper
     #     tapers = [taper_family[1]]
 
-    #     result = single_tapered_dft(points, tapers, nfreq, fmax, region, DefaultMean())
+    #     result = _single_tapered_dft(points, tapers, nfreq, fmax, region, DefaultMean())
     #     @test size(result) == (4, 4, 1)
     #     @test eltype(result) == ComplexF64
     # end
@@ -229,7 +233,8 @@ end
         taper_family = sin_taper_family((1, 1), region)  # 1x1 = 1 taper
         tapers = [taper_family[1]]
 
-        result = single_tapered_dft(points, tapers, nfreq, fmax, region, DefaultMean())
+        result = _single_tapered_dft(
+            spatial_data(points, region), tapers, nfreq, fmax, DefaultMean())
         @test size(result) == (3, 3, 1)
         @test all(isfinite, result)
     end
@@ -246,7 +251,8 @@ end
         taper_family = sin_taper_family((3, 1), region)  # 3x1 = 3 tapers
         tapers = [taper_family[1], taper_family[2], taper_family[3]]
 
-        result = single_tapered_dft(data, tapers, nfreq, fmax, region, DefaultMean())
+        result = _single_tapered_dft(
+            spatial_data(data, region), tapers, nfreq, fmax, DefaultMean())
         @test size(result) == (4, 4, 3)  # 3 tapers
         @test all(isfinite, result)
     end
@@ -267,7 +273,8 @@ end
         taper_family = sin_taper_family((2,), region)  # 2 tapers in 1D
         tapers = [taper_family[1]]
 
-        result = single_tapered_dft(data, tapers, nfreq, fmax, region, DefaultMean())
+        result = _single_tapered_dft(
+            spatial_data(data, region), tapers, nfreq, fmax, DefaultMean())
         @test size(result) == (8, 1)  # 1D frequency space x 1 taper
         @test all(isfinite, result)
     end
@@ -287,8 +294,8 @@ end
         taper_family = sin_taper_family((2,), region)  # 2 tapers in 1D
         tapers = [taper_family[1]]
 
-        result = single_tapered_dft(domain(grid_data), values(grid_data)[1],
-            tapers, nfreq, fmax, region, DefaultMean())
+        result = _single_tapered_dft(spatial_data(grid_data, region),
+            tapers, nfreq, fmax, DefaultMean())
         @test size(result) == (6, 1)
         @test all(isfinite, result)
     end

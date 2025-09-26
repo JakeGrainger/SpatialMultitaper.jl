@@ -15,7 +15,7 @@ import SpatialMultitaper: CFunction, KFunction, c_function, k_function, is_parti
     @testset "CFunction struct" begin
         radii = [0.1, 0.2, 0.3]
         values = [1.0, 0.8, 0.6]
-        processinfo = ProcessInformation([1], [1], ones(1, 1), ones(1, 1), Val{2}())
+        processinfo = ProcessInformation{2}([1], [1], ones(1, 1), ones(1, 1))
         estimationinfo = EstimationInformation(5)
 
         c_func = CFunction{MarginalTrait}(radii, values, processinfo, estimationinfo)
@@ -79,7 +79,7 @@ end
     @testset "KFunction struct" begin
         radii = [0.1, 0.2, 0.3]
         values = [0.01, 0.04, 0.09]  # Roughly π*r² for circle
-        processinfo = ProcessInformation([1], [1], ones(1, 1), ones(1, 1), Val{2}())
+        processinfo = ProcessInformation{2}([1], [1], ones(1, 1), ones(1, 1))
         estimationinfo = EstimationInformation(5)
 
         k_func = KFunction{MarginalTrait}(radii, values, processinfo, estimationinfo)
@@ -130,7 +130,7 @@ end
         data, region = make_points_example(rng, n_processes = 1, point_number = 50)
         radii = [0.05, 0.1, 0.15, 0.2]
 
-        c_est = c_function(data, region,
+        c_est = c_function(data[1], region,
             radii = radii,
             nfreq = (8, 8),
             fmax = (0.4, 0.4),
@@ -149,7 +149,7 @@ end
         data, region = make_points_example(rng, n_processes = 1, point_number = 60)
         radii = [0.05, 0.1, 0.15, 0.2, 0.25]
 
-        k_est = k_function(data, region,
+        k_est = k_function(data[1], region,
             radii = radii,
             nfreq = (10, 10),
             fmax = (0.5, 0.5),
@@ -240,7 +240,7 @@ end
     @testset "Very small radii" begin
         data, region = make_points_example(rng, n_processes = 1, point_number = 30)
 
-        c_est = c_function(data, region,
+        c_est = c_function(data[1], region,
             radii = [0.001, 0.01],
             nfreq = (6, 6),
             fmax = (0.3, 0.3),

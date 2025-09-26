@@ -17,22 +17,26 @@ Returns a scalar for single datasets or a diagonal matrix for multiple datasets.
 - Scalar estimate for single datasets
 - Diagonal matrix for multiple datasets (Tuple or Vector of datasets)
 """
-covariance_zero_atom(data::NTuple{1}, region) = covariance_zero_atom(data[1], region)
-
-function covariance_zero_atom(data::Tuple, region)
-    diagm(SVector(covariance_zero_atom.(data, Ref(region))))
+function covariance_zero_atom(data::MultipleSpatialDataTuple{P}) where {P}
+    diagm(SVector(ntuple(i -> covariance_zero_atom(data[i]), Val{P}())))
 end
 
-covariance_zero_atom(data::Vector, region) = diagm(covariance_zero_atom.(data, Ref(region)))
-
-covariance_zero_atom(data::PointSet, region) = length(data) / unitless_measure(region)
-
-function covariance_zero_atom(data::GeoTable, region)
-    _covariance_zero_atom(domain(data), values(data)[1], region)
+function covariance_zero_atom(data::MultipleSpatialDataVec)
+    diagm([covariance_zero_atom(data[i]) for i in 1:ncol(data)])
 end
 
-_covariance_zero_atom(::CartesianGrid, rf, region) = zero(eltype(rf))
+function covariance_zero_atom(data::PointPattern)
+    length(observations(data)) / unitless_measure(getregion(data))
+end
 
-_covariance_zero_atom(::PointSet, mark, region) = sum(abs2, mark) / unitless_measure(region)
+function covariance_zero_atom(data::GriddedData)
+    rf = values(observations(data))[1]
+    zero(eltype(rf))
+end
+
+function covariance_zero_atom(data::MarkedPointPattern)
+    mark = values(observations(data))[1]
+    sum(abs2, mark) / unitless_measure(getregion(data))
+end
 
 # TODO: should link this to the existing mean methods

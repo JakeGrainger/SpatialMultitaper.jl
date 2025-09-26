@@ -11,10 +11,10 @@ end
     include("test-utils.jl")
 end
 @safetestset "General Tapers" begin
-    include("test-general-tapers.jl")
+    include("tapers/test-general-tapers.jl")
 end
 @safetestset "Tapers" begin
-    include("test-tapers.jl")
+    include("tapers/test-tapers.jl")
 end
 @safetestset "Input Checking" begin
     include("test-input-checking.jl")

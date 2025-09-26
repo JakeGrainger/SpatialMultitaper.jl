@@ -25,14 +25,14 @@ import BSplineKit
 include("SlepianSolver/SlepianSolver.jl")
 using .SlepianSolver
 
-include("general_tapers.jl")
+include("tapers/general_tapers.jl")
 
 include("dft_interface/frequencies.jl")
 include("dft_interface/nufft_interface.jl")
 include("dft_interface/fft_interface.jl")
 
 include("utils.jl")
-include("tapers.jl")
+include("tapers/tapers.jl")
 include("mean.jl")
 include("tapered_dft.jl")
 include("input_checking.jl")

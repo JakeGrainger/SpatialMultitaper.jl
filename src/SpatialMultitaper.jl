@@ -36,7 +36,7 @@ include("tapers.jl")
 include("mean.jl")
 include("tapered_dft.jl")
 include("input_checking.jl")
-include("atoms.jl")
+include("covariance_zero_atom.jl")
 
 include("estimates/estimate_types.jl")
 include("estimates/printing.jl")

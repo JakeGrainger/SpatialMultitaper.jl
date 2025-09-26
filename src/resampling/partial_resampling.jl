@@ -61,7 +61,7 @@ function Base.rand(rng::AbstractRNG, resampler::PartialResampler)
     mean_cross = mean_estimate(d_cross, region, mean_method[1:(end - 1)])
     J_marginal = tapered_dft(d_marginal, tapers, nfreq, fmax, region, mean_method)
     mean_marginal = mean_estimate(d_marginal, region, mean_method)
-    atoms = atom_estimate(d_marginal, region) # because cross doesn't have atoms
+    atoms = covariance_zero_atom(d_marginal, region) # because cross doesn't have atoms
 
     return partial_from_resampled(
         J_cross, mean_cross,

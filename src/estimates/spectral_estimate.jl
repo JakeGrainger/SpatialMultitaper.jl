@@ -69,7 +69,7 @@ function spectra(
     freq = make_freq(nfreq, fmax, dim)
     power = dft2spectralmatrix(J_n)
 
-    zero_atom = atom_estimate(data, region)
+    zero_atom = covariance_zero_atom(data, region)
     λ = mean_estimate(data, region, mean_method)
     processinformation = ProcessInformation(
         1:length(data), 1:length(data), λ * λ', zero_atom, Val{dim}())

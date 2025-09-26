@@ -3,6 +3,10 @@ using SpatialMultitaper, Test, SafeTestsets, Aqua
 # Aqua.test_all(SpatialMultitaper)
 
 # Core functionality tests
+@safetestset "Covariance zero atom" begin
+    include("test-covariance_zero_atom.jl")
+end
+
 @safetestset "Utils" begin
     include("test-utils.jl")
 end

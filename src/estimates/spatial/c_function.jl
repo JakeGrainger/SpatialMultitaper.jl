@@ -18,24 +18,34 @@ function c_function(
         data, region; radii, nfreq, fmax,
         freq_radii = default_rotational_radii(nfreq, fmax),
         rotational_method = default_rotational_kernel(freq_radii), spectra_kwargs...)
-    f_mt = spectra(data, region; nfreq, fmax, spectra_kwargs...)
-    f = rotational_estimate(f_mt, radii = freq_radii, kernel = rotational_method) # just returns f_mt if NoRotational()
-    return c_function(f; radii = radii)
+    spectrum = spectra(data, region; nfreq, fmax, spectra_kwargs...)
+    return c_function(spectrum; radii = radii, freq_radii = freq_radii,
+        rotational_method = rotational_method)
 end
 
-function c_function(spectrum::Union{Spectra{E}, RotationalSpectra{E}}; radii) where {E}
-    value = sdf2C(spectrum, radii)
+function c_function(
+        spectrum::Spectra; radii, freq_radii = default_rotational_radii(spectrum),
+        rotational_method = default_rotational_kernel(spectrum))
+    _c_function(spectrum, radii, freq_radii, rotational_method)
+end
+
+function _c_function(spectrum::Spectra{E}, radii, freq_radii, rotational_method) where {E}
+    rot_spec = rotational_estimate(spectrum, radii = freq_radii, kernel = rotational_method) # just returns f_mt if rotational_method = NoRotational()
+    value = sdf2C(rot_spec, radii)
+    return CFunction{E}(
+        radii, value, getprocessinformation(spectrum), getestimationinformation(spectrum))
+end
+
+function c_function(spectrum::RotationalSpectra{E}; radii) where {E}
+    value = sdf2C(rot_spec, radii)
     return CFunction{E}(
         radii, value, getprocessinformation(spectrum), getestimationinformation(spectrum))
 end
 
 function partial_c_function(
-        data, region; radii, nfreq, fmax,
-        freq_radii = default_rotational_radii(nfreq, fmax),
-        rotational_method = default_rotational_kernel(freq_radii), spectra_kwargs...)
+        data, region; radii, nfreq, fmax, spectra_kwargs...)
     f_mt = partial_spectra(data, region; nfreq, fmax, spectra_kwargs...)
-    f = rotational_estimate(f_mt, radii = freq_radii, kernel = rotational_method) # just returns f_mt if NoRotational()
-    return c_function(f, radii = radii)
+    return c_function(f_mt; radii = radii)
 end
 
 function partial_c_function(

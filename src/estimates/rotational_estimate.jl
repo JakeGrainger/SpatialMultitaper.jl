@@ -20,7 +20,7 @@ getoriginaltype(::Type{<:RotationalEstimate{E, D, P, Q, S}}) where {E, D, P, Q, 
 
 function rotational_estimate(
         est::AnisotropicEstimate{E}; radii = default_rotational_radii(est),
-        kernel = default_rotational_kernel(radii)) where {E}
+        kernel = default_rotational_kernel(est)) where {E}
     rot_est = _rotational_estimate(est, radii, kernel)
     processinfo = getprocessinformation(est)
     estimationinfo = getestimationinformation(est)
@@ -85,14 +85,6 @@ function smoothed_rotational(x, y, radii, kernel)
             sum(kernel(norm(u) - r) for u in xitr) for r in radii]
 end
 
-function default_rotational_radii(nfreq, fmax)
-    default_rotational_radii(choose_freq_1d.(nfreq, fmax))
-end
-
-function default_rotational_radii(s::AbstractEstimate)
-    return default_rotational_radii(getargument(s))
-end
-
 """
     default_rotational_radii(freq::NTuple{D,AbstractVector{<:Real}}) where {D}
     default_rotational_radii(s::AbstractEstimate)
@@ -102,6 +94,13 @@ Constructs a default set of rotational averaging radii based on the frequency ve
 The maximum radius is set to the minimum of the maximum frequencies in each dimension,
 and the number of radii is set to the maximum length of the frequency vectors.
 """
+function default_rotational_radii(nfreq, fmax)
+    default_rotational_radii(choose_freq_1d.(nfreq, fmax))
+end
+
+function default_rotational_radii(s::AbstractEstimate)
+    return default_rotational_radii(getargument(s))
+end
 function default_rotational_radii(freq::NTuple{D, AbstractVector{<:Real}}) where {D}
     max_freq = minimum(x -> maximum(abs, x), freq)
     n_freq = maximum(length, freq)
@@ -110,17 +109,7 @@ function default_rotational_radii(freq::NTuple{D, AbstractVector{<:Real}}) where
     return used_range
 end
 
-"""
-    default_rotational_kernel(freq_radii::OrdinalRange)
-
-Constructs default rotational kernel based on the frequency radii.
-The bandwidth is set to twice the step size of the frequency radii, and kernel is rectangular.
-"""
-function default_rotational_kernel(freq_radii::Union{StepRangeLen, OrdinalRange})
-    bw = 2 * step(freq_radii) # ensures that kernels overlap with at least one evaluation point
-    return RectKernel(bw)
-end
-function default_rotational_kernel(freq_radii::AbstractVector{<:Real})
-    bw = 2 * minimum(diff(sort(unique(freq_radii)))) # ensures that kernels overlap with at least one evaluation point
-    return RectKernel(bw)
+function default_rotational_kernel(est::AbstractEstimate)
+    max_step = maximum(step, getargument(est))
+    return RectKernel(2 * max_step)
 end

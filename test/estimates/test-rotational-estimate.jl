@@ -70,12 +70,15 @@ end
         #TODO: add proper tests when this is reworked
     end
 
-    @testset "Default kernel from radii" begin
-        radii = range(0, 0.5, length = 20)
-        kernel = default_rotational_kernel(radii)
+    @testset "Default kernel from estimate" begin
+        rng = StableRNG(123)
+        data, region = make_points_example(rng)
+        mt_est = spectra(data, region; nfreq = (10, 10), fmax = (0.5, 0.5),
+            tapers = sin_taper_family((3, 3), region))
+        kernel = default_rotational_kernel(mt_est)
 
         @test kernel isa RectKernel
-        @test kernel.bw ≈ 2 * step(radii)
+        @test kernel.bw ≈ 0.2
     end
 end
 

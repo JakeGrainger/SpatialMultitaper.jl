@@ -17,7 +17,7 @@ getestimate(f::CFunction) = f.value
 function c_function(
         data, region; radii, nfreq, fmax,
         freq_radii = default_rotational_radii(nfreq, fmax),
-        rotational_method = default_rotational_kernel(freq_radii), spectra_kwargs...)
+        rotational_method = default_rotational_kernel(nfreq, fmax), spectra_kwargs...)
     spectrum = spectra(data, region; nfreq, fmax, spectra_kwargs...)
     return c_function(spectrum; radii = radii, freq_radii = freq_radii,
         rotational_method = rotational_method)

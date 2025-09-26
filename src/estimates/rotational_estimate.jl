@@ -110,6 +110,12 @@ function default_rotational_radii(freq::NTuple{D, AbstractVector{<:Real}}) where
 end
 
 function default_rotational_kernel(est::AbstractEstimate)
-    max_step = maximum(step, getargument(est))
+    return default_rotational_kernel(getargument(est))
+end
+function default_rotational_kernel(nfreq, fmax)
+    return default_rotational_kernel(choose_freq_1d.(nfreq, fmax))
+end
+function default_rotational_kernel(freq::NTuple{D, AbstractVector{<:Real}}) where {D}
+    max_step = maximum(step, freq)
     return RectKernel(2 * max_step)
 end

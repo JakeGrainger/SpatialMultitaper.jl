@@ -1,5 +1,7 @@
 module SpatialMultitaper
 
+# TODO: should use ArgCheck.jl
+
 using Reexport
 @reexport using Meshes, GeoTables
 
@@ -30,41 +32,29 @@ include("dft_interface/nufft_interface.jl")
 include("dft_interface/fft_interface.jl")
 
 include("utils.jl")
-include("types/estimate_types.jl")
-include("types/printing.jl")
 include("tapers.jl")
 include("mean.jl")
 include("tapered_dft.jl")
 include("input_checking.jl")
-include("spectral_estimate.jl")
 include("atoms.jl")
 
-include("transforms/spectral_matrix_transforms.jl")
-include("transforms/marginal_transform.jl")
+include("estimates/estimate_types.jl")
+include("estimates/printing.jl")
+include("estimates/errors.jl")
+include("estimates/rotational_estimate.jl")
+include("estimates/marginal_transform.jl")
 
-include("transforms/wavenumber/usual/complex_coherence.jl")
-include("transforms/wavenumber/usual/magnitude_coherence.jl")
-include("transforms/wavenumber/usual/magnitude_coherence2.jl")
-include("transforms/wavenumber/usual/phase.jl")
-include("transforms/wavenumber/usual/rotational.jl")
+include("estimates/spectral_estimate.jl")
+include("estimates/partial_spectra.jl")
 
-include("transforms/wavenumber/partial/partial_complex_coherence.jl")
-include("transforms/wavenumber/partial/partial_magnitude_coherence.jl")
-include("transforms/wavenumber/partial/partial_magnitude_coherence2.jl")
-include("transforms/wavenumber/partial/partial_phase.jl")
-include("transforms/wavenumber/partial/partial_spectra.jl")
+include("estimates/spectral_matrix_transforms.jl")
+include("estimates/coherence.jl")
 
-include("transforms/spatial/spatial_utils.jl")
-include("transforms/spatial/usual/C_function.jl")
-include("transforms/spatial/usual/K_function.jl")
-include("transforms/spatial/usual/L_function.jl")
-include("transforms/spatial/usual/centered_L_function.jl")
-include("transforms/spatial/partial/partial_C_function.jl")
-include("transforms/spatial/partial/partial_K_function.jl")
-include("transforms/spatial/partial/partial_L_function.jl")
-include("transforms/spatial/partial/partial_centered_L_function.jl")
-include("transforms/spatial/usual/pair_correlation_function.jl")
-include("transforms/spatial/partial/partial_pair_correlation_function.jl")
+include("estimates/spatial/c_function.jl")
+include("estimates/spatial/k_function.jl")
+include("estimates/spatial/l_function.jl")
+include("estimates/spatial/centered_l_function.jl")
+include("estimates/spatial/pair_correlation_function.jl")
 
 # include("resampling/partial_null_generation.jl")
 include("resampling/partial_cross_resampling.jl")
@@ -72,7 +62,8 @@ include("resampling/partial_marginal_resampling.jl")
 include("resampling/partial_resampling.jl")
 include("resampling/resampling.jl")
 
-export multitaper_estimate,
+export spectra,
+       multitaper_estimate,
        sin_taper_family,
        interpolated_taper_family,
        DefaultMean,
@@ -84,24 +75,24 @@ export multitaper_estimate,
        padto,
        downsample,
        optimaltapers,
-       complex_coherence,
+       coherence,
        magnitude_coherence,
-       magnitude_coherence2,
+       magnitude_squared_coherence,
        phase,
        rotational_estimate,
        partial_spectra,
-       partial_complex_coherence,
+       partial_coherence,
        partial_magnitude_coherence,
-       partial_magnitude_coherence2,
+       partial_magnitude_squared_coherence,
        partial_phase,
-       C_function,
-       K_function,
-       L_function,
-       centered_L_function,
-       partial_C_function,
-       partial_K_function,
-       partial_L_function,
-       partial_centered_L_function,
+       c_function,
+       k_function,
+       l_function,
+       centered_l_function,
+       partial_c_function,
+       partial_k_function,
+       partial_l_function,
+       partial_centered_l_function,
        paircorrelation_function,
        paircorrelation_function_direct,
        partial_paircorrelation_function,

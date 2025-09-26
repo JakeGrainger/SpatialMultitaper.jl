@@ -1,18 +1,13 @@
 using SpatialMultitaper, Test
 
+# Import test utilities
+include("test_utilities/TestUtils.jl")
+using .TestUtils
+
 import SpatialMultitaper: unitless_coords, unitless_spacing, unitless_origin,
                           unitless_minimum, unitless_maximum, unitless_measure,
                           point2unitlesstype, points2coords, box2sides, grid2sides,
                           padto, centerpad, downsample, upsample, mask
-
-"""
-    basic_test_grid(T, min, max, dims)
-
-Create a test `CartesianGrid` with specified type `T`, min, max, and dims.
-"""
-function basic_test_grid(T, min, max, dims)
-    return CartesianGrid(convert.(T, min), convert.(T, max), dims = dims)
-end
 
 @testset "unitless_coords" begin
     types = (Float32, Float64)

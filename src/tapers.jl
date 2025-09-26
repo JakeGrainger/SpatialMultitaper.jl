@@ -120,16 +120,16 @@ function taper_ft(taper::Taper, x)
     taper.taper_ft(x)
 end
 
-(f::InterpolatedTaperFunc)(x::NTuple{D, Real}) where {D, Real} = f.taper(x...)
+(f::InterpolatedTaperFunc)(x::NTuple{D, Real}) where {D} = f.taper(x...)
 (f::InterpolatedTaperFunc)(x::NTuple{1, Real}) = f.taper(x[1])
 (f::InterpolatedTaperFunc)(x::NTuple{2, Real}) = f.taper(x[1], x[2])
 (f::InterpolatedTaperFunc)(x::NTuple{3, Real}) = f.taper(x[1], x[2], x[3])
 
-function (f::InterpolatedTaperFT)(k::NTuple{D, Real}) where {D, Real}
+function (f::InterpolatedTaperFT)(k::NTuple{D, T}) where {D, T <: Real}
     f.taper_ft(k) * prod(sinc(unitless_spacing(f.grid)[d] * k[d])^2 for d in 1:D)
 end
 
-(f::DiscreteTaperFT)(x::NTuple{D, Real}) where {D, Real} = f.taper_ft(x...)
+(f::DiscreteTaperFT)(x::NTuple{D, Real}) where {D} = f.taper_ft(x...)
 (f::DiscreteTaperFT)(x::NTuple{1, Real}) = f.taper_ft(x[1])
 (f::DiscreteTaperFT)(x::NTuple{2, Real}) = f.taper_ft(x[1], x[2])
 (f::DiscreteTaperFT)(x::NTuple{3, Real}) = f.taper_ft(x[1], x[2], x[3])

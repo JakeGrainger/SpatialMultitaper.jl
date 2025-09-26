@@ -1,84 +1,89 @@
-using SpatialMultitaper, Test, SafeTestsets
+using SpatialMultitaper, Test, SafeTestsets, Aqua
 
-@safetestset "utils" begin
+# Aqua.test_all(SpatialMultitaper)
+
+# Core functionality tests
+@safetestset "Utils" begin
     include("test-utils.jl")
 end
-@safetestset "fft_interface" begin
-    include("dft_interface/test-fft-interface.jl")
-end
-
-include("SpatialMultitaperTestingUtils.jl")
-using .SpatialMultitaperTestingUtils
-import SpatialMultitaper as Spmt
-@testset "General Tapers" begin
+@safetestset "General Tapers" begin
     include("test-general-tapers.jl")
 end
-@testset "Input Checking" begin
-    include("test-input-checking.jl")
-end
-@testset "Mean" begin
-    include("test-mean.jl")
-end
-@testset "Resampling" begin
-    include("test-resampling.jl")
-end
-@testset "Spectral Estimate" begin
-    include("test-spectral-estimate.jl")
-end
-@testset "Tapered Dft" begin
-    include("test-tapered-dft.jl")
-end
-@testset "Tapers" begin
+@safetestset "Tapers" begin
     include("test-tapers.jl")
 end
-@testset "Diagonalisation" begin
-    include("SlepianSolver/test-diagonalisation.jl")
+@safetestset "Input Checking" begin
+    include("test-input-checking.jl")
 end
-@testset "Operator" begin
-    include("SlepianSolver/test-operator.jl")
+@safetestset "Mean" begin
+    include("test-mean.jl")
 end
-@testset "Frequencies" begin
+
+# # DFT Interface tests
+@safetestset "FFT Interface" begin
+    include("dft_interface/test-fft-interface.jl")
+end
+@safetestset "Frequencies" begin
     include("dft_interface/test-frequencies.jl")
 end
-@testset "Nufft Interface" begin
+@safetestset "NUFFT Interface" begin
     include("dft_interface/test-nufft-interface.jl")
 end
-@testset "Marginal Transform" begin
-    include("transforms/test-marginal.jl")
+
+# # Slepian Solver tests
+@safetestset "Diagonalisation" begin
+    include("SlepianSolver/test-diagonalisation.jl")
 end
-@testset "Partial Complex Coherence" begin
-    include("transforms/partial/test-partial-complex-coherence.jl")
+@safetestset "Operator" begin
+    include("SlepianSolver/test-operator.jl")
 end
-@testset "Partial Magnitude Coherence" begin
-    include("transforms/partial/test-partial-magnitude-coherence.jl")
+
+# Dft tests
+@safetestset "Tapered DFT" begin
+    include("test-tapered-dft.jl")
 end
-@testset "Partial Magnitude Coherence2" begin
-    include("transforms/partial/test-partial-magnitude-coherence2.jl")
+
+# estimate tests
+@safetestset "Estimate Types" begin
+    include("estimates/test-estimate-types.jl")
 end
-@testset "Partial Phase" begin
-    include("transforms/partial/test-partial-phase.jl")
+
+@safetestset "Error Messages" begin
+    include("estimates/test-errors.jl")
 end
-@testset "Partial Spectra" begin
-    include("transforms/partial/test-partial-spectra.jl")
+
+@safetestset "Spectral Estimate" begin
+    include("estimates/test-spectral-estimate.jl")
 end
-@testset "C Function" begin
-    include("transforms/spatial/test-C-function.jl")
+
+@safetestset "Transforms" begin
+    include("estimates/test-spectral-matrix-transforms.jl")
 end
-@testset "Partial K Function" begin
-    include("transforms/spatial/test-partial-K-function.jl")
+
+@safetestset "Partial spectra" begin
+    include("estimates/test-partial-spectra.jl")
 end
-@testset "Complex Coherence" begin
-    include("transforms/usual/test-complex-coherence.jl")
+
+@safetestset "coherence" begin
+    include("estimates/test-coherence.jl")
 end
-@testset "Magnitude Coherence" begin
-    include("transforms/usual/test-magnitude-coherence.jl")
+
+@safetestset "Rotational estimate" begin
+    include("estimates/test-rotational-estimate.jl")
 end
-@testset "Magnitude Coherence2" begin
-    include("transforms/usual/test-magnitude-coherence2.jl")
+
+@safetestset "Marginal transform" begin
+    include("estimates/test-marginal-transform.jl")
 end
-@testset "Phase" begin
-    include("transforms/usual/test-phase.jl")
+
+@safetestset "spatial functions" begin
+    include("estimates/test-spatial-functions.jl")
 end
-@testset "Rotational" begin
-    include("transforms/usual/test-rotational.jl")
+
+@safetestset "Printing" begin
+    include("estimates/test-printing.jl")
+end
+
+@safetestset "Resampling" begin
+    include("test-resampling.jl")
 end

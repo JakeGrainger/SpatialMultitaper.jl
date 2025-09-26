@@ -11,7 +11,7 @@ If the data is a `GeoTable`, and the domain of this data is a `PointSet`, then t
 ## Multivariate processes
 
 ```@docs
-multitaper_estimate
+spectra
 ```
 
 ## Mathematical background

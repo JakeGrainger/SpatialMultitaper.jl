@@ -14,9 +14,9 @@ function multitaper_estimate_resampled(
     freq = make_freq(nfreq, fmax, dim)
     J_n = tapered_dft(data, tapers, nfreq, fmax, region, mean_method)
     power = dft2spectralmatrix(J_n)
-    resampled = [SpectralEstimate(freq, dft2spectralmatrix(null_resample(J_n)))
+    resampled = [Spectra(freq, dft2spectralmatrix(null_resample(J_n)))
                  for _ in 1:nresamples]
-    observed = SpectralEstimate(freq, power)
+    observed = Spectra(freq, power)
     return (observed = observed, resampled = resampled)
 end
 

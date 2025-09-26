@@ -19,7 +19,7 @@
 #         mean_method::MeanEstimationMethod = DefaultMean(),
 #         smooth_width = nothing
 # ) where {P}
-#     spec = multitaper_estimate(data, region; tapers = tapers, nfreq = nfreq, fmax = fmax)
+#     spec = spectra(data, region; tapers = tapers, nfreq = nfreq, fmax = fmax)
 #     intensity = mean_estimate(data, region, mean_method)
 #     kernels = prediction_kernel(spec, radii = radii, smooth_width = smooth_width)
 #     kernel_integral = integrate_prediction_kernel.(
@@ -75,7 +75,7 @@ function integrate_prediction_kernel(radii, kernel, ::Val{D}) where {D}
     return A * step(radii) * sum(k * r^(D - 1) for (k, r) in zip(kernel, radii))
 end
 
-function prediction_kernel(spec::SpectralEstimate; radii, smooth_width = nothing)
+function prediction_kernel(spec::Spectra; radii, smooth_width = nothing)
     kernel_ft = prediction_kernel_ft(spec)
     kernels = _ft2kernel.(Ref(kernel_ft.freq), kernel_ft.kernels, Ref(radii), smooth_width)
     return (radii = radii, kernels = kernels)

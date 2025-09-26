@@ -1,6 +1,6 @@
 using SpatialMultitaper, Test
-include("../SpatialMultitaperTestingUtils.jl")
-using .SpatialMultitaperTestingUtils
+include("../test_utilities/TestUtils.jl")
+using .TestUtils
 
 import SpatialMultitaper: choose_freq_oversample, unwrap_fft_output, choose_freq_1d,
                           fft_anydomain,

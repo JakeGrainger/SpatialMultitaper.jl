@@ -88,13 +88,13 @@ function marginal_shift(pp::PointSet, shift_method::StandardShift)
 end
 
 function shift_resample(
-        data::NTuple{P, S},
+        data::NTuple{P},
         region,
         statistic,
         shift_method::ShiftMethod,
         groups = 1:P;
         kwargs...
-) where {P, S}
+) where {P}
     shift_resample(
         Random.default_rng(),
         data,
@@ -108,13 +108,13 @@ end
 
 function shift_resample(
         rng::AbstractRNG,
-        data::NTuple{P, S},
+        data::NTuple{P},
         region,
         statistic,
         shift_method::ShiftMethod,
         groups = 1:P;
         kwargs...
-) where {P, S}
+) where {P}
     @assert sort(reduce(vcat, groups))==1:P "groups of shifts should partition the space"
     group_shifts = Dict{eltype(groups), ShiftMethod}(
         group => rand(rng, shift_method) for group in groups
@@ -141,3 +141,4 @@ end
 function partial_shift_resample(statistic, resampler; kwargs...)
     partial_shift_resample(Random.default_rng(), statistic, resampler; kwargs...)
 end
+# TODO: currently we rotationally average K function in usual but not in the resampling, should think about the best way to handle this

@@ -1,0 +1,192 @@
+using SpatialMultitaper, Test, StableRNGs, StaticArrays
+include("../test_utilities/TestUtils.jl")
+using .TestUtils
+
+import SpatialMultitaper: Spectra, getargument, getestimate, dft2spectralmatrix,
+                          spectral_matrix, make_freq, getestimationinformation,
+                          ProcessInformation, EstimationInformation, MarginalTrait
+
+@testset "Spectra Construction" begin
+    rng = StableRNG(123)
+
+    @testset "Basic construction" begin
+        # Create test data
+        freq = (1:10, 1:10)
+        power = rand(rng, ComplexF64, 2, 2, 10, 10)
+        processinfo = ProcessInformation([1, 2], [1, 2], ones(2, 2), ones(2, 2), Val{2}())
+        estimationinfo = EstimationInformation(5)
+
+        spec = Spectra{MarginalTrait}(freq, power, processinfo, estimationinfo)
+        @test getargument(spec) == freq
+        @test getestimate(spec) == power
+        @test embeddim(spec) == 2
+        @test size(spec) == (2, 2)
+    end
+
+    @testset "Single process case" begin
+        freq = (1:10,)
+        power = rand(rng, Float64, 10)
+        processinfo = ProcessInformation([1], [1], ones(1, 1), ones(1, 1), Val{1}())
+        estimationinfo = EstimationInformation(3)
+
+        spec = Spectra{MarginalTrait}(freq, power, processinfo, estimationinfo)
+        @test size(spec) == (1, 1)
+        @test embeddim(spec) == 1
+    end
+end
+
+@testset "spectra function" begin
+    rng = StableRNG(123)
+
+    @testset "Points data" begin
+        data, region = make_points_example(rng, n_processes = 2, point_number = 50)
+        nfreq = (8, 8)
+        fmax = (0.5, 0.5)
+        tapers = sin_taper_family((2, 2), region)
+
+        spec = spectra(data, region, nfreq = nfreq, fmax = fmax, tapers = tapers)
+
+        @test getargument(spec) isa Tuple{AbstractVector, AbstractVector}
+        @test length(getargument(spec)[1]) == 8
+        @test length(getargument(spec)[2]) == 8
+        @test embeddim(spec) == 2
+        @test size(spec) == (2, 2)
+        @test getestimationinformation(spec).ntapers == length(tapers)
+    end
+
+    @testset "Grid data" begin
+        grids, region = make_grids_example(rng, n_processes = 1, grid_dims = (10, 10),
+            region_min = (0.0, 0.0), region_max = (10.0, 10.0))
+        nfreq = (8, 8)
+        fmax = (0.5, 0.5)  # Nyquist frequency for grid data
+        tapers = sin_taper_family((2, 2), region)
+
+        spec = spectra(grids, region, nfreq = nfreq, fmax = fmax, tapers = tapers)
+        @test size(spec) == (1, 1)
+        @test embeddim(spec) == 2
+    end
+
+    @testset "Single process convenience" begin
+        data, region = make_points_example(rng, n_processes = 1)
+        nfreq = (6, 6)
+        fmax = (0.3, 0.3)
+        tapers = sin_taper_family((2, 2), region)
+
+        spec = spectra(data[1], region, nfreq = nfreq, fmax = fmax, tapers = tapers)
+        @test size(spec) == (1, 1)
+    end
+end
+
+@testset "DFT to Spectral Matrix" begin
+    rng = StableRNG(123)
+
+    @testset "Matrix input" begin
+        # P x M x n1 x n2 array
+        J_n = rand(rng, ComplexF64, 3, 10, 8, 8)  # 3 processes, 10 tapers, 8x8 frequencies
+        S_mat = dft2spectralmatrix(J_n)
+
+        @test size(S_mat) == (3, 3, 8, 8)
+        @test eltype(S_mat) <: ComplexF64  # Should be ComplexF64
+    end
+
+    @testset "Tuple input (NTuple{P, Array})" begin
+        # Tuple of arrays n1 x n2 x M
+        J_1 = rand(rng, ComplexF64, 8, 8, 10)
+        J_2 = rand(rng, ComplexF64, 8, 8, 10)
+        J_n = (J_1, J_2)
+
+        S_mat = dft2spectralmatrix(J_n)
+        @test size(S_mat) == (8, 8)
+        @test eltype(S_mat) <: SMatrix
+
+        # Single process case
+        J_single = (J_1,)
+        S_single = dft2spectralmatrix(J_single)
+        @test size(S_single) == (8, 8)
+        @test eltype(S_single) <: Number
+    end
+end
+
+@testset "spectral_matrix function" begin
+    rng = StableRNG(123)
+
+    @testset "Vector input" begin
+        x = rand(rng, ComplexF64, 5)
+        S = spectral_matrix(x)
+        @test S ≈ x * x'
+        @test size(S) == (5, 5)
+    end
+
+    @testset "Matrix input" begin
+        X = rand(rng, ComplexF64, 3, 10)  # 3 processes, 10 tapers
+        S = spectral_matrix(X)
+        expected = (X * X') / 10
+        @test S ≈ expected
+        @test size(S) == (3, 3)
+    end
+end
+
+@testset "make_freq function" begin
+    @testset "Single frequency per dimension" begin
+        freq = make_freq(10, 0.5, 1)
+        @test length(freq) == 1
+        @test length(freq[1]) == 10
+        @test maximum(abs, freq[1]) ≤ 0.5
+    end
+
+    @testset "Different frequencies per dimension" begin
+        nfreq = (8, 12)
+        fmax = (0.4, 0.6)
+        freq = make_freq(nfreq, fmax, 2)
+
+        @test length(freq) == 2
+        @test length(freq[1]) == 8
+        @test length(freq[2]) == 12
+        @test maximum(abs, freq[1]) ≤ 0.4
+        @test maximum(abs, freq[2]) ≤ 0.6
+    end
+end
+
+@testset "Spectra Indexing and Access" begin
+    rng = StableRNG(123)
+    data, region = make_points_example(rng, n_processes = 3, point_number = 30)
+    nfreq = (6, 6)
+    fmax = (0.3, 0.3)
+    tapers = sin_taper_family((2, 2), region)
+
+    spec = spectra(data, region, nfreq = nfreq, fmax = fmax, tapers = tapers)
+
+    @testset "Process indexing" begin
+        spec_sub = spec[1, 2]
+        @test size(spec_sub) == (1, 1)  # Single process pair
+        @test getargument(spec_sub) == getargument(spec)  # Same frequencies
+    end
+
+    @testset "Frequency indexing" begin
+        spec_freq = spec[1, 1, 3, 4]  # specific frequency bin
+        @test size(spec_freq) == (1, 1)
+        freq_arg = getargument(spec_freq)
+        @test length(freq_arg[1]) == 1  # Single frequency
+        @test length(freq_arg[2]) == 1
+    end
+end
+
+@testset "Edge Cases and Error Handling" begin
+    rng = StableRNG(123)
+
+    @testset "Empty or minimal data" begin
+        # Test with very small datasets
+        data = (PointSet([Point(0.0, 0.0)]),)
+        region = Box(Point(-1, -1), Point(1, 1))
+        nfreq = (2, 2)
+        fmax = (0.1, 0.1)
+        tapers = sin_taper_family((1, 1), region)
+
+        # Should not crash but might have limited meaningful results
+        spec = spectra(data, region, nfreq = nfreq, fmax = fmax, tapers = tapers)
+        @test size(spec) == (1, 1)
+    end
+end
+
+# TODO: need to add this
+# @testset "NaN handling" begin

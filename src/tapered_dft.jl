@@ -87,7 +87,7 @@ function single_tapered_dft(
     tapered_marks = apply_taper(points, marks, tapers)
 
     # perform transform
-    λ = mean_estimate(points, marks, region, mean_method)
+    λ = mean_estimate(georef((marks = marks,), points), region, mean_method)
     J = nufft_anydomain(region, nfreq, fmax, points, tapered_marks, -1, 1e-14)
     for i in eachindex(tapers)
         J_h = selectdim(J, embeddim(points) + 1, i)
@@ -120,7 +120,7 @@ function single_tapered_dft(
         undef, (size(grid)..., length(tapers)))
 
     # apply taper and mean removal
-    λ = mean_estimate(grid, rf, region, mean_method)
+    λ = mean_estimate(georef((rf = rf,), grid), region, mean_method)
     scaling = prod(unitless_spacing(grid))
     for i in eachindex(tapers)
         for j in eachindex(selectdim(tapered_data, embeddim(grid) + 1, i))

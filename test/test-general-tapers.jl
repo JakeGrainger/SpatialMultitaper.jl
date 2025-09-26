@@ -1,14 +1,17 @@
+using SpatialMultitaper, Test
+import SpatialMultitaper: downsample_spacing, reprocess, pixelate_region, optimaltapers
+
 @testset "downsample_spacing" begin
     g = CartesianGrid((100, 100), (1.0, 2.0), (0.1, 0.3))
-    @test Spmt.downsample_spacing(g, 4) == (0.1, 0.3) .* 4
-    @test Spmt.downsample_spacing(g, nothing) == (0.1, 0.3)
+    @test downsample_spacing(g, 4) == (0.1, 0.3) .* 4
+    @test downsample_spacing(g, nothing) == (0.1, 0.3)
 end
 
 @testset "reprocess" begin
     g = CartesianGrid((50, 50), (1.0, 2.0), (0.1, 0.3))
     x = rand(50, 50)
-    @test Spmt.reprocess(x, g, nothing) == x
-    @test downsample(Spmt.reprocess(x, g, 10), 10) ≈ x[1:5, 1:5] ./ 10
+    @test reprocess(x, g, nothing) == x
+    @test downsample(reprocess(x, g, 10), 10) ≈ x[1:5, 1:5] ./ 10
 end
 
 @testset "pixelate_region" begin
@@ -18,7 +21,7 @@ end
     result = zeros(Bool, 100, 100) # because the edge points will be set to zero by not including them
     result[2:(end - 1), 2:(end - 1)] .= true
 
-    @test Spmt.pixelate_region(g, b) == result
+    @test pixelate_region(g, b) == result
 end
 
 @testset "optimaltapers" begin
@@ -33,7 +36,7 @@ end
         tol = 0.1
     )
 
-    h = Spmt.optimaltapers(b, g; options...)
+    h = optimaltapers(b, g; options...)
     @test h[1] isa Vector{Matrix{Float64}}
-    @test_throws AssertionError Spmt.optimaltapers(b, g2; options...)
+    @test_throws AssertionError optimaltapers(b, g2; options...)
 end

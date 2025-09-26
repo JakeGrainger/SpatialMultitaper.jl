@@ -172,12 +172,12 @@ function partial_from_resampled(
         J_cross, mean_cross, J_marginal, mean_marginal, atoms, freq, J_original,
         mean_original, f_inv_cross, f_inv_marginal, nothing
     )
-    par = par_spec.partial_spectra
+    par = getestimate(par_spec)
     for i in CartesianIndices(par)
         denom = ntapers .* ones(typeof(par[i])) .- Q .+ 2 - I
         par[i] = par[i] .* ntapers ./ denom
     end
-    return PartialSpectra(
+    return Spectra{PartialTrait}(
         freq, par, getprocessinformation(par_spec), EstimationInformation(ntapers))
 end
 
@@ -226,7 +226,7 @@ function partial_from_resampled(
     end
 
     process_information = ProcessInformation(1:P, 1:P, mean_product, atoms, Val{D}()) # should get the means for each part separately, means we should have means that are a matrix of products
-    return PartialSpectra(
+    return Spectra{PartialTrait}(
         freq, output, process_information, EstimationInformation(ntapers))
 end
 

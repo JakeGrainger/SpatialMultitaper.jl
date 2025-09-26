@@ -24,7 +24,7 @@ end
 
 ## sampling
 function Base.rand(
-        rng::AbstractRNG, m::PartialMarginalResampler{NTuple{P, T}}) where {P, T}
+        rng::AbstractRNG, m::PartialMarginalResampler{<:NTuple{P}}) where {P}
     ntuple(p -> Base.rand(rng, m[p]), Val{P}())
 end
 
@@ -50,9 +50,7 @@ function Base.rand(rng::AbstractRNG, m::PartialMarginalResampler{<:GeoTable})
 end
 
 function intensity_index(point, grid_min, grid_spacing)
-    CartesianIndex(
-        ceil.(Int, (point - grid_min) ./ grid_spacing).data
-    )
+    CartesianIndex(max.(1, ceil.(Int, (point - grid_min) ./ grid_spacing)).data)
 end
 
 ## construction
@@ -64,7 +62,7 @@ function create_intensities(
         fmax,
         mean_method::MeanEstimationMethod = DefaultMean()
 ) where {P}
-    spec = multitaper_estimate(data, region; tapers = tapers, nfreq = nfreq, fmax = fmax)
+    spec = spectra(data, region; tapers = tapers, nfreq = nfreq, fmax = fmax)
     intensity = mean_estimate(data, region, mean_method)
     data_ft_full = fft_only.(data, Ref(region), nfreq = nfreq, fmax = fmax)
     data_ft = zeros(SVector{P, eltype(first(data_ft_full))}, size(first(data_ft_full)))
@@ -127,10 +125,9 @@ end
 
 Computes the Fourier transform of the prediction kernel given estimates of the spectral density function.
 """
-function prediction_kernel_ft(spec::SpectralEstimate{
-        F, N, I, T, D, P, P}) where {F, N, I, T, D, P}
+function prediction_kernel_ft(spec::Spectra{MarginalTrait, D, P, P}) where {D, P}
     kernels = ntuple(
-        idx -> apply_transform(single_prediction_kernel_ft, spec.power,
+        idx -> apply_transform(single_prediction_kernel_ft, spec.freq, spec.power,
             idx, getestimationinformation(spec).ntapers),
         Val{P}()
     )

@@ -261,10 +261,12 @@ function smoothed_rotational(
 end
 function smoothed_rotational(
         x::NTuple{D}, y::AbstractArray{<:Number, N}, radii, kernel) where {D, N}
-    @argcheck length(x) == ndims(y) - 2
+    @argcheck length(x) <= ndims(y)
+    # assumes the that last D dimensions are the spatial ones
     @argcheck size(y)[3:end] == length.(x)
-    out = mapslices(z -> _smoothed_rotational(x, z, radii, kernel), y; dims = 3:ndims(y))
-    return reshape(out, size(out)[1:(ndims(out) - 1)])
+    out = mapslices(
+        z -> _smoothed_rotational(x, z, radii, kernel), y; dims = (N + 1 - D):ndims(y))
+    return reshape(out, size(out)[1:(N + 1 - D)]) # The D spatial dimensions have been collapsed into one
 end
 
 """

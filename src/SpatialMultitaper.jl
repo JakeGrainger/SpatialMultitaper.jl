@@ -1,7 +1,5 @@
 module SpatialMultitaper
 
-# TODO: should use ArgCheck.jl
-
 using Reexport
 @reexport using Meshes, GeoTables
 

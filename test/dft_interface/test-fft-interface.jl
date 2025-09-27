@@ -2,9 +2,9 @@ using SpatialMultitaper, Test
 include("../test_utilities/TestUtils.jl")
 using .TestUtils
 
-import SpatialMultitaper: choose_freq_oversample, unwrap_fft_output, choose_freq_1d,
+import SpatialMultitaper: choose_freq_oversample, unwrap_fft_output, _choose_frequencies_1d,
                           fft_anydomain,
-                          make_freq, unwrap_index, fftshift, fft
+                          _make_frequency_grid, unwrap_index, fftshift, fft
 
 @testset "choose_freq_oversample" begin
     # n = 10, nfreq = 10
@@ -47,9 +47,9 @@ end
         @testset "nfreq=$nfreq, fmaxrel=$fmaxrel" for nfreq in nfreqs, fmaxrel in fmaxrels
             # obtained from applying unwrap_fft_output to the fft frequencies spaced by 1
             x = Int.(unwrap_fft_output(
-                choose_freq_1d(nfreq, nfreq / 2), (fmaxrel,)))
+                _choose_frequencies_1d(nfreq, nfreq / 2), (fmaxrel,)))
             # the fft frequencies spaced by fmaxrel (which should be the output up to periodicity)
-            y = Int.(choose_freq_1d(nfreq, fmaxrel * (nfreq / 2)))
+            y = Int.(_choose_frequencies_1d(nfreq, fmaxrel * (nfreq / 2)))
             @test mod.(x, nfreq)≈mod.(y, nfreq) atol=1e-4
         end
     end
@@ -98,7 +98,7 @@ end
             @test fft_anydomain(y, grid, (8,), (1 / 2,)) ≈
                   fftshift(fft([1, 2, 3, 4, 0, 0, 0, 0])) # 8 is the smallest oversampling
             @test fft_anydomain(y, grid, (8,), (1 / 2,)) ≈
-                  slow_dft(0:3, y, choose_freq_1d(8, 1 / 2), -1)
+                  slow_dft(0:3, y, _choose_frequencies_1d(8, 1 / 2), -1)
 
             @test fft_anydomain(y_1_extra, grid, (4,), (1 / 2,)) ≈ hcat(
                 [-2.0, -2.0 - 2.0im, 10.0, -2.0 + 2.0im],
@@ -107,7 +107,7 @@ end
 
             grid2 = CartesianGrid((1 - 0.5,), (1 + 3.5,), dims = (4,))
             @test fft_anydomain(y, grid2, (8,), (1 / 2,)) ≈
-                  slow_dft(1:4, y, choose_freq_1d(8, 1 / 2), -1)
+                  slow_dft(1:4, y, _choose_frequencies_1d(8, 1 / 2), -1)
         end
 
         starts = [0, 2.4]
@@ -143,16 +143,17 @@ end
             grid = CartesianGrid((start - 0.25,), (start + 4 - 0.25,), dims = (8,))
             x = start:0.5:(start + 3.75)
             @test fft_anydomain(y, grid, (nfreq,), (fmax,)) ≈
-                  slow_dft(x, y, choose_freq_1d(nfreq, fmax), -1)
+                  slow_dft(x, y, _choose_frequencies_1d(nfreq, fmax), -1)
             Y_1_extra = fft_anydomain(y_1_extra, grid, (nfreq,), (fmax,))
             for i in axes(Y_1_extra, 2)
                 @test Y_1_extra[:, i] ≈
-                      slow_dft(x, y_1_extra[:, i], choose_freq_1d(nfreq, fmax), -1)
+                      slow_dft(x, y_1_extra[:, i], _choose_frequencies_1d(nfreq, fmax), -1)
             end
             Y_2_extra = fft_anydomain(y_2_extra, grid, (nfreq,), (fmax,))
             for i in axes(Y_2_extra, 2), j in axes(Y_2_extra, 3)
                 @test Y_2_extra[:, i, j] ≈
-                      slow_dft(x, y_2_extra[:, i, j], choose_freq_1d(nfreq, fmax), -1)
+                      slow_dft(
+                    x, y_2_extra[:, i, j], _choose_frequencies_1d(nfreq, fmax), -1)
             end
         end
     end
@@ -189,7 +190,7 @@ end
                 Iterators.product(
                 start[1]:0.5:(start[1] + 1.75), start[2]:0.5:(start[2] + 3.75)),
             )
-            freq = Iterators.ProductIterator(make_freq(nfreq, fmax, 2))
+            freq = Iterators.ProductIterator(_make_frequency_grid(nfreq, fmax, 2))
             @test fft_anydomain(y, grid, nfreq, fmax) ≈ slow_dft(x, y, freq, -1)
             Y_1_extra = fft_anydomain(y_1_extra, grid, nfreq, fmax)
             for i in axes(Y_1_extra, 3)

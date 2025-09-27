@@ -125,7 +125,8 @@ Computes the Fourier transform of the prediction kernel given estimates of the s
 """
 function prediction_kernel_ft(spec::Spectra{MarginalTrait, D, P, P}) where {D, P}
     kernels = ntuple(
-        idx -> apply_transform(single_prediction_kernel_ft, spec.freq, spec.power,
+        idx -> apply_transform(
+            single_prediction_kernel_ft, spec.power, estimate_trait(spec),
             idx, getestimationinformation(spec).ntapers),
         Val{P}()
     )

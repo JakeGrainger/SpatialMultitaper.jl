@@ -11,7 +11,7 @@ function multitaper_estimate_resampled(
         nresamples::Int
 )
     data, dim = check_spatial_data(data)
-    freq = make_freq(nfreq, fmax, dim)
+    freq = _make_frequency_grid(nfreq, fmax, dim)
     J_n = tapered_dft(data, tapers, nfreq, fmax, region, mean_method)
     power = dft2spectralmatrix(J_n)
     resampled = [Spectra(freq, dft2spectralmatrix(null_resample(J_n)))

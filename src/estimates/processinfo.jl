@@ -15,7 +15,7 @@ struct ProcessInformation{D, T, I1, I2, M, A}
         mean_product = λ * λ'
         zero_atom = covariance_zero_atom(data)
         D = embeddim(data)
-        trait = estimation_trait(data)
+        trait = estimate_trait(data)
         ProcessInformation{D, typeof(trait)}(
             process_indices_1, process_indices_2, mean_product, zero_atom)
     end
@@ -41,4 +41,10 @@ function checkprocessinformation(
             "processinformation.atoms should have size ($P, $Q), but has size $(size(processinformation.atoms))."
         ))
     end
+end
+
+function is_same_process_sets(processinformation::ProcessInformation)
+    p1 = processinformation.process_indices_1
+    p2 = processinformation.process_indices_2
+    p1 == p2
 end

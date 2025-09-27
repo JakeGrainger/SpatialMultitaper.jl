@@ -19,6 +19,10 @@ is_partial(::PartialAbstractEstimate) = true
 # default assumptions are that these fields exists with the names estimationinformation and processinformation
 getestimationinformation(est::AbstractEstimate) = est.estimationinformation
 getprocessinformation(est::AbstractEstimate) = est.processinformation
+function is_same_process_sets(est::AbstractEstimate)
+    is_same_process_sets(getprocessinformation(est))
+end
+
 function getargument(est::AbstractEstimate)
     throw(ArgumentError("no getargument method defined for $(typeof(est))"))
 end

@@ -20,7 +20,7 @@ This can be recovered by using
     using SpatialMultitaper
     n = 10
     N = 2.5
-    SpatialMultitaper.choose_freq_1d(n, N)
+    SpatialMultitaper._choose_frequencies_1d(n, N)
 ```
 
 We utilise both standard Fast Fourier Transforms (FFTs) and Non-Uniform Fast Fourier Transforms (NUFFTs)

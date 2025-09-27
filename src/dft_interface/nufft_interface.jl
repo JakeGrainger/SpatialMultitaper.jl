@@ -87,7 +87,7 @@ function nufft1d1_anydomain!(output_storage, input_data, nfreq, fmax, iflag, eps
     output_storage.out, output_storage.phase_correction
 
     # compute frequencies and downsampling
-    freq_x = choose_freq_1d(nfreq, fmax)
+    freq_x = _choose_frequencies_1d(nfreq, fmax)
     downsample_x = freq_downsample_index(nfreq, oversample_x)
 
     # compute
@@ -168,9 +168,9 @@ function nufft2d1_anydomain!(output_storage, input_data, nfreq, fmax, iflag, eps
     output_storage.out, output_storage.phase_correction
 
     # compute frequencies and downsampling
-    freq_x = choose_freq_1d(nfreq[1], fmax[1])
+    freq_x = _choose_frequencies_1d(nfreq[1], fmax[1])
     downsample_x = freq_downsample_index(nfreq[1], oversample_x)
-    freq_y = choose_freq_1d(nfreq[2], fmax[2])
+    freq_y = _choose_frequencies_1d(nfreq[2], fmax[2])
     downsample_y = freq_downsample_index(nfreq[2], oversample_y)
 
     # compute
@@ -272,11 +272,11 @@ function nufft3d1_anydomain!(output_storage, input_data, nfreq, fmax, iflag, eps
     output_storage.out, output_storage.phase_correction
 
     # compute frequencies and downsampling
-    freq_x = choose_freq_1d(nfreq[1], fmax[1])
+    freq_x = _choose_frequencies_1d(nfreq[1], fmax[1])
     downsample_x = freq_downsample_index(nfreq[1], oversample_x)
-    freq_y = choose_freq_1d(nfreq[2], fmax[2])
+    freq_y = _choose_frequencies_1d(nfreq[2], fmax[2])
     downsample_y = freq_downsample_index(nfreq[2], oversample_y)
-    freq_z = choose_freq_1d(nfreq[3], fmax[3])
+    freq_z = _choose_frequencies_1d(nfreq[3], fmax[3])
     downsample_z = freq_downsample_index(nfreq[3], oversample_z)
 
     # compute

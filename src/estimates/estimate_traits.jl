@@ -21,15 +21,15 @@ function _estimate_trait_from_info(::ProcessInformation{D, MultipleTupleTrait}) 
 end
 
 """
-    estimation_trait(data::MultipleSpatialDataVec)
+    estimate_trait(data::MultipleSpatialDataVec)
 
 Determine the trait for input spatial data.
 """
-estimation_trait(::MultipleSpatialDataVec) = MultipleVectorTrait()
-estimation_trait(::MultipleSpatialDataTuple) = MultipleTupleTrait()
-estimation_trait(::PointPattern) = SingleProcessTrait()
-estimation_trait(::MarkedPointPattern) = SingleProcessTrait()
-estimation_trait(::GriddedData) = SingleProcessTrait()
+estimate_trait(::MultipleSpatialDataVec) = MultipleVectorTrait()
+estimate_trait(::MultipleSpatialDataTuple) = MultipleTupleTrait()
+estimate_trait(::PointPattern) = SingleProcessTrait()
+estimate_trait(::MarkedPointPattern) = SingleProcessTrait()
+estimate_trait(::GriddedData) = SingleProcessTrait()
 
 function index_estimation_trait(estimate, i, j)
     index_estimation_trait(estimate_trait(estimate), i, j)

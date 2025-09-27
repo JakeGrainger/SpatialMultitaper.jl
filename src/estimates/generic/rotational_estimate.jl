@@ -116,7 +116,7 @@ The maximum radius is set to the minimum of the maximum frequencies in each dime
 and the number of radii is set to the maximum length of the frequency vectors.
 """
 function default_rotational_radii(nfreq, fmax)
-    default_rotational_radii(choose_freq_1d.(nfreq, fmax))
+    default_rotational_radii(_choose_frequencies_1d.(nfreq, fmax))
 end
 
 function default_rotational_radii(s::AbstractEstimate)
@@ -134,7 +134,7 @@ function default_rotational_kernel(est::AbstractEstimate)
     return default_rotational_kernel(getargument(est))
 end
 function default_rotational_kernel(nfreq, fmax)
-    return default_rotational_kernel(choose_freq_1d.(nfreq, fmax))
+    return default_rotational_kernel(_choose_frequencies_1d.(nfreq, fmax))
 end
 function default_rotational_kernel(freq::NTuple{D, AbstractVector{<:Real}}) where {D}
     max_step = maximum(step, freq)

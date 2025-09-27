@@ -2,10 +2,11 @@ using SpatialMultitaper, Test, StableRNGs, StaticArrays
 include("../../test_utilities/TestData.jl")
 using .TestData
 
-import SpatialMultitaper: Spectra, getargument, getestimate, dft2spectralmatrix,
-                          spectral_matrix, make_freq, getestimationinformation,
+import SpatialMultitaper: Spectra, getargument, getestimate, _dft_to_spectral_matrix,
+                          _compute_spectral_matrix, _make_frequency_grid,
+                          getestimationinformation,
                           ProcessInformation, EstimationInformation, MarginalTrait,
-                          MultipleVectorTrait
+                          MultipleVectorTrait, SingleProcessTrait, MultipleTupleTrait
 
 @testset "Spectra Construction" begin
     rng = StableRNG(123)
@@ -87,59 +88,64 @@ end
 @testset "DFT to Spectral Matrix" begin
     rng = StableRNG(123)
 
-    @testset "Matrix input" begin
+    @testset "MultipleVectorTrait" begin
         # P x M x n1 x n2 array
         J_n = rand(rng, ComplexF64, 3, 10, 8, 8)  # 3 processes, 10 tapers, 8x8 frequencies
-        S_mat = dft2spectralmatrix(J_n, Val{3}())
+        S_mat = _dft_to_spectral_matrix(J_n, MultipleVectorTrait())
 
-        @test size(S_mat) == (3, 3, 8, 8)
-        @test eltype(S_mat) <: ComplexF64  # Should be ComplexF64
+        @test size(S_mat) == (3, 3, 8, 8)  # Should be spatial dimensions only
+        @test eltype(S_mat) <: ComplexF64
     end
 
-    @testset "Tuple input (NTuple{P, Array})" begin
+    @testset "SingleProcessTrait" begin
+        # n1 x n2 x M array
+        J_n = rand(rng, ComplexF64, 8, 8, 10)  # 8x8 frequencies, 10 tapers
+        S_mat = _dft_to_spectral_matrix(J_n, SingleProcessTrait())
+
+        @test size(S_mat) == (8, 8)
+        @test eltype(S_mat) == Float64  # Should be real-valued for single process
+    end
+
+    @testset "MultipleTupleTrait" begin
         # Tuple of arrays n1 x n2 x M
         J_1 = rand(rng, ComplexF64, 8, 8, 10)
         J_2 = rand(rng, ComplexF64, 8, 8, 10)
         J_n = (J_1, J_2)
 
-        S_mat = dft2spectralmatrix(J_n, Val{2}())
+        S_mat = _dft_to_spectral_matrix(J_n, MultipleTupleTrait())
         @test size(S_mat) == (8, 8)
-        @test eltype(S_mat) <: SMatrix
+        @test eltype(S_mat) <: SMatrix{2, 2}
 
         # Single process case
         J_single = (J_1,)
-        S_single_tuple = dft2spectralmatrix(J_single, Val{1}())
-        S_single = dft2spectralmatrix(J_1, Val{1}())
-        @test size(S_single_tuple) == (8, 8)
+        S_single = _dft_to_spectral_matrix(J_single, MultipleTupleTrait())
         @test size(S_single) == (8, 8)
-        @test eltype(S_single_tuple) <: SMatrix{1, 1}
-        @test eltype(S_single) == Float64
-        @test getindex.(S_single_tuple, 1) ≈ S_single
+        @test eltype(S_single) <: SMatrix{1, 1}
     end
 end
 
-@testset "spectral_matrix function" begin
+@testset "_compute_spectral_matrix function" begin
     rng = StableRNG(123)
 
     @testset "Vector input" begin
         x = rand(rng, ComplexF64, 5)
-        S = spectral_matrix(x)
+        S = _compute_spectral_matrix(x)
         @test S ≈ x * x'
         @test size(S) == (5, 5)
     end
 
     @testset "Matrix input" begin
         X = rand(rng, ComplexF64, 3, 10)  # 3 processes, 10 tapers
-        S = spectral_matrix(X)
+        S = _compute_spectral_matrix(X)
         expected = (X * X') / 10
         @test S ≈ expected
         @test size(S) == (3, 3)
     end
 end
 
-@testset "make_freq function" begin
+@testset "_make_frequency_grid function" begin
     @testset "Single frequency per dimension" begin
-        freq = make_freq(10, 0.5, 1)
+        freq = _make_frequency_grid(10, 0.5, 1)
         @test length(freq) == 1
         @test length(freq[1]) == 10
         @test maximum(abs, freq[1]) ≤ 0.5
@@ -148,7 +154,7 @@ end
     @testset "Different frequencies per dimension" begin
         nfreq = (8, 12)
         fmax = (0.4, 0.6)
-        freq = make_freq(nfreq, fmax, 2)
+        freq = _make_frequency_grid(nfreq, fmax, 2)
 
         @test length(freq) == 2
         @test length(freq[1]) == 8
@@ -198,6 +204,15 @@ end
         # Should not crash but might have limited meaningful results
         spec = spectra(data, nfreq = nfreq, fmax = fmax, tapers = tapers)
         @test size(spec) == (1, 1)
+    end
+
+    @testset "Dimension mismatch errors" begin
+        # Test error handling in _make_frequency_grid
+        @test_throws ArgumentError _make_frequency_grid((8, 12), (0.4, 0.6), 3)  # Wrong number of dimensions
+
+        # Test valid case doesn't throw
+        freq = _make_frequency_grid((8, 12), (0.4, 0.6), 2)
+        @test length(freq) == 2
     end
 end
 

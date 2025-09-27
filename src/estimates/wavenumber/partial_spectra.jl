@@ -1,29 +1,41 @@
-function partial_spectra(spectrum::Spectra)
+function partial_spectra(spectrum::Spectra{MarginalTrait})
+    if !is_same_process_sets(spectrum)
+        throw(ArgumentError(
+            "Partial spectra can only be computed for estimates where the two sets of " *
+            "processes are the same."
+        ))
+    end
+    trait = estimate_trait(spectrum)
+    est = getestimate(spectrum)
+    process_info = getprocessinformation(spectrum)
+    estimation_info = getestimationinformation(spectrum)
+    transformed = apply_transform(partial_spectra, est, trait, estimation_info.ntapers)
     return Spectra{PartialTrait}(
-        getargument(spectrum),
-        apply_transform(
-            partial_spectra, getargument(spectrum), getestimate(spectrum),
-            getestimationinformation(spectrum).ntapers),
-        getprocessinformation(spectrum), getestimationinformation(spectrum)
-    )
+        getargument(spectrum), transformed, process_info, estimation_info)
 end
+
 function partial_spectra(data, region; kwargs...)
     partial_spectra(spatial_data(data, region); kwargs...)
 end
 partial_spectra(data::SpatialData; kwargs...) = partial_spectra(spectra(data; kwargs...))
-function partial_spectra_uncorrected(spectrum::Spectra)
-    return Spectra{PartialTrait}(
-        getargument(spectrum),
-        apply_transform(
-            partial_spectra, getargument(spectrum), getestimate(spectrum), nothing),
-        getprocessinformation(spectrum), getestimationinformation(spectrum)
-    )
+
+function partial_spectra_uncorrected(spectrum::Spectra{MarginalTrait})
+    new_spectrum = Spectra{MarginalTrait}(getargument(spectrum), getestimate(spectrum),
+        getprocessinformation(spectrum), EstimationInformation(nothing))
+    partial_spectra(new_spectrum)
 end
 
 function partial_spectra(spectrum::RotationalSpectra{MarginalTrait})
+    if !is_same_process_sets(spectrum)
+        throw(ArgumentError(
+            "Partial spectra can only be computed for estimates where the two sets of " *
+            "processes are the same."
+        ))
+    end
     freq = getargument(spectrum)
     power = getestimate(spectrum)
-    value = apply_transform(partial_spectra, freq, power, nothing) # debiasing is different here (not currently implemented)
+    trait = estimate_trait(spectrum)
+    value = apply_transform(partial_spectra, power, trait, nothing) # debiasing is different here (not currently implemented)
     processinfo = getprocessinformation(spectrum)
     estimationinfo = getestimationinformation(spectrum)
     return RotationalEstimate{PartialTrait, typeof(spectrum)}(

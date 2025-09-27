@@ -1,9 +1,9 @@
 """
-	choose_freq_1d(nfreq, fmax)
+	_choose_frequencies_1d(nfreq, fmax)
 
 Returns the frequencies for our fft interfaces, with `nfreq` frequencies, and `fmax` as the fmax frequency.
 """
-choose_freq_1d(nfreq, fmax) = fftshift(fftfreq(nfreq, 2fmax))
+_choose_frequencies_1d(nfreq, fmax) = fftshift(fftfreq(nfreq, 2fmax))
 
 """
 	freq_downsample_startindex(nfreq,oversample)
@@ -31,5 +31,5 @@ This assumes that the frequencies are fftshifted.
 - `oversample::Int`: The oversampling factor used.
 """
 function freq_downsample_index(nfreq, oversample)
-    freq_downsample_startindex(nfreq, oversample):oversample:nfreq*oversample
+    freq_downsample_startindex(nfreq, oversample):oversample:(nfreq * oversample)
 end

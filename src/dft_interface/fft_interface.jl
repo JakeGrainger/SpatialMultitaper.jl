@@ -74,7 +74,7 @@ function fft_anydomain(
         )
     end
 
-    freq = Iterators.ProductIterator(choose_freq_1d.(nfreq, fmax))
+    freq = Iterators.ProductIterator(_choose_frequencies_1d.(nfreq, fmax))
     shift = unitless_minimum(grid) .+ unitless_spacing(grid) ./ 2
     for i in axes(J_unwrapped_reshaped, ndims(J_unwrapped_reshaped))
         J_unwrapped_slice = selectdim(J_unwrapped_reshaped, ndims(J_unwrapped_reshaped), i)

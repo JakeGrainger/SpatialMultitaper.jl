@@ -28,12 +28,19 @@ function coherence(x::AbstractMatrix)
     return d * x * d
 end
 coherence(x::Number) = one(typeof(x))
-function coherence(spectrum::Union{Spectra{E}, RotationalSpectra{E}}) where {E}
-    return Coherence{E}(
-        getargument(spectrum),
-        apply_transform(coherence, getargument(spectrum), getestimate(spectrum)),
-        getprocessinformation(spectrum), getestimationinformation(spectrum)
-    )
+function coherence(spectrum::NormalOrRotationalSpectra{E}) where {E}
+    if !is_same_process_sets(spectrum)
+        throw(ArgumentError(
+            "Coherence can only be computed for estimates where the two sets of " *
+            "processes are the same."
+        ))
+    end
+    trait = estimate_trait(spectrum)
+    est = getestimate(spectrum)
+    process_info = getprocessinformation(spectrum)
+    estimation_info = getestimationinformation(spectrum)
+    transformed = apply_transform(coherence, est, trait)
+    return Coherence{E}(getargument(spectrum), transformed, process_info, estimation_info)
 end
 
 coherence(data, region; kwargs...) = coherence(spatial_data(data, region); kwargs...)
@@ -43,18 +50,24 @@ function partial_coherence(x::AbstractMatrix)
     -coherence(inv(x))
 end
 partial_coherence(x::Number) = one(typeof(x))
-function partial_coherence(spectrum::Union{
-        Spectra{E}, RotationalSpectra{E}}) where {E <: PartialTrait}
+function partial_coherence(spectrum::NormalOrRotationalSpectra{PartialTrait})
     return coherence(spectrum) # partial coherence is just coherence of the partial spectra
 end
 
-function partial_coherence(spectrum::Union{ # partial coherence from marginal spectra
-        Spectra{E}, RotationalSpectra{E}}) where {E <: MarginalTrait}
-    return Coherence{MarginalTrait}(
-        getargument(spectrum),
-        apply_transform(partial_coherence, getargument(spectrum), getestimate(spectrum)),
-        getprocessinformation(spectrum), getestimationinformation(spectrum)
-    )
+function partial_coherence(spectrum::NormalOrRotationalSpectra{MarginalTrait})
+    if !is_same_process_sets(spectrum)
+        throw(ArgumentError(
+            "Coherence can only be computed for estimates where the two sets of " *
+            "processes are the same."
+        ))
+    end
+    trait = estimate_trait(spectrum)
+    est = getestimate(spectrum)
+    process_info = getprocessinformation(spectrum)
+    estimation_info = getestimationinformation(spectrum)
+    transformed = apply_transform(partial_coherence, est, trait)
+    return Coherence{PartialTrait}(
+        getargument(spectrum), transformed, process_info, estimation_info)
 end
 function partial_coherence(data, region; kwargs...)
     partial_coherence(spatial_data(data, region); kwargs...)

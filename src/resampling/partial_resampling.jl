@@ -79,9 +79,9 @@ end
 
 function create_resampler_precompute(
         data::MultipleSpatialDataTuple; nfreq, fmax, tapers, mean_method = DefaultMean())
-    freq = make_freq(nfreq, fmax, embeddim(data))
+    freq = _make_frequency_grid(nfreq, fmax, embeddim(data))
     J_n = tapered_dft(data, tapers, nfreq, fmax, mean_method)
-    power = dft2spectralmatrix(J_n, Val{ncol(data)}())
+    power = _dft_to_spectral_matrix(J_n, estimate_trait(data))
     f_inv_cross = create_f_inv_cross(power)
     f_inv_marginal = create_f_inv_marginal(power)
     mean_original = mean_estimate(data, mean_method)

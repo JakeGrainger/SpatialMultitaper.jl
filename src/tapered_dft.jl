@@ -67,7 +67,7 @@ function _single_tapered_dft(
     marks = values(observations(data))[1]
     points = domain(observations(data))
     region = getregion(data)
-    freq = Iterators.ProductIterator(make_freq(nfreq, fmax, embeddim(points)))
+    freq = Iterators.ProductIterator(_make_frequency_grid(nfreq, fmax, embeddim(points)))
     tapered_marks = _apply_taper(points, marks, tapers)
 
     # perform transform

@@ -48,18 +48,18 @@ function processnames(estimate::AbstractEstimate)
 end
 
 """
-    estimate_trait(estimate::AbstractEstimate)
+    process_trait(estimate::AbstractEstimate)
 
 Determine the trait for an estimate based on its process information.
 """
-function estimate_trait(estimate::AbstractEstimate)
+function process_trait(estimate::AbstractEstimate)
     process_info = getprocessinformation(estimate)
-    _estimate_trait_from_info(process_info)
+    _process_trait_from_info(process_info)
 end
 
 function getprocessinformationindex(est::AbstractEstimate, p, q)
     processinformation = getprocessinformation(est)
-    processtrait = index_estimation_trait(est, p, q)
+    processtrait = index_process_trait(est, p, q)
     return ProcessInformation{embeddim(processinformation), processtrait}(
         processinformation.process_indices_1[p],
         processinformation.process_indices_2[q],

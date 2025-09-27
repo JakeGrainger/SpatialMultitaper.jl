@@ -58,7 +58,7 @@ function spectra(data::SpatialData; nfreq, fmax, tapers,
         mean_method::MeanEstimationMethod = DefaultMean())::Spectra
     freq = _make_frequency_grid(nfreq, fmax, embeddim(data))
     J_n = tapered_dft(data, tapers, nfreq, fmax, mean_method)
-    power = _dft_to_spectral_matrix(J_n, estimate_trait(data))
+    power = _dft_to_spectral_matrix(J_n, process_trait(data))
 
     process_info = ProcessInformation(data; mean_method = mean_method)
     estimation_info = EstimationInformation(length(tapers))

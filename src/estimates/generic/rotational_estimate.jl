@@ -42,7 +42,6 @@ function getestimatename(::Type{<:RotationalEstimate{E, D, P, Q, S}}) where {E, 
         end
     end
 end
-
 # Helper function to extract trait from type
 _extract_estimate_trait(::Type{<:AbstractEstimate{T}}) where {T} = T
 

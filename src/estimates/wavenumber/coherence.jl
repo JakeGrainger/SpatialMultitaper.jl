@@ -308,7 +308,7 @@ partial_phase(args...; kwargs...) = partial_phase(spectra(args...; kwargs...))
 Internal helper to compute coherence estimates with proper error handling.
 """
 function _compute_coherence_estimate(spectrum, transform_func, trait_type)
-    trait = estimate_trait(spectrum)
+    trait = process_trait(spectrum)
     est = getestimate(spectrum)
     process_info = getprocessinformation(spectrum)
     estimation_info = getestimationinformation(spectrum)

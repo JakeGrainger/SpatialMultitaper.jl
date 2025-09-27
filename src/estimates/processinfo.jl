@@ -15,7 +15,7 @@ struct ProcessInformation{D, T, I1, I2, M, A}
         mean_product = λ * λ'
         zero_atom = covariance_zero_atom(data)
         D = embeddim(data)
-        trait = estimate_trait(data)
+        trait = process_trait(data)
         ProcessInformation{D, typeof(trait)}(
             process_indices_1, process_indices_2, mean_product, zero_atom)
     end

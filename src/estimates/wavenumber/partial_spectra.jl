@@ -40,7 +40,7 @@ function partial_spectra(spectrum::Spectra{MarginalTrait})::Spectra{PartialTrait
         ))
     end
 
-    trait = estimate_trait(spectrum)
+    trait = process_trait(spectrum)
     est = getestimate(spectrum)
     process_info = getprocessinformation(spectrum)
     estimation_info = getestimationinformation(spectrum)
@@ -111,7 +111,7 @@ function partial_spectra(spectrum::RotationalSpectra{MarginalTrait})::Rotational
 
     freq = getargument(spectrum)
     power = getestimate(spectrum)
-    trait = estimate_trait(spectrum)
+    trait = process_trait(spectrum)
     # Note: Debiasing is different for rotational estimates (not currently implemented)
     value = apply_transform(partial_spectra, power, trait, nothing)
     processinfo = getprocessinformation(spectrum)

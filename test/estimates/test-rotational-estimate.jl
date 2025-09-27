@@ -1,6 +1,6 @@
 using SpatialMultitaper, Test, StableRNGs
-include("../test_utilities/TestUtils.jl")
-using .TestUtils
+include("../test_utilities/TestData.jl")
+using .TestData
 
 import SpatialMultitaper: RotationalEstimate, MarginallyTransformedEstimate, Coherence,
                           rotational_estimate, default_rotational_radii, is_partial,
@@ -72,8 +72,9 @@ end
 
     @testset "Default kernel from estimate" begin
         rng = StableRNG(123)
-        data, region = make_points_example(rng)
-        mt_est = spectra(data, region; nfreq = (10, 10), fmax = (0.5, 0.5),
+        data = make_points_example(rng, return_type = :tuple)
+        region = getregion(data)
+        mt_est = spectra(data; nfreq = (10, 10), fmax = (0.5, 0.5),
             tapers = sin_taper_family((3, 3), region))
         kernel = default_rotational_kernel(mt_est)
 
@@ -137,8 +138,10 @@ end
     rng = StableRNG(123)
 
     @testset "From anisotropic spectra" begin
-        data, region = make_points_example(rng, n_processes = 2, point_number = 40)
-        spec = spectra(data, region, nfreq = (8, 8), fmax = (0.4, 0.4),
+        data = make_points_example(
+            rng, n_processes = 2, return_type = :tuple, point_number = 40)
+        region = getregion(data)
+        spec = spectra(data, nfreq = (8, 8), fmax = (0.4, 0.4),
             tapers = sin_taper_family((2, 2), region))
 
         rot_spec = rotational_estimate(spec)
@@ -157,8 +160,10 @@ end
 
     @testset "Custom radii and kernel" begin
         rng = StableRNG(123)
-        data, region = make_points_example(rng, n_processes = 2, point_number = 30)
-        spec = spectra(data, region, nfreq = (6, 6), fmax = (0.3, 0.3),
+        data = make_points_example(
+            rng, n_processes = 2, return_type = :tuple, point_number = 30)
+        region = getregion(data)
+        spec = spectra(data, nfreq = (6, 6), fmax = (0.3, 0.3),
             tapers = sin_taper_family((2, 2), region))
 
         custom_radii = [0.0, 0.1, 0.2, 0.3]
@@ -172,8 +177,10 @@ end
 
     @testset "Default parameters" begin
         rng = StableRNG(123)
-        data, region = make_points_example(rng, n_processes = 2, point_number = 30)
-        spec = spectra(data, region, nfreq = (6, 6), fmax = (0.3, 0.3),
+        data = make_points_example(
+            rng, n_processes = 2, return_type = :tuple, point_number = 30)
+        region = getregion(data)
+        spec = spectra(data, nfreq = (6, 6), fmax = (0.3, 0.3),
             tapers = sin_taper_family((2, 2), region))
 
         rot_spec = rotational_estimate(spec)  # Use defaults
@@ -187,10 +194,12 @@ end
 
 @testset "RotationalEstimate Name Generation" begin
     rng = StableRNG(123)
-    data, region = make_points_example(rng, n_processes = 2, point_number = 30)
+    data = make_points_example(
+        rng, n_processes = 2, return_type = :tuple, point_number = 30)
 
     @testset "Marginal -> Rotational" begin
-        spec = spectra(data, region, nfreq = (4, 4), fmax = (0.2, 0.2),
+        region = getregion(data)
+        spec = spectra(data, nfreq = (4, 4), fmax = (0.2, 0.2),
             tapers = sin_taper_family((2, 2), region))
         rot_spec = rotational_estimate(spec)
 
@@ -200,7 +209,8 @@ end
     end
 
     @testset "Partial -> Rotational" begin
-        spec = spectra(data, region, nfreq = (4, 4), fmax = (0.2, 0.2),
+        region = getregion(data)
+        spec = spectra(data, nfreq = (4, 4), fmax = (0.2, 0.2),
             tapers = sin_taper_family((2, 2), region))
         partial_spec = partial_spectra(spec)
         rot_partial_spec = rotational_estimate(partial_spec)
@@ -213,10 +223,12 @@ end
 
 @testset "Partial Spectra from RotationalEstimate" begin
     rng = StableRNG(123)
-    data, region = make_points_example(rng, n_processes = 3, point_number = 30)
+    data = make_points_example(
+        rng, n_processes = 3, return_type = :tuple, point_number = 30)
 
     @testset "Marginal rotational -> partial rotational" begin
-        spec = spectra(data, region, nfreq = (6, 6), fmax = (0.3, 0.3),
+        region = getregion(data)
+        spec = spectra(data, nfreq = (6, 6), fmax = (0.3, 0.3),
             tapers = sin_taper_family((2, 2), region))
         rot_spec = rotational_estimate(spec)
 
@@ -237,11 +249,13 @@ end
 
 @testset "Mathematical Properties" begin
     rng = StableRNG(123)
-    data, region = make_points_example(rng, n_processes = 2, point_number = 40)
+    data = make_points_example(
+        rng, n_processes = 2, return_type = :tuple, point_number = 40)
 
     @testset "Smoothing effect" begin
         # Create spectra with sharp features
-        spec = spectra(data, region, nfreq = (16, 16), fmax = (0.8, 0.8),
+        region = getregion(data)
+        spec = spectra(data, nfreq = (16, 16), fmax = (0.8, 0.8),
             tapers = sin_taper_family((2, 2), region))
 
         # Apply rotational averaging
@@ -260,10 +274,12 @@ end
         # For some functions, rotational average should be monotonic
         # This is more of a qualitative test
         rng = StableRNG(123)
-        grids, region = make_grids_example(rng, n_processes = 1, grid_dims = (20, 30))
+        grids = make_grids_example(
+            rng, n_processes = 1, return_type = :single, grid_dims = (20, 30))
         # nyquist is 20/4/2 = 2.5, 30/6/2 = 2.5
 
-        spec = spectra(grids[1], region, nfreq = (16, 16), fmax = (2.5, 2.5),
+        region = getregion(grids)
+        spec = spectra(grids, nfreq = (16, 16), fmax = (2.5, 2.5),
             tapers = sin_taper_family((3, 3), region))
 
         rot_spec = rotational_estimate(spec)
@@ -278,8 +294,10 @@ end
 
 @testset "Integration with Other Transforms" begin
     rng = StableRNG(123)
-    data, region = make_points_example(rng, n_processes = 2, point_number = 30)
-    spec = spectra(data, region, nfreq = (6, 6), fmax = (0.3, 0.3),
+    data = make_points_example(
+        rng, n_processes = 2, return_type = :tuple, point_number = 30)
+    region = getregion(data)
+    spec = spectra(data, nfreq = (6, 6), fmax = (0.3, 0.3),
         tapers = sin_taper_family((2, 2), region))
 
     @testset "Rotational -> Marginal transforms" begin
@@ -303,8 +321,10 @@ end
 
 @testset "Indexing Operations" begin
     rng = StableRNG(123)
-    data, region = make_points_example(rng, n_processes = 3, point_number = 30)
-    spec = spectra(data, region, nfreq = (6, 6), fmax = (0.3, 0.3),
+    data = make_points_example(
+        rng, n_processes = 3, return_type = :tuple, point_number = 30)
+    region = getregion(data)
+    spec = spectra(data, nfreq = (6, 6), fmax = (0.3, 0.3),
         tapers = sin_taper_family((2, 2), region))
     rot_spec = rotational_estimate(spec)
 
@@ -336,10 +356,12 @@ end
     rng = StableRNG(123)
 
     @testset "Very small regions" begin
-        data, region = make_points_example(rng, n_processes = 2, point_number = 10,
+        data = make_points_example(
+            rng, n_processes = 2, return_type = :tuple, point_number = 10,
             region_min = (-0.1, -0.1), region_max = (0.1, 0.1))
 
-        spec = spectra(data, region, nfreq = (4, 4), fmax = (1.0, 1.0),
+        region = getregion(data)
+        spec = spectra(data, nfreq = (4, 4), fmax = (1.0, 1.0),
             tapers = sin_taper_family((2, 2), region))
 
         rot_spec = rotational_estimate(spec)
@@ -349,8 +371,10 @@ end
 
     @testset "Single radius" begin
         rng = StableRNG(123)
-        data, region = make_points_example(rng, n_processes = 2, point_number = 20)
-        spec = spectra(data, region, nfreq = (4, 4), fmax = (0.2, 0.2),
+        data = make_points_example(
+            rng, n_processes = 2, return_type = :tuple, point_number = 20)
+        region = getregion(data)
+        spec = spectra(data, nfreq = (4, 4), fmax = (0.2, 0.2),
             tapers = sin_taper_family((2, 2), region))
 
         rot_spec = rotational_estimate(spec, radii = [0.1], kernel = RectKernel(0.1))
@@ -360,8 +384,10 @@ end
 
     @testset "Zero radius" begin
         rng = StableRNG(123)
-        data, region = make_points_example(rng, n_processes = 2, point_number = 20)
-        spec = spectra(data, region, nfreq = (4, 4), fmax = (0.2, 0.2),
+        data = make_points_example(
+            rng, n_processes = 2, return_type = :tuple, point_number = 20)
+        region = getregion(data)
+        spec = spectra(data, nfreq = (4, 4), fmax = (0.2, 0.2),
             tapers = sin_taper_family((2, 2), region))
 
         rot_spec = rotational_estimate(spec, radii = [0.0], kernel = RectKernel(0.1)) # TODO: need to change the behaviour of the Kernel default to not use the radii
@@ -375,8 +401,10 @@ end
 
 @testset "Performance and Type Stability" begin
     rng = StableRNG(123)
-    data, region = make_points_example(rng, n_processes = 2, point_number = 30)
-    spec = spectra(data, region, nfreq = (6, 6), fmax = (0.3, 0.3),
+    data = make_points_example(
+        rng, n_processes = 2, return_type = :tuple, point_number = 30)
+    region = getregion(data)
+    spec = spectra(data, nfreq = (6, 6), fmax = (0.3, 0.3),
         tapers = sin_taper_family((2, 2), region))
 
     @testset "Type stability" begin

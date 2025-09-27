@@ -1,6 +1,6 @@
 using SpatialMultitaper, Test, StableRNGs, StaticArrays, LinearAlgebra
-include("../test_utilities/TestUtils.jl")
-using .TestUtils
+include("../test_utilities/TestData.jl")
+using .TestData
 
 import SpatialMultitaper: apply_transform, is_partial, Spectra, Coherence
 
@@ -63,10 +63,12 @@ end
 
 @testset "Integration with Estimate Types" begin
     rng = StableRNG(123)
-    data, region = make_points_example(rng, n_processes = 2, point_number = 30)
+    data = make_points_example(
+        rng, n_processes = 2, return_type = :tuple, point_number = 30)
 
     @testset "apply_transform through coherence calculations" begin
-        spec = spectra(data, region, nfreq = (4, 4), fmax = (0.2, 0.2),
+        region = getregion(data)
+        spec = spectra(data, nfreq = (4, 4), fmax = (0.2, 0.2),
             tapers = sin_taper_family((2, 2), region))
 
         # Test that coherence uses apply_transform internally
@@ -76,7 +78,8 @@ end
     end
 
     @testset "apply_transform through partial_spectra" begin
-        spec = spectra(data, region, nfreq = (4, 4), fmax = (0.2, 0.2),
+        region = getregion(data)
+        spec = spectra(data, nfreq = (4, 4), fmax = (0.2, 0.2),
             tapers = sin_taper_family((2, 2), region))
 
         # Test that partial_spectra uses apply_transform internally

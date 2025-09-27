@@ -1,13 +1,15 @@
 using SpatialMultitaper, Test, StableRNGs
-include("../test_utilities/TestUtils.jl")
-using .TestUtils
+include("../test_utilities/TestData.jl")
+using .TestData
 
 @testset "Estimate Printing" begin
     rng = StableRNG(123)
-    data, region = make_points_example(rng, n_processes = 2, point_number = 30)
+    data = make_points_example(
+        rng, n_processes = 2, return_type = :tuple, point_number = 30)
 
     @testset "Spectra printing" begin
-        spec = spectra(data, region, nfreq = (4, 4), fmax = (0.2, 0.2),
+        region = getregion(data)
+        spec = spectra(data, nfreq = (4, 4), fmax = (0.2, 0.2),
             tapers = sin_taper_family((2, 2), region))
 
         # Test compact show
@@ -31,7 +33,8 @@ using .TestUtils
     end
 
     @testset "Coherence printing" begin
-        spec = spectra(data, region, nfreq = (4, 4), fmax = (0.2, 0.2),
+        region = getregion(data)
+        spec = spectra(data, nfreq = (4, 4), fmax = (0.2, 0.2),
             tapers = sin_taper_family((2, 2), region))
         coh = coherence(spec)
 
@@ -44,7 +47,8 @@ using .TestUtils
     end
 
     @testset "Partial estimates printing" begin
-        spec = spectra(data, region, nfreq = (4, 4), fmax = (0.2, 0.2),
+        region = getregion(data)
+        spec = spectra(data, nfreq = (4, 4), fmax = (0.2, 0.2),
             tapers = sin_taper_family((2, 2), region))
         partial_spec = partial_spectra(spec)
 
@@ -57,7 +61,8 @@ using .TestUtils
     end
 
     @testset "Transformed estimates printing" begin
-        spec = spectra(data, region, nfreq = (4, 4), fmax = (0.2, 0.2),
+        region = getregion(data)
+        spec = spectra(data, nfreq = (4, 4), fmax = (0.2, 0.2),
             tapers = sin_taper_family((2, 2), region))
         abs_spec = abs(spec)
 
@@ -70,7 +75,8 @@ using .TestUtils
     end
 
     @testset "Rotational estimates printing" begin
-        spec = spectra(data, region, nfreq = (6, 6), fmax = (0.3, 0.3),
+        region = getregion(data)
+        spec = spectra(data, nfreq = (6, 6), fmax = (0.3, 0.3),
             tapers = sin_taper_family((2, 2), region))
         rot_spec = rotational_estimate(spec)
 
@@ -108,8 +114,10 @@ end
     rng = StableRNG(123)
 
     @testset "Multiple processes" begin
-        data, region = make_points_example(rng, n_processes = 3, point_number = 20)
-        spec = spectra(data, region, nfreq = (3, 3), fmax = (0.15, 0.15),
+        data = make_points_example(
+            rng, n_processes = 3, return_type = :tuple, point_number = 20)
+        region = getregion(data)
+        spec = spectra(data, nfreq = (3, 3), fmax = (0.15, 0.15),
             tapers = sin_taper_family((2, 2), region))
 
         io = IOBuffer()
@@ -121,8 +129,10 @@ end
     end
 
     @testset "Single process" begin
-        data, region = make_points_example(rng, n_processes = 1, point_number = 20)
-        spec = spectra(data, region, nfreq = (3, 3), fmax = (0.15, 0.15),
+        data = make_points_example(
+            rng, n_processes = 1, return_type = :single, point_number = 20)
+        region = getregion(data)
+        spec = spectra(data, nfreq = (3, 3), fmax = (0.15, 0.15),
             tapers = sin_taper_family((2, 2), region))
 
         io = IOBuffer()
@@ -138,10 +148,11 @@ end
 
     @testset "1D case" begin
         # Create 1D data
-        data, region = make_points_example(
-            rng, n_processes = 2, point_number = 20, region_min = (0,), region_max = (1,))
+        data = make_points_example(rng, n_processes = 2, return_type = :tuple,
+            point_number = 20, dim = 1, region_min = (0,), region_max = (1,))
 
-        spec = spectra(data, region, nfreq = (10,), fmax = (0.5,),
+        region = getregion(data)
+        spec = spectra(data, nfreq = (10,), fmax = (0.5,),
             tapers = sin_taper_family((3,), region))
 
         io = IOBuffer()
@@ -150,22 +161,17 @@ end
 
         @test occursin("1D", output)
     end
-
-    @testset "3D case would require 3D test data" begin
-        # Would need 3D test data generation - skip for now
-        # but structure shows how it would work
-        @test true  # Placeholder
-    end
 end
 
 @testset "Edge Cases in Printing" begin
     @testset "Very long process lists" begin
         # Test with many processes to see if output is reasonable
         rng = StableRNG(123)
-        data, region = make_grids_example(rng, n_processes = 10, grid_dims = (5, 5),
-            region_min = (0.0, 0.0), region_max = (1.0, 1.0))
+        data = make_grids_example(rng, n_processes = 10, return_type = :vector,
+            grid_dims = (5, 5), region_min = (0.0, 0.0), region_max = (1.0, 1.0))
 
-        spec = spectra(data, region, nfreq = (11, 11), fmax = (2.5, 2.5),
+        region = getregion(data)
+        spec = spectra(data, nfreq = (11, 11), fmax = (2.5, 2.5),
             tapers = sin_taper_family((2, 2), region))
 
         io = IOBuffer()

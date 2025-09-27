@@ -36,7 +36,8 @@ function coherence(spectrum::Union{Spectra{E}, RotationalSpectra{E}}) where {E}
     )
 end
 
-coherence(data, region; kwargs...) = coherence(spectra(data, region; kwargs...))
+coherence(data, region; kwargs...) = coherence(spatial_data(data, region); kwargs...)
+coherence(data::SpatialData; kwargs...) = coherence(spectra(data; kwargs...))
 
 function partial_coherence(x::AbstractMatrix)
     -coherence(inv(x))
@@ -56,13 +57,16 @@ function partial_coherence(spectrum::Union{ # partial coherence from marginal sp
     )
 end
 function partial_coherence(data, region; kwargs...)
-    partial_coherence(spectra(data, region; kwargs...))
+    partial_coherence(spatial_data(data, region); kwargs...)
+end
+function partial_coherence(data::SpatialData; kwargs...)
+    partial_coherence(spectra(data; kwargs...))
 end
 
 magnitude_coherence(spectrum::Spectra) = abs(coherence(spectrum))
 magnitude_coherence(coh::Coherence) = abs(coh)
-function magnitude_coherence(data, region; kwargs...)
-    magnitude_coherence(spectra(data, region; kwargs...))
+function magnitude_coherence(args...; kwargs...)
+    magnitude_coherence(spectra(args...; kwargs...))
 end
 
 function partial_magnitude_coherence(spectrum::Spectra{MarginalTrait})
@@ -75,14 +79,14 @@ function partial_magnitude_coherence(coh::Coherence{MarginalTrait})
     throw(partial_from_marginal_error(Coherence, typeof(coh)))
 end
 partial_magnitude_coherence(coh::Coherence{PartialTrait}) = magnitude_coherence(coh)
-function partial_magnitude_coherence(data, region; kwargs...)
-    partial_magnitude_coherence(spectra(data, region; kwargs...))
+function partial_magnitude_coherence(args...; kwargs...)
+    partial_magnitude_coherence(spectra(args...; kwargs...))
 end
 
 magnitude_squared_coherence(spectrum::Spectra) = abs2(coherence(spectrum))
 magnitude_squared_coherence(coh::Coherence) = abs2(coh)
-function magnitude_squared_coherence(data, region; kwargs...)
-    magnitude_squared_coherence(spectra(data, region; kwargs...))
+function magnitude_squared_coherence(args...; kwargs...)
+    magnitude_squared_coherence(spectra(args...; kwargs...))
 end
 
 function partial_magnitude_squared_coherence(spectrum::Spectra{MarginalTrait})
@@ -97,12 +101,12 @@ end
 function partial_magnitude_squared_coherence(coh::Coherence{PartialTrait})
     magnitude_squared_coherence(coh)
 end
-function partial_magnitude_squared_coherence(data, region; kwargs...)
-    partial_magnitude_squared_coherence(spectra(data, region; kwargs...))
+function partial_magnitude_squared_coherence(args...; kwargs...)
+    partial_magnitude_squared_coherence(spectra(args...; kwargs...))
 end
 
 phase(spectrum::Union{Spectra, Coherence}) = angle(spectrum)
-phase(data, region; kwargs...) = phase(spectra(data, region; kwargs...))
+phase(args...; kwargs...) = phase(spectra(args...; kwargs...))
 
 function partial_phase(spectrum::Union{Spectra{PartialTrait}, Coherence{PartialTrait}})
     phase(spectrum)
@@ -111,4 +115,4 @@ partial_phase(spectrum::Spectra{MarginalTrait}) = phase(partial_spectra(spectrum
 function partial_phase(coh::Coherence{MarginalTrait})
     throw(partial_from_marginal_error(Coherence, typeof(coh)))
 end
-partial_phase(data, region; kwargs...) = partial_phase(spectra(data, region; kwargs...))
+partial_phase(args...; kwargs...) = partial_phase(spectra(args...; kwargs...))

@@ -5,7 +5,8 @@ using .TestUtils
 import SpatialMultitaper: EstimateTrait, MarginalTrait, PartialTrait,
                           AbstractEstimate, AnisotropicEstimate, IsotropicEstimate,
                           ProcessInformation, EstimationInformation,
-                          is_partial, checkprocessinformation, checkinputs
+                          is_partial, checkprocessinformation, checkinputs,
+                          SingleProcessTrait, MultipleVectorTrait, MultipleTupleTrait
 
 @testset "Traits and Type System" begin
     @testset "EstimateTrait hierarchy" begin
@@ -24,28 +25,31 @@ end
 @testset "ProcessInformation" begin
     @testset "Construction" begin
         # Test 1D case
-        processinfo_1d = ProcessInformation{1}([1], [1], ones(1, 1), ones(1, 1))
-        @test processinfo_1d.process_indices_1 == [1]
-        @test processinfo_1d.process_indices_2 == [1]
-        @test size(processinfo_1d.mean_product) == (1, 1)
+        processinfo_1d = ProcessInformation{1, SingleProcessTrait}(1, 1, 2, 2)
+        @test processinfo_1d.process_indices_1 == 1
+        @test processinfo_1d.process_indices_2 == 1
+        @test processinfo_1d.mean_product == 2
         @test embeddim(processinfo_1d) == 1
 
         # Test 2D case
-        processinfo_2d = ProcessInformation{2}([1, 2], [1, 2], ones(2, 2), ones(2, 2))
+        processinfo_2d = ProcessInformation{2, MultipleVectorTrait}(
+            [1, 2], [1, 2], ones(2, 2), ones(2, 2))
         @test length(processinfo_2d.process_indices_1) == 2
         @test embeddim(processinfo_2d) == 2
     end
 
     @testset "checkprocessinformation" begin
         # Valid cases
-        processinfo = ProcessInformation{2}([1, 2], [1, 2], ones(2, 2), ones(2, 2))
+        processinfo = ProcessInformation{2, MultipleVectorTrait}(
+            [1, 2], [1, 2], ones(2, 2), ones(2, 2))
         @test checkprocessinformation(processinfo, 2, 2) === nothing
 
         # Invalid cases
         @test_throws ArgumentError checkprocessinformation(processinfo, 3, 2)  # Wrong P
         @test_throws ArgumentError checkprocessinformation(processinfo, 2, 3)  # Wrong Q
 
-        processinfo_bad = ProcessInformation{2}([1, 2], [1, 2], ones(2, 3), ones(2, 2))
+        processinfo_bad = ProcessInformation{2, MultipleVectorTrait}(
+            [1, 2], [1, 2], ones(2, 3), ones(2, 2))
         @test_throws ArgumentError checkprocessinformation(processinfo_bad, 2, 2)  # Wrong mean_product size
     end
 end
@@ -76,7 +80,7 @@ end
     mock_matrix = MockEstimate{MarginalTrait}(
         (1:10, 1:10),
         rand(2, 2, 10, 10),
-        ProcessInformation{2}([1, 2], [1, 2], ones(2, 2), ones(2, 2)),
+        ProcessInformation{2, MultipleVectorTrait}([1, 2], [1, 2], ones(2, 2), ones(2, 2)),
         EstimationInformation(5)
     )
 
@@ -97,11 +101,13 @@ end
 @testset "Input Validation" begin
     @testset "Array + ProcessInformation validation" begin
         # Valid 1D case
-        processinfo = ProcessInformation{1}([1], [1], ones(1, 1), ones(1, 1))
+        processinfo = ProcessInformation{1, MultipleVectorTrait}(
+            [1], [1], ones(1, 1), ones(1, 1))
         @test checkinputs((1:10,), rand(10), processinfo) == (1, 1)
 
         # Valid 2D case with matrices
-        pi_2d = ProcessInformation{2}([1, 2], [1, 2], ones(2, 2), ones(2, 2))
+        pi_2d = ProcessInformation{2, MultipleVectorTrait}(
+            [1, 2], [1, 2], ones(2, 2), ones(2, 2))
         @test checkinputs((1:10, 1:10), rand(2, 2, 10, 10), pi_2d) == (2, 2)
 
         # Invalid dimension mismatch
@@ -120,7 +126,8 @@ end
     @testset "Type information" begin
         mock = MockEstimate{MarginalTrait}(
             (1:10, 1:10), rand(2, 2, 10, 10),
-            ProcessInformation{2}([1, 2], [1, 2], ones(2, 2), ones(2, 2)),
+            ProcessInformation{2, MultipleVectorTrait}(
+                [1, 2], [1, 2], ones(2, 2), ones(2, 2)),
             EstimationInformation(5)
         )
 

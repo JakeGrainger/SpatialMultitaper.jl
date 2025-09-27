@@ -78,42 +78,39 @@ end
 
 Takes some form of spectra and returns the C function for the `radius`.
 """
-function _sdf2C(
-        f::Spectra,
-        radius::Number
-)
+function _sdf2C(f::Spectra, radius::Number)
     freq = getargument(f)
     spectra = getestimate(f)
-    zeroatom = getprocessinformation(f).atoms
-    _sdf2C(freq, spectra, zeroatom, radius)
+    zero_atom = getprocessinformation(f).atoms
+    sdf2C_aniso(freq, spectra, zero_atom, radius)
 end
 
-function _sdf2C(
-        freq,
-        power::AbstractArray{<:SArray},
-        zero_atom,
-        radii::AbstractVector{<:Number}
-)
-    [_sdf2C(freq, power, zero_atom, radius) for radius in radii]
+function sdf2C_aniso(freq, power, zero_atom, radii::AbstractVector{<:Number})
+    [sdf2C_aniso(freq, power, zero_atom, radius) for radius in radii]
 end
-function _sdf2C(freq, power::AbstractArray{<:SArray}, zero_atom, radius::Number)
-    prod(step, freq) * real(
-        sum(
-        (s - zero_atom) * sphere_weight(radius, k, Val{length(freq)}())
-    for
-    (s, k) in zip(power, Iterators.product(freq...))
-    ),
-    )
+function sdf2C_aniso(freq::NTuple{D}, power::AbstractArray{<:Number, D},
+        zero_atom, radii::Number) where {D}
+    _sdf2C_aniso(freq, power, zero_atom, radii)
+end
+function sdf2C_aniso(freq::NTuple{D}, power::AbstractArray{<:SMatrix, D},
+        zero_atom, radii::Number) where {D}
+    _sdf2C_aniso(freq, power, zero_atom, radii)
+end
+function sdf2C_aniso(freq::NTuple{D}, power::AbstractArray{<:Number, N},
+        zero_atom, radii::Number) where {D, N}
+    out = mapslices(z -> _sdf2C_aniso(freq, z, zero_atom, radii), power; dims = 3:ndims(y))
+    return reshape(out, size(out)[1:(ndims(out) - 1)])
 end
 
-function _sdf2C(freq, power::AbstractArray{<:SArray}, zero_atom::Nothing, radius::Number)
-    prod(step, freq) * real(
-        sum(
-        s * sphere_weight(radius, k, Val{length(freq)}())
-    for
-    (s, k) in zip(power, Iterators.product(freq...))
-    ),
-    )
+function _sdf2C_aniso(freq, power::AbstractArray, zero_atom, radius::Number)
+    prod(step, freq) *
+    real(sum((s - zero_atom) * sphere_weight(radius, k, Val{length(freq)}())
+    for (s, k) in zip(power, Iterators.product(freq...))))
+end
+function _sdf2C_aniso(
+        freq, power::AbstractArray, ::Nothing, radius::Number)
+    prod(step, freq) * real(sum(s * sphere_weight(radius, k, Val{length(freq)}())
+    for (s, k) in zip(power, Iterators.product(freq...))))
 end
 
 function sphere_weight(r, u, ::Val{1})
@@ -143,13 +140,9 @@ function _sdf2C(f::IsotropicEstimate{E, D, P}, radius::Number) where {E, D, P}
     spectra = getestimate(f)
     zero_atom = getprocessinformation(f).atoms
     spacing = step(freq)
-    real(
-        sum(
-        (s - zero_atom) * iso_weight(radius, k, spacing, Val{D}())
-    for
-    (s, k) in zip(spectra, freq)
-    ),
-    )
+    # iso weight essentially contains spacing already, because it integrates over an interval
+    real(sum((s - zero_atom) * iso_weight(radius, k, spacing, Val{D}())
+    for (s, k) in zip(spectra, freq)))
 end
 
 function iso_weight(r, k, s, ::Val{2})

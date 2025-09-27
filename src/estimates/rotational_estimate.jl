@@ -78,11 +78,32 @@ function _rotational_estimate(a::AbstractEstimate, radii, kernel)
     return smoothed_rotational(getargument(a), getestimate(a), radii, kernel)
 end
 
-function smoothed_rotational(x, y, radii, kernel)
-    @assert size(y) == length.(x)
+function _smoothed_rotational(
+        x::NTuple{D}, y::AbstractArray{T, D}, radii, kernel) where {
+        D, T <: Union{<:Number, <:SMatrix}}
     xitr = Iterators.ProductIterator(x)
     return [sum(f * kernel(norm(u) - r) for (u, f) in zip(xitr, y)) /
             sum(kernel(norm(u) - r) for u in xitr) for r in radii]
+end
+
+function smoothed_rotational(
+        x::NTuple{D}, y::AbstractArray{<:Number, D}, radii, kernel) where {D}
+    @argcheck length(x) == ndims(y)
+    @argcheck size(y) == length.(x)
+    _smoothed_rotational(x, y, radii, kernel)
+end
+function smoothed_rotational(
+        x::NTuple{D}, y::AbstractArray{<:SMatrix, D}, radii, kernel) where {D}
+    @argcheck length(x) == ndims(y)
+    @argcheck size(y) == length.(x)
+    _smoothed_rotational(x, y, radii, kernel)
+end
+function smoothed_rotational(
+        x::NTuple{D}, y::AbstractArray{<:Number, N}, radii, kernel) where {D, N}
+    @argcheck length(x) == ndims(y) - 2
+    @argcheck size(y)[3:end] == length.(x)
+    out = mapslices(z -> _smoothed_rotational(x, z, radii, kernel), y; dims = 3:ndims(y))
+    return reshape(out, size(out)[1:(ndims(out) - 1)])
 end
 
 """

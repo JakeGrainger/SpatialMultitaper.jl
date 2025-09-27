@@ -25,6 +25,8 @@ end
 
 """
     make_points_example(rng::AbstractRNG; n_processes = 2, as_vector = false,
+        dim = 2, region_min = _default_region_min(dim),
+        region_max = _default_region_max(dim), point_number = 100)
                        region_min = _default_region_min(2),
                        region_max = _default_region_max(2),
                        point_number = 100)
@@ -71,26 +73,32 @@ patterns = make_points_example(rng, region_min=(-1,-1,-1), region_max=(2,2,2),
 - All processes are independent realizations of the same Poisson process
 - Default region: `Box(Point(-1, -1), Point(3, 5))` for backward compatibility
 """
-function make_points_example(rng::AbstractRNG; n_processes = 2, as_vector = false,
-        region_min = _default_region_min(2),
-        region_max = _default_region_max(2),
-        point_number = 100)
+function make_points_example(rng::AbstractRNG; n_processes = 2, return_type = :tuple,
+        dim = 2, region_min = _default_region_min(dim),
+        region_max = _default_region_max(dim), point_number = 100)
     region = _make_region(region_min, region_max)
     pp_model = PoissonProcess(point_number / measure(region).val)
     pattern = rand(rng, pp_model, region, n_processes)
 
-    if as_vector
+    if return_type == :vector
+        return spatial_data(pattern, region)
+    elseif return_type == :tuple
+        return spatial_data((pattern...,), region)
+    elseif return_type == :single
+        @assert n_processes==1 "Single return type requires n_processes=1"
+        return spatial_data(pattern[1], region)
+    elseif return_type == :raw
         return pattern, region
-    else #return as Tuple
-        return ((pattern...,), region)
+    else
+        throw(ArgumentError("Invalid return_type: $return_type"))
     end
 end
 
 """
-    make_grids_example(rng::AbstractRNG; n_processes = 2, as_vector = false,
-                      region_min = _default_region_min(2),
-                      region_max = _default_region_max(2),
-                      grid_dims = _default_grid_dims(2))
+    make_grids_example(rng::AbstractRNG; n_processes = 2, return_type = :tuple,
+                      dim = 2, region_min = _default_region_min(dim),
+                      region_max = _default_region_max(dim),
+                      grid_dims = _default_grid_dims(dim))
 
 Generate test data consisting of gridded spatial data (regular lattice data).
 
@@ -101,17 +109,18 @@ in arbitrary dimensions.
 # Arguments
 - `rng::AbstractRNG`: Random number generator for reproducible results
 - `n_processes::Int = 2`: Number of independent gridded processes to generate
-- `as_vector::Bool = false`: Return format control
-  - `false`: Returns `((griddata...,), region)` tuple format
-  - `true`: Returns `[griddata...]` vector format
-- `region_min`: Minimum coordinates as tuple (default: `(-1, -1)` for 2D)
-- `region_max`: Maximum coordinates as tuple (default: `(3, 5)` for 2D)
-- `grid_dims`: Grid dimensions as tuple (default: `(21, 14)` for 2D)
+- `return_type::Symbol = :tuple`: Return format control
+  - `:tuple`: Returns `SpatialData` with tuple format
+  - `:vector`: Returns `SpatialData` with vector format
+  - `:single`: Returns single `SpatialData` (requires `n_processes=1`)
+  - `:raw`: Returns `(griddata, region)` without `SpatialData` wrapper
+- `dim::Int = 2`: Spatial dimension (1D, 2D, 3D, etc.)
+- `region_min`: Minimum coordinates as tuple (default based on `dim`)
+- `region_max`: Maximum coordinates as tuple (default based on `dim`)
+- `grid_dims`: Grid dimensions as tuple (default based on `dim`)
 
 # Returns
-- If `as_vector = false`: `((griddata...,), region)` where griddata is a tuple of georeferenced grids
-- If `as_vector = true`: `[griddata...]` vector of georeferenced grids
-- `region`: `Box` defining the spatial domain (only returned when `as_vector = false`)
+Depends on `return_type` - see argument description above.
 
 # Examples
 ```julia
@@ -119,40 +128,45 @@ using StableRNGs
 rng = StableRNG(123)
 
 # Default 2D case
-grids, region = make_grids_example(rng, n_processes=2)
+grids = make_grids_example(rng, n_processes=2)
 
 # 1D case with custom grid
-grids = make_grids_example(rng, region_min=(-2.0,), region_max=(4.0,),
-                          grid_dims=(100,), as_vector=true)
+grids = make_grids_example(rng, dim=1, grid_dims=(100,), return_type=:vector)
 
 # 3D case
-grids = make_grids_example(rng, region_min=(-1,-1,-1), region_max=(2,2,2),
-                          grid_dims=(20,20,20), as_vector=true)
+grids = make_grids_example(rng, dim=3, grid_dims=(20,20,20), return_type=:single, n_processes=1)
 ```
 
 # Notes
 - Supports arbitrary spatial dimensions (1D, 2D, 3D, etc.)
 - Each grid contains independent random values drawn from uniform distribution
 - Grid data is georeferenced using Meshes.jl/GeoStats.jl framework
-- Default: `Box(Point(-1, -1), Point(3, 5))` with 21×14 resolution for backward compatibility
 """
-function make_grids_example(rng::AbstractRNG; n_processes = 2, as_vector = false,
-        region_min = _default_region_min(2),
-        region_max = _default_region_max(2),
-        grid_dims = _default_grid_dims(2))
+function make_grids_example(rng::AbstractRNG; n_processes = 2, return_type = :tuple,
+        dim = 2, region_min = _default_region_min(dim),
+        region_max = _default_region_max(dim),
+        grid_dims = _default_grid_dims(dim))
     region = _make_region(region_min, region_max)
     griddata = [_make_grid(rng, region, grid_dims) for _ in 1:n_processes]
-    if as_vector
+
+    if return_type == :vector
+        return spatial_data(griddata, region)
+    elseif return_type == :tuple
+        return spatial_data((griddata...,), region)
+    elseif return_type == :single
+        @assert n_processes==1 "Single return type requires n_processes=1"
+        return spatial_data(griddata[1], region)
+    elseif return_type == :raw
         return griddata, region
     else
-        return ((griddata...,), region)
+        throw(ArgumentError("Invalid return_type: $return_type"))
     end
 end
 
 """
-    make_marked_example(rng::AbstractRNG; n_processes = 2, as_vector = false,
-                       region_min = _default_region_min(2),
-                       region_max = _default_region_max(2),
+    make_marked_example(rng::AbstractRNG; n_processes = 2, return_type = :tuple,
+                       dim = 2, region_min = _default_region_min(dim),
+                       region_max = _default_region_max(dim),
                        point_number = 100)
 
 Generate test data consisting of marked point processes (point patterns with associated data).
@@ -164,16 +178,14 @@ multitaper methods on marked point pattern data in arbitrary dimensions.
 # Arguments
 - `rng::AbstractRNG`: Random number generator for reproducible results
 - `n_processes::Int = 2`: Number of independent marked point processes to generate
-- `as_vector::Bool = false`: Return format control
-  - `false`: Returns tuple format (pattern behavior matches `make_points_example`)
-  - `true`: Returns vector format
-- `region_min`: Minimum coordinates as tuple (default: `(-1, -1)` for 2D)
-- `region_max`: Maximum coordinates as tuple (default: `(3, 5)` for 2D)
+- `return_type::Symbol = :tuple`: Return format control (see `make_points_example`)
+- `dim::Int = 2`: Spatial dimension (1D, 2D, 3D, etc.)
+- `region_min`: Minimum coordinates as tuple (default based on `dim`)
+- `region_max`: Maximum coordinates as tuple (default based on `dim`)
 - `point_number::Real = 100`: Average number of points total
 
 # Returns
-- Marked point processes where each point has an associated random mark value
-- Return format matches `make_points_example` but with georeferenced marked point sets
+Depends on `return_type` - marked point processes with associated random mark values.
 
 # Examples
 ```julia
@@ -181,44 +193,46 @@ using StableRNGs
 rng = StableRNG(123)
 
 # Default 2D case
-marked_patterns = make_marked_example(rng, n_processes=3, as_vector=true)
+marked_patterns = make_marked_example(rng, n_processes=3, return_type=:vector)
 
 # 1D case
-marked_1d = make_marked_example(rng, region_min=(-2.0,), region_max=(4.0,))
-
-# Access marks from first pattern
-marks = marked_patterns[1].marks
+marked_1d = make_marked_example(rng, dim=1, return_type=:single, n_processes=1)
 ```
 
 # Notes
 - Built on top of `make_points_example` - supports arbitrary dimensions
 - Marks are independent random values from uniform distribution [0,1]
 - Each point gets exactly one scalar mark value
-- Useful for testing cross-correlation between spatial locations and mark values
 """
-function make_marked_example(rng::AbstractRNG; n_processes = 2, as_vector = false,
-        region_min = _default_region_min(2),
-        region_max = _default_region_max(2),
+function make_marked_example(rng::AbstractRNG; n_processes = 2, return_type = :tuple,
+        dim = 2, region_min = _default_region_min(dim),
+        region_max = _default_region_max(dim),
         point_number = 100)
     points, region = make_points_example(
-        rng, n_processes = n_processes, as_vector = as_vector,
-        region_min = region_min, region_max = region_max,
+        rng, n_processes = n_processes, return_type = :raw,
+        dim = dim, region_min = region_min, region_max = region_max,
         point_number = point_number)
-    marked_points = map(x -> _add_marks(rng, x), points)
+    marked_points = map(x -> georef((mark = rand(rng, length(x)),), x), points)
 
-    if as_vector
+    if return_type == :vector
+        return spatial_data(marked_points, region)
+    elseif return_type == :tuple
+        return spatial_data((marked_points...,), region)
+    elseif return_type == :single
+        @assert n_processes==1 "Single return type requires n_processes=1"
+        return spatial_data(marked_points[1], region)
+    elseif return_type == :raw
         return marked_points, region
     else
-        return marked_points, region
+        throw(ArgumentError("Invalid return_type: $return_type"))
     end
 end
-_add_marks(rng, ps::PointSet) = georef((marks = rand(rng, length(ps)),), ps)
 
 """
-    make_mixed_example(rng::AbstractRNG; n_processes = (1, 1, 1), as_vector = false,
-                      region_min = _default_region_min(2),
-                      region_max = _default_region_max(2),
-                      grid_dims = _default_grid_dims(2),
+    make_mixed_example(rng::AbstractRNG; n_processes = (1, 1, 1), return_type = :tuple,
+                      dim = 2, region_min = _default_region_min(dim),
+                      region_max = _default_region_max(dim),
+                      grid_dims = _default_grid_dims(dim),
                       point_number = 100)
 
 Generate test data with mixed process types (points, grids, and marked points combined).
@@ -230,19 +244,15 @@ on mixed data types that might occur in real applications, in arbitrary dimensio
 # Arguments
 - `rng::AbstractRNG`: Random number generator for reproducible results
 - `n_processes::Tuple{Int,Int,Int} = (1, 1, 1)`: Number of each process type as `(points, grids, marks)`
-  - `n_processes[1]`: Number of unmarked point processes
-  - `n_processes[2]`: Number of gridded processes
-  - `n_processes[3]`: Number of marked point processes
-- `as_vector::Bool = false`: Return format control
-- `region_min`: Minimum coordinates as tuple (default: `(-1, -1)` for 2D)
-- `region_max`: Maximum coordinates as tuple (default: `(3, 5)` for 2D)
-- `grid_dims`: Grid dimensions as tuple (default: `(21, 14)` for 2D)
+- `return_type::Symbol = :tuple`: Return format control
+- `dim::Int = 2`: Spatial dimension (1D, 2D, 3D, etc.)
+- `region_min`: Minimum coordinates as tuple (default based on `dim`)
+- `region_max`: Maximum coordinates as tuple (default based on `dim`)
+- `grid_dims`: Grid dimensions as tuple (default based on `dim`)
 - `point_number::Real = 100`: Average number of points total
 
 # Returns
-- If `as_vector = false`: `((all_processes...,), region)` tuple with mixed process types
-- If `as_vector = true`: `[all_processes...]` vector with mixed process types
-- All processes share the same spatial region for consistency
+Depends on `return_type` - mixed collection of all process types sharing the same region.
 
 # Examples
 ```julia
@@ -250,43 +260,51 @@ using StableRNGs
 rng = StableRNG(123)
 
 # Default 2D case
-mixed_data, region = make_mixed_example(rng, n_processes=(2, 1, 3))
+mixed_data = make_mixed_example(rng, n_processes=(2, 1, 3))
 
 # 1D case with custom parameters
-mixed_1d = make_mixed_example(rng, n_processes=(2, 2, 2),
-                             region_min=(-5.0,), region_max=(10.0,),
-                             grid_dims=(100,), as_vector=true)
+mixed_1d = make_mixed_example(rng, dim=1, n_processes=(2, 2, 2),
+                             grid_dims=(100,), return_type=:vector)
 ```
 
 # Notes
-- Combines outputs from `make_points_example`, `make_grids_example`, and `make_marked_example`
-- Supports arbitrary spatial dimensions (1D, 2D, 3D, etc.)
+- Combines outputs from other make_*_example functions
+- Supports arbitrary spatial dimensions
 - Order in output: unmarked points, then grids, then marked points
-- Useful for testing robustness of methods across different data types
-- Each component process maintains its independent randomness
 """
-function make_mixed_example(rng::AbstractRNG; n_processes = (1, 1, 1), as_vector = false,
-        region_min = _default_region_min(2),
-        region_max = _default_region_max(2),
-        grid_dims = _default_grid_dims(2),
+function make_mixed_example(
+        rng::AbstractRNG; n_processes = (1, 1, 1), return_type = :tuple,
+        dim = 2, region_min = _default_region_min(dim),
+        region_max = _default_region_max(dim),
+        grid_dims = _default_grid_dims(dim),
         point_number = 100)
     points, region = make_points_example(
-        rng, n_processes = n_processes[1], as_vector = as_vector,
-        region_min = region_min, region_max = region_max,
+        rng, n_processes = n_processes[1], return_type = :raw,
+        dim = dim, region_min = region_min, region_max = region_max,
         point_number = point_number)
     grids, region_2 = make_grids_example(
-        rng, n_processes = n_processes[2], as_vector = as_vector,
-        region_min = region_min, region_max = region_max,
+        rng, n_processes = n_processes[2], return_type = :raw,
+        dim = dim, region_min = region_min, region_max = region_max,
         grid_dims = grid_dims)
     marks, region_3 = make_marked_example(
-        rng, n_processes = n_processes[3], as_vector = as_vector,
-        region_min = region_min, region_max = region_max,
+        rng, n_processes = n_processes[3], return_type = :raw,
+        dim = dim, region_min = region_min, region_max = region_max,
         point_number = point_number)
     @assert region==region_2==region_3 "Regions must match"
-    if as_vector
-        return vcat(points, grids, marks), region
+
+    all_processes = vcat(points, grids, marks)
+
+    if return_type == :vector
+        return spatial_data(all_processes, region)
+    elseif return_type == :tuple
+        return spatial_data((all_processes...,), region)
+    elseif return_type == :single
+        @assert length(all_processes)==1 "Single return type requires total n_processes=1"
+        return spatial_data(all_processes[1], region)
+    elseif return_type == :raw
+        return all_processes, region
     else
-        return ((points..., grids..., marks...), region)
+        throw(ArgumentError("Invalid return_type: $return_type"))
     end
 end
 

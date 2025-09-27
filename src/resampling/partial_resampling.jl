@@ -224,7 +224,8 @@ function partial_from_resampled(
         mean_product = setindex(mean_product, x, q, p)
     end
 
-    process_information = ProcessInformation{D}(1:P, 1:P, mean_product, atoms) # should get the means for each part separately, means we should have means that are a matrix of products
+    process_information = ProcessInformation{D, MultipleTupleTrait}(
+        1:P, 1:P, mean_product, atoms) # should get the means for each part separately, means we should have means that are a matrix of products
     return Spectra{PartialTrait}(
         freq, output, process_information, EstimationInformation(ntapers))
 end

@@ -1,10 +1,11 @@
 using SpatialMultitaper, Test, StableRNGs, StaticArrays
-include("../test_utilities/TestUtils.jl")
-using .TestUtils
+include("../test_utilities/TestData.jl")
+using .TestData
 
 import SpatialMultitaper: Spectra, getargument, getestimate, dft2spectralmatrix,
                           spectral_matrix, make_freq, getestimationinformation,
-                          ProcessInformation, EstimationInformation, MarginalTrait
+                          ProcessInformation, EstimationInformation, MarginalTrait,
+                          MultipleVectorTrait
 
 @testset "Spectra Construction" begin
     rng = StableRNG(123)
@@ -13,7 +14,8 @@ import SpatialMultitaper: Spectra, getargument, getestimate, dft2spectralmatrix,
         # Create test data
         freq = (1:10, 1:10)
         power = rand(rng, ComplexF64, 2, 2, 10, 10)
-        processinfo = ProcessInformation{2}([1, 2], [1, 2], ones(2, 2), ones(2, 2))
+        processinfo = ProcessInformation{2, MultipleVectorTrait}(
+            [1, 2], [1, 2], ones(2, 2), ones(2, 2))
         estimationinfo = EstimationInformation(5)
 
         spec = Spectra{MarginalTrait}(freq, power, processinfo, estimationinfo)
@@ -26,7 +28,8 @@ import SpatialMultitaper: Spectra, getargument, getestimate, dft2spectralmatrix,
     @testset "Single process case" begin
         freq = (1:10,)
         power = rand(rng, Float64, 10)
-        processinfo = ProcessInformation{1}([1], [1], ones(1, 1), ones(1, 1))
+        processinfo = ProcessInformation{1, MultipleVectorTrait}(
+            [1], [1], ones(1, 1), ones(1, 1))
         estimationinfo = EstimationInformation(3)
 
         spec = Spectra{MarginalTrait}(freq, power, processinfo, estimationinfo)
@@ -39,12 +42,14 @@ end
     rng = StableRNG(123)
 
     @testset "Points data" begin
-        data, region = make_points_example(rng, n_processes = 2, point_number = 50)
+        data = make_points_example(
+            rng, n_processes = 2, return_type = :tuple, point_number = 50)
         nfreq = (8, 8)
         fmax = (0.5, 0.5)
+        region = getregion(data)
         tapers = sin_taper_family((2, 2), region)
 
-        spec = spectra(data, region, nfreq = nfreq, fmax = fmax, tapers = tapers)
+        spec = spectra(data, nfreq = nfreq, fmax = fmax, tapers = tapers)
 
         @test getargument(spec) isa Tuple{AbstractVector, AbstractVector}
         @test length(getargument(spec)[1]) == 8
@@ -55,24 +60,26 @@ end
     end
 
     @testset "Grid data" begin
-        grids, region = make_grids_example(rng, n_processes = 1, grid_dims = (10, 10),
-            region_min = (0.0, 0.0), region_max = (10.0, 10.0))
+        grids = make_grids_example(rng, n_processes = 1, return_type = :single,
+            grid_dims = (10, 10), region_min = (0.0, 0.0), region_max = (10.0, 10.0))
         nfreq = (8, 8)
         fmax = (0.5, 0.5)  # Nyquist frequency for grid data
+        region = getregion(grids)
         tapers = sin_taper_family((2, 2), region)
 
-        spec = spectra(grids, region, nfreq = nfreq, fmax = fmax, tapers = tapers)
+        spec = spectra(grids, nfreq = nfreq, fmax = fmax, tapers = tapers)
         @test size(spec) == (1, 1)
         @test embeddim(spec) == 2
     end
 
     @testset "Single process convenience" begin
-        data, region = make_points_example(rng, n_processes = 1)
+        data = make_points_example(rng, n_processes = 1, return_type = :single)
         nfreq = (6, 6)
         fmax = (0.3, 0.3)
+        region = getregion(data)
         tapers = sin_taper_family((2, 2), region)
 
-        spec = spectra(data[1], region, nfreq = nfreq, fmax = fmax, tapers = tapers)
+        spec = spectra(data, nfreq = nfreq, fmax = fmax, tapers = tapers)
         @test size(spec) == (1, 1)
     end
 end
@@ -153,12 +160,14 @@ end
 
 @testset "Spectra Indexing and Access" begin
     rng = StableRNG(123)
-    data, region = make_points_example(rng, n_processes = 3, point_number = 30)
+    data = make_points_example(
+        rng, n_processes = 3, return_type = :tuple, point_number = 30)
     nfreq = (6, 6)
     fmax = (0.3, 0.3)
+    region = getregion(data)
     tapers = sin_taper_family((2, 2), region)
 
-    spec = spectra(data, region, nfreq = nfreq, fmax = fmax, tapers = tapers)
+    spec = spectra(data, nfreq = nfreq, fmax = fmax, tapers = tapers)
 
     @testset "Process indexing" begin
         spec_sub = spec[1, 2]
@@ -180,14 +189,14 @@ end
 
     @testset "Empty or minimal data" begin
         # Test with very small datasets
-        data = (PointSet([Point(0.0, 0.0)]),)
-        region = Box(Point(-1, -1), Point(1, 1))
+        data = spatial_data(PointSet([Point(0.0, 0.0)]), Box(Point(-1, -1), Point(1, 1)))
         nfreq = (2, 2)
         fmax = (0.1, 0.1)
+        region = getregion(data)
         tapers = sin_taper_family((1, 1), region)
 
         # Should not crash but might have limited meaningful results
-        spec = spectra(data, region, nfreq = nfreq, fmax = fmax, tapers = tapers)
+        spec = spectra(data, nfreq = nfreq, fmax = fmax, tapers = tapers)
         @test size(spec) == (1, 1)
     end
 end

@@ -66,13 +66,15 @@ end
     rng = StableRNG(123)
 
     @testset "Basic functionality" begin
-        data, region = make_points_example(rng, n_processes = 3, point_number = 40)
+        data = make_points_example(
+            rng, n_processes = 3, return_type = :tuple, point_number = 40)
         nfreq = (6, 6)
         fmax = (0.3, 0.3)
+        region = getregion(data)
         tapers = sin_taper_family((2, 2), region)
 
         # Create marginal spectra
-        spec = spectra(data, region, nfreq = nfreq, fmax = fmax, tapers = tapers)
+        spec = spectra(data, nfreq = nfreq, fmax = fmax, tapers = tapers)
 
         # Convert to partial spectra
         partial_spec = partial_spectra(spec)
@@ -87,13 +89,14 @@ end
     end
 
     @testset "Direct from data" begin
-        data, region = make_points_example(rng, n_processes = 2, point_number = 30)
+        data = make_points_example(
+            rng, n_processes = 2, return_type = :tuple, point_number = 30)
         nfreq = (4, 4)
         fmax = (0.2, 0.2)
+        region = getregion(data)
         tapers = sin_taper_family((2, 2), region)
 
-        partial_spec = partial_spectra(
-            data, region, nfreq = nfreq, fmax = fmax, tapers = tapers)
+        partial_spec = partial_spectra(data, nfreq = nfreq, fmax = fmax, tapers = tapers)
 
         @test partial_spec isa Spectra
         @test is_partial(partial_spec) == true
@@ -101,8 +104,10 @@ end
     end
 
     @testset "Uncorrected version" begin
-        data, region = make_points_example(rng, n_processes = 2, point_number = 30)
-        spec = spectra(data, region, nfreq = (4, 4), fmax = (0.2, 0.2),
+        data = make_points_example(
+            rng, n_processes = 2, return_type = :tuple, point_number = 30)
+        region = getregion(data)
+        spec = spectra(data, nfreq = (4, 4), fmax = (0.2, 0.2),
             tapers = sin_taper_family((2, 2), region))
 
         partial_corrected = partial_spectra(spec)
@@ -212,8 +217,10 @@ end
 
 @testset "Integration with Estimate Framework" begin
     rng = StableRNG(123)
-    data, region = make_points_example(rng, n_processes = 2, point_number = 30)
-    spec = spectra(data, region, nfreq = (4, 4), fmax = (0.2, 0.2),
+    data = make_points_example(
+        rng, n_processes = 2, return_type = :tuple, point_number = 30)
+    region = getregion(data)
+    spec = spectra(data, nfreq = (4, 4), fmax = (0.2, 0.2),
         tapers = sin_taper_family((2, 2), region))
 
     partial_spec = partial_spectra(spec)
@@ -289,8 +296,10 @@ end
 
     @testset "Single-process spectra edge case" begin
         rng = StableRNG(123)
-        data, region = make_points_example(rng, n_processes = 1, point_number = 20)
-        spec = spectra(data, region, nfreq = (4, 4), fmax = (0.2, 0.2),
+        data = make_points_example(
+            rng, n_processes = 1, return_type = :single, point_number = 20)
+        region = getregion(data)
+        spec = spectra(data, nfreq = (4, 4), fmax = (0.2, 0.2),
             tapers = sin_taper_family((2, 2), region))
 
         partial_spec = partial_spectra(spec)

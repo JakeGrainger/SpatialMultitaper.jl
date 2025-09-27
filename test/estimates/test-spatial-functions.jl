@@ -1,13 +1,13 @@
 using SpatialMultitaper, Test, StableRNGs
-include("../test_utilities/TestUtils.jl")
-using .TestUtils
+include("../test_utilities/TestData.jl")
+using .TestData
 
 import SpatialMultitaper: CFunction, KFunction, c_function, k_function, is_partial,
                           partial_c_function, partial_k_function, sdf2C, C2K, getestimate,
                           getargument, getbaseestimatename, ProcessInformation,
                           getestimationinformation, getprocessinformation,
                           EstimationInformation, MarginalTrait,
-                          mean_estimate, DefaultMean
+                          mean_estimate, DefaultMean, MultipleVectorTrait
 
 @testset "C Function" begin
     rng = StableRNG(123)
@@ -15,7 +15,8 @@ import SpatialMultitaper: CFunction, KFunction, c_function, k_function, is_parti
     @testset "CFunction struct" begin
         radii = [0.1, 0.2, 0.3]
         values = [1.0, 0.8, 0.6]
-        processinfo = ProcessInformation{2}([1], [1], ones(1, 1), ones(1, 1))
+        processinfo = ProcessInformation{2, MultipleVectorTrait}(
+            [1], [1], ones(1, 1), ones(1, 1))
         estimationinfo = EstimationInformation(5)
 
         c_func = CFunction{MarginalTrait}(radii, values, processinfo, estimationinfo)
@@ -28,10 +29,12 @@ import SpatialMultitaper: CFunction, KFunction, c_function, k_function, is_parti
     end
 
     @testset "c_function from data" begin
-        data, region = make_points_example(rng, n_processes = 2, point_number = 50)
+        data = make_points_example(
+            rng, n_processes = 2, return_type = :tuple, point_number = 50)
         radii = [0.05, 0.1, 0.15, 0.2]
+        region = getregion(data)
 
-        c_est = c_function(data, region,
+        c_est = c_function(data,
             radii = radii,
             nfreq = (8, 8),
             fmax = (0.4, 0.4),
@@ -44,8 +47,10 @@ import SpatialMultitaper: CFunction, KFunction, c_function, k_function, is_parti
     end
 
     @testset "c_function from spectra" begin
-        data, region = make_points_example(rng, n_processes = 2, point_number = 40)
-        spec = spectra(data, region, nfreq = (6, 6), fmax = (0.3, 0.3),
+        data = make_points_example(
+            rng, n_processes = 2, return_type = :tuple, point_number = 40)
+        region = getregion(data)
+        spec = spectra(data, nfreq = (6, 6), fmax = (0.3, 0.3),
             tapers = sin_taper_family((2, 2), region))
 
         radii = [0.1, 0.2, 0.3]
@@ -58,10 +63,12 @@ import SpatialMultitaper: CFunction, KFunction, c_function, k_function, is_parti
     end
 
     @testset "partial_c_function" begin
-        data, region = make_points_example(rng, n_processes = 3, point_number = 40)
+        data = make_points_example(
+            rng, n_processes = 3, return_type = :tuple, point_number = 40)
         radii = [0.05, 0.1, 0.15]
+        region = getregion(data)
 
-        c_partial = partial_c_function(data, region,
+        c_partial = partial_c_function(data,
             radii = radii,
             nfreq = (6, 6),
             fmax = (0.3, 0.3),
@@ -79,7 +86,8 @@ end
     @testset "KFunction struct" begin
         radii = [0.1, 0.2, 0.3]
         values = [0.01, 0.04, 0.09]  # Roughly π*r² for circle
-        processinfo = ProcessInformation{2}([1], [1], ones(1, 1), ones(1, 1))
+        processinfo = ProcessInformation{2, MultipleVectorTrait}(
+            [1], [1], ones(1, 1), ones(1, 1))
         estimationinfo = EstimationInformation(5)
 
         k_func = KFunction{MarginalTrait}(radii, values, processinfo, estimationinfo)
@@ -90,10 +98,12 @@ end
     end
 
     @testset "k_function from c_function" begin
-        data, region = make_points_example(rng, n_processes = 2, point_number = 40)
+        data = make_points_example(
+            rng, n_processes = 2, return_type = :tuple, point_number = 40)
         radii = [0.05, 0.1, 0.15]
+        region = getregion(data)
 
-        c_est = c_function(data, region,
+        c_est = c_function(data,
             radii = radii,
             nfreq = (6, 6),
             fmax = (0.3, 0.3),
@@ -108,10 +118,12 @@ end
     end
 
     @testset "k_function from data" begin
-        data, region = make_points_example(rng, n_processes = 2, point_number = 40)
+        data = make_points_example(
+            rng, n_processes = 2, return_type = :tuple, point_number = 40)
         radii = [0.05, 0.1, 0.15]
+        region = getregion(data)
 
-        k_est = k_function(data, region,
+        k_est = k_function(data,
             radii = radii,
             nfreq = (6, 6),
             fmax = (0.3, 0.3),
@@ -127,10 +139,12 @@ end
 
     @testset "C function properties" begin
         # C function should be non-negative for typical point processes
-        data, region = make_points_example(rng, n_processes = 1, point_number = 50)
+        data = make_points_example(
+            rng, n_processes = 1, return_type = :single, point_number = 50)
         radii = [0.05, 0.1, 0.15, 0.2]
+        region = getregion(data)
 
-        c_est = c_function(data[1], region,
+        c_est = c_function(data,
             radii = radii,
             nfreq = (8, 8),
             fmax = (0.4, 0.4),
@@ -146,10 +160,12 @@ end
     @testset "K function properties" begin
         # K function should generally be monotonic increasing for clustered processes
         rng = StableRNG(123)
-        data, region = make_points_example(rng, n_processes = 1, point_number = 60)
+        data = make_points_example(
+            rng, n_processes = 1, return_type = :single, point_number = 60)
         radii = [0.05, 0.1, 0.15, 0.2, 0.25]
+        region = getregion(data)
 
-        k_est = k_function(data[1], region,
+        k_est = k_function(data,
             radii = radii,
             nfreq = (10, 10),
             fmax = (0.5, 0.5),
@@ -170,10 +186,12 @@ end
 
 @testset "Indexing and Access" begin
     rng = StableRNG(123)
-    data, region = make_points_example(rng, n_processes = 2, point_number = 30)
+    data = make_points_example(
+        rng, n_processes = 2, return_type = :tuple, point_number = 30)
     radii = [0.1, 0.2, 0.3]
+    region = getregion(data)
 
-    c_est = c_function(data, region,
+    c_est = c_function(data,
         radii = radii,
         nfreq = (4, 4),
         fmax = (0.2, 0.2),
@@ -196,13 +214,15 @@ end
 
 @testset "Integration with Other Estimates" begin
     rng = StableRNG(123)
-    data, region = make_points_example(rng, n_processes = 2, point_number = 40)
+    data = make_points_example(
+        rng, n_processes = 2, return_type = :tuple, point_number = 40)
 
     @testset "Partial spatial functions" begin
         radii = [0.05, 0.1, 0.15]
+        region = getregion(data)
 
         # Test partial C function
-        c_partial = partial_c_function(data, region,
+        c_partial = partial_c_function(data,
             radii = radii,
             nfreq = (6, 6),
             fmax = (0.3, 0.3),
@@ -211,7 +231,7 @@ end
         @test is_partial(c_partial) == true
 
         # Test partial K function
-        k_partial = partial_k_function(data, region,
+        k_partial = partial_k_function(data,
             radii = radii,
             nfreq = (6, 6),
             fmax = (0.3, 0.3),
@@ -225,9 +245,11 @@ end
     rng = StableRNG(123)
 
     @testset "Single radius" begin
-        data, region = make_points_example(rng, n_processes = 1, point_number = 30)
+        data = make_points_example(
+            rng, n_processes = 1, return_type = :single, point_number = 30)
+        region = getregion(data)
 
-        c_est = c_function(data, region,
+        c_est = c_function(data,
             radii = [0.1],
             nfreq = (4, 4),
             fmax = (0.2, 0.2),
@@ -238,9 +260,11 @@ end
     end
 
     @testset "Very small radii" begin
-        data, region = make_points_example(rng, n_processes = 1, point_number = 30)
+        data = make_points_example(
+            rng, n_processes = 1, return_type = :single, point_number = 30)
+        region = getregion(data)
 
-        c_est = c_function(data[1], region,
+        c_est = c_function(data,
             radii = [0.001, 0.01],
             nfreq = (6, 6),
             fmax = (0.3, 0.3),

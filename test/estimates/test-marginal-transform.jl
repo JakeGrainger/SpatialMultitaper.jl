@@ -12,8 +12,10 @@ import SpatialMultitaper: MarginallyTransformedEstimate, apply_marginal_transfor
 
     @testset "Basic construction" begin
         # Create base spectra
-        data, region = make_points_example(rng, n_processes = 2, point_number = 40)
-        spec = spectra(data, region, nfreq = (6, 6), fmax = (0.3, 0.3),
+        data = make_points_example(
+            rng, n_processes = 2, return_type = :tuple, point_number = 40)
+        region = getregion(data)
+        spec = spectra(data, nfreq = (6, 6), fmax = (0.3, 0.3),
             tapers = sin_taper_family((2, 2), region))
 
         # Apply transform
@@ -30,8 +32,10 @@ end
 
 @testset "Mathematical Transformations" begin
     rng = StableRNG(123)
-    data, region = make_points_example(rng, n_processes = 2, point_number = 30)
-    spec = spectra(data, region, nfreq = (4, 4), fmax = (0.2, 0.2),
+    data = make_points_example(
+        rng, n_processes = 2, return_type = :tuple, point_number = 30)
+    region = getregion(data)
+    spec = spectra(data, nfreq = (4, 4), fmax = (0.2, 0.2),
         tapers = sin_taper_family((2, 2), region))
 
     @testset "real transform" begin
@@ -160,8 +164,10 @@ end
 
 @testset "Name and Type Information" begin
     rng = StableRNG(123)
-    data, region = make_points_example(rng, n_processes = 2, point_number = 30)
-    spec = spectra(data, region, nfreq = (4, 4), fmax = (0.2, 0.2),
+    data = make_points_example(
+        rng, n_processes = 2, return_type = :tuple, point_number = 30)
+    region = getregion(data)
+    spec = spectra(data, nfreq = (4, 4), fmax = (0.2, 0.2),
         tapers = sin_taper_family((2, 2), region))
 
     @testset "Estimate naming" begin
@@ -182,8 +188,10 @@ end
 
 @testset "Chaining Transformations" begin
     rng = StableRNG(123)
-    data, region = make_points_example(rng, n_processes = 2, point_number = 30)
-    spec = spectra(data, region, nfreq = (4, 4), fmax = (0.2, 0.2),
+    data = make_points_example(
+        rng, n_processes = 2, return_type = :tuple, point_number = 30)
+    region = getregion(data)
+    spec = spectra(data, nfreq = (4, 4), fmax = (0.2, 0.2),
         tapers = sin_taper_family((2, 2), region))
 
     @testset "Multiple transforms" begin
@@ -206,8 +214,10 @@ end
 
 @testset "Indexing Transformed Estimates" begin
     rng = StableRNG(123)
-    data, region = make_points_example(rng, n_processes = 3, point_number = 30)
-    spec = spectra(data, region, nfreq = (4, 4), fmax = (0.2, 0.2),
+    data = make_points_example(
+        rng, n_processes = 3, return_type = :tuple, point_number = 30)
+    region = getregion(data)
+    spec = spectra(data, nfreq = (4, 4), fmax = (0.2, 0.2),
         tapers = sin_taper_family((2, 2), region))
 
     real_spec = real(spec)
@@ -233,8 +243,10 @@ end
 
 @testset "Type Stability and Performance" begin
     rng = StableRNG(123)
-    data, region = make_points_example(rng, n_processes = 2, point_number = 20)
-    spec = spectra(data, region, nfreq = (4, 4), fmax = (0.2, 0.2),
+    data = make_points_example(
+        rng, n_processes = 2, return_type = :tuple, point_number = 20)
+    region = getregion(data)
+    spec = spectra(data, nfreq = (4, 4), fmax = (0.2, 0.2),
         tapers = sin_taper_family((2, 2), region))
 
     @testset "Type stability" begin
@@ -270,8 +282,10 @@ end
     rng = StableRNG(123)
 
     @testset "Single element transform" begin
-        data, region = make_points_example(rng, n_processes = 1, point_number = 10)
-        spec = spectra(data, region, nfreq = (2, 2), fmax = (0.1, 0.1),
+        data = make_points_example(
+            rng, n_processes = 1, return_type = :single, point_number = 10)
+        region = getregion(data)
+        spec = spectra(data, nfreq = (2, 2), fmax = (0.1, 0.1),
             tapers = sin_taper_family((1, 1), region))
 
         abs_spec = abs(spec)

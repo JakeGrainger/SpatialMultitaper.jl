@@ -41,12 +41,14 @@ end
 
     @testset "From Spectra" begin
         # Create test spectra
-        data, region = make_points_example(rng, n_processes = 2, point_number = 40)
+        data = make_points_example(
+            rng, n_processes = 2, return_type = :tuple, point_number = 40)
         nfreq = (6, 6)
         fmax = (0.3, 0.3)
+        region = getregion(data)
         tapers = sin_taper_family((2, 2), region)
 
-        spec = spectra(data, region, nfreq = nfreq, fmax = fmax, tapers = tapers)
+        spec = spectra(data, nfreq = nfreq, fmax = fmax, tapers = tapers)
         coh = coherence(spec)
 
         @test coh isa Coherence
@@ -58,12 +60,14 @@ end
     end
 
     @testset "Direct from data" begin
-        data, region = make_points_example(rng, n_processes = 2, point_number = 40)
+        data = make_points_example(
+            rng, n_processes = 2, return_type = :tuple, point_number = 40)
         nfreq = (6, 6)
         fmax = (0.3, 0.3)
+        region = getregion(data)
         tapers = sin_taper_family((2, 2), region)
 
-        coh = coherence(data, region, nfreq = nfreq, fmax = fmax, tapers = tapers)
+        coh = coherence(data, nfreq = nfreq, fmax = fmax, tapers = tapers)
         @test coh isa Coherence
         @test size(coh) == (2, 2)
     end
@@ -86,12 +90,14 @@ end
 
     @testset "From Spectra - Marginal" begin
         rng = StableRNG(123)
-        data, region = make_points_example(rng, n_processes = 3, point_number = 30)
+        data = make_points_example(
+            rng, n_processes = 3, return_type = :tuple, point_number = 30)
         nfreq = (4, 4)
         fmax = (0.2, 0.2)
+        region = getregion(data)
         tapers = sin_taper_family((2, 2), region)
 
-        spec = spectra(data, region, nfreq = nfreq, fmax = fmax, tapers = tapers)
+        spec = spectra(data, nfreq = nfreq, fmax = fmax, tapers = tapers)
         coh_partial = partial_coherence(spec)
 
         @test coh_partial isa Coherence
@@ -100,10 +106,12 @@ end
 
     @testset "From Spectra - Partial trait" begin
         rng = StableRNG(123)
-        data, region = make_points_example(rng, n_processes = 2, point_number = 30)
+        data = make_points_example(
+            rng, n_processes = 2, return_type = :tuple, point_number = 30)
+        region = getregion(data)
 
         # Create a partial spectrum first
-        spec_partial = partial_spectra(data, region, nfreq = (4, 4), fmax = (0.2, 0.2),
+        spec_partial = partial_spectra(data, nfreq = (4, 4), fmax = (0.2, 0.2),
             tapers = sin_taper_family((2, 2), region))
         coh_from_partial = partial_coherence(spec_partial)
 
@@ -116,12 +124,14 @@ end
 @testset "magnitude_coherence" begin
     @testset "From Spectra" begin
         rng = StableRNG(123)
-        data, region = make_points_example(rng, n_processes = 2, point_number = 40)
+        data = make_points_example(
+            rng, n_processes = 2, return_type = :tuple, point_number = 40)
         nfreq = (6, 6)
         fmax = (0.3, 0.3)
+        region = getregion(data)
         tapers = sin_taper_family((2, 2), region)
 
-        spec = spectra(data, region, nfreq = nfreq, fmax = fmax, tapers = tapers)
+        spec = spectra(data, nfreq = nfreq, fmax = fmax, tapers = tapers)
         mag_coh = magnitude_coherence(spec)
 
         # Should be real and positive
@@ -132,8 +142,9 @@ end
 
     @testset "From Coherence" begin
         rng = StableRNG(123)
-        data, region = make_points_example(rng, n_processes = 2)
-        spec = spectra(data, region, nfreq = (4, 4), fmax = (0.2, 0.2),
+        data = make_points_example(rng, n_processes = 2, return_type = :tuple)
+        region = getregion(data)
+        spec = spectra(data, nfreq = (4, 4), fmax = (0.2, 0.2),
             tapers = sin_taper_family((2, 2), region))
         coh = coherence(spec)
         mag_coh = magnitude_coherence(coh)
@@ -145,8 +156,9 @@ end
 
     @testset "Direct from data" begin
         rng = StableRNG(123)
-        data, region = make_points_example(rng, n_processes = 2)
-        mag_coh = magnitude_coherence(data, region, nfreq = (4, 4), fmax = (0.2, 0.2),
+        data = make_points_example(rng, n_processes = 2, return_type = :tuple)
+        region = getregion(data)
+        mag_coh = magnitude_coherence(data, nfreq = (4, 4), fmax = (0.2, 0.2),
             tapers = sin_taper_family((2, 2), region))
         @test mag_coh isa MarginallyTransformedEstimate
         @test gettransformtype(mag_coh) === typeof(abs)
@@ -155,8 +167,10 @@ end
 
 @testset "magnitude_squared_coherence" begin
     rng = StableRNG(123)
-    data, region = make_points_example(rng, n_processes = 2, point_number = 30)
-    spec = spectra(data, region, nfreq = (4, 4), fmax = (0.2, 0.2),
+    data = make_points_example(
+        rng, n_processes = 2, return_type = :tuple, point_number = 30)
+    region = getregion(data)
+    spec = spectra(data, nfreq = (4, 4), fmax = (0.2, 0.2),
         tapers = sin_taper_family((2, 2), region))
 
     @testset "From Spectra" begin
@@ -177,8 +191,10 @@ end
 @testset "phase function" begin
     @testset "From Spectra" begin
         rng = StableRNG(123)
-        data, region = make_points_example(rng, n_processes = 2, point_number = 30)
-        spec = spectra(data, region, nfreq = (4, 4), fmax = (0.2, 0.2),
+        data = make_points_example(
+            rng, n_processes = 2, return_type = :tuple, point_number = 30)
+        region = getregion(data)
+        spec = spectra(data, nfreq = (4, 4), fmax = (0.2, 0.2),
             tapers = sin_taper_family((2, 2), region))
 
         phase_est = phase(spec)
@@ -191,8 +207,9 @@ end
 
     @testset "From Coherence" begin
         rng = StableRNG(123)
-        data, region = make_points_example(rng, n_processes = 2)
-        spec = spectra(data, region, nfreq = (4, 4), fmax = (0.2, 0.2),
+        data = make_points_example(rng, n_processes = 2, return_type = :tuple)
+        region = getregion(data)
+        spec = spectra(data, nfreq = (4, 4), fmax = (0.2, 0.2),
             tapers = sin_taper_family((2, 2), region))
         coh = coherence(spec)
 
@@ -205,8 +222,9 @@ end
 
     @testset "Direct from data" begin
         rng = StableRNG(123)
-        data, region = make_points_example(rng, n_processes = 2)
-        phase_direct = phase(data, region, nfreq = (4, 4), fmax = (0.2, 0.2),
+        data = make_points_example(rng, n_processes = 2, return_type = :tuple)
+        region = getregion(data)
+        phase_direct = phase(data, nfreq = (4, 4), fmax = (0.2, 0.2),
             tapers = sin_taper_family((2, 2), region))
         @test phase_direct isa MarginallyTransformedEstimate
         @test gettransformtype(phase_direct) === typeof(angle)
@@ -235,8 +253,10 @@ end
 
     @testset "Relationship between transforms" begin
         rng = StableRNG(123)
-        data, region = make_points_example(rng, n_processes = 2, point_number = 50)
-        spec = spectra(data, region, nfreq = (4, 4), fmax = (0.2, 0.2),
+        data = make_points_example(
+            rng, n_processes = 2, return_type = :tuple, point_number = 50)
+        region = getregion(data)
+        spec = spectra(data, nfreq = (4, 4), fmax = (0.2, 0.2),
             tapers = sin_taper_family((2, 2), region))
 
         coh = coherence(spec)
@@ -263,8 +283,10 @@ end
 
     @testset "Single process" begin
         rng = StableRNG(123)
-        data, region = make_points_example(rng, n_processes = 1, point_number = 30)
-        spec = spectra(data, region, nfreq = (4, 4), fmax = (0.2, 0.2),
+        data = make_points_example(
+            rng, n_processes = 1, return_type = :single, point_number = 30)
+        region = getregion(data)
+        spec = spectra(data, nfreq = (4, 4), fmax = (0.2, 0.2),
             tapers = sin_taper_family((2, 2), region))
 
         coh = coherence(spec)

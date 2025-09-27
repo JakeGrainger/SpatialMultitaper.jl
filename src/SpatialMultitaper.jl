@@ -31,7 +31,7 @@ include("input_checking.jl") # to remove
 include("covariance_zero_atom.jl")
 
 include("estimates/processinfo.jl")
-include("estimates/estimate_traits.jl")
+include("estimates/process_traits.jl")
 include("estimates/estimate_types.jl")
 include("estimates/printing.jl")
 include("estimates/errors.jl")

@@ -59,27 +59,27 @@ if run_all
     end
 
     @safetestset "Spectral Estimate" begin
-        include("estimates/test-spectral-estimate.jl")
+        include("estimates/wavenumber/test-spectra.jl")
     end
 
     @safetestset "Transforms" begin
-        include("estimates/test-spectral-matrix-transforms.jl")
+        include("estimates/wavenumber/test-spectral-matrix-transforms.jl")
     end
 
     @safetestset "Partial spectra" begin
-        include("estimates/test-partial-spectra.jl")
+        include("estimates/wavenumber/test-partial-spectra.jl")
     end
 
     @safetestset "coherence" begin
-        include("estimates/test-coherence.jl")
+        include("estimates/wavenumber/test-coherence.jl")
     end
 
     @safetestset "Rotational estimate" begin
-        include("estimates/test-rotational-estimate.jl")
+        include("estimates/generic/test-rotational-estimate.jl")
     end
 
     @safetestset "Marginal transform" begin
-        include("estimates/test-marginal-transform.jl")
+        include("estimates/generic/test-marginal-transform.jl")
     end
 
     @safetestset "spatial functions" begin

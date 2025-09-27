@@ -1,5 +1,5 @@
 using SpatialMultitaper, Test, StableRNGs, LinearAlgebra, StaticArrays
-include("../test_utilities/TestUtils.jl")
+include("../../test_utilities/TestUtils.jl")
 using .TestUtils
 
 import SpatialMultitaper: partial_spectra, partial_spectra_uncorrected, getestimate,

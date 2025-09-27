@@ -1,5 +1,5 @@
 using SpatialMultitaper, Test, StableRNGs, LinearAlgebra
-include("../test_utilities/TestUtils.jl")
+include("../../test_utilities/TestUtils.jl")
 using .TestUtils
 
 import SpatialMultitaper: Coherence, MarginallyTransformedEstimate, getestimate,

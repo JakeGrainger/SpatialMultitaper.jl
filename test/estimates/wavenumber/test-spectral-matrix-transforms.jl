@@ -1,5 +1,5 @@
 using SpatialMultitaper, Test, StableRNGs, StaticArrays, LinearAlgebra
-include("../test_utilities/TestData.jl")
+include("../../test_utilities/TestData.jl")
 using .TestData
 
 import SpatialMultitaper: apply_transform, is_partial, Spectra, Coherence

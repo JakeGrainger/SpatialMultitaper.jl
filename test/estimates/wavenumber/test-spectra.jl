@@ -1,5 +1,5 @@
 using SpatialMultitaper, Test, StableRNGs, StaticArrays
-include("../test_utilities/TestData.jl")
+include("../../test_utilities/TestData.jl")
 using .TestData
 
 import SpatialMultitaper: Spectra, getargument, getestimate, dft2spectralmatrix,

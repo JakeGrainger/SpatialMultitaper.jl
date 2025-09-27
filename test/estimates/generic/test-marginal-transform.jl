@@ -1,5 +1,5 @@
 using SpatialMultitaper, Test, StableRNGs, StaticArrays
-include("../test_utilities/TestUtils.jl")
+include("../../test_utilities/TestUtils.jl")
 using .TestUtils
 
 import SpatialMultitaper: MarginallyTransformedEstimate, apply_marginal_transform,

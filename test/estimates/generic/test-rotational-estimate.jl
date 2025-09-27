@@ -1,5 +1,5 @@
 using SpatialMultitaper, Test, StableRNGs
-include("../test_utilities/TestData.jl")
+include("../../test_utilities/TestData.jl")
 using .TestData
 
 import SpatialMultitaper: RotationalEstimate, MarginallyTransformedEstimate, Coherence,

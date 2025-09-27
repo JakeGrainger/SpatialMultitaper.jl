@@ -82,24 +82,29 @@ function _sdf2C(f::Spectra, radius::Number)
     freq = getargument(f)
     spectra = getestimate(f)
     zero_atom = getprocessinformation(f).atoms
-    sdf2C_aniso(freq, spectra, zero_atom, radius)
+    sdf2C_aniso(freq, spectra, process_trait(f), zero_atom, radius)
 end
 
 function sdf2C_aniso(freq, power, zero_atom, radii::AbstractVector{<:Number})
     [sdf2C_aniso(freq, power, zero_atom, radius) for radius in radii]
 end
-function sdf2C_aniso(freq::NTuple{D}, power::AbstractArray{<:Number, D},
+function sdf2C_aniso(
+        freq::NTuple{D}, power::AbstractArray{<:Number, D}, ::SingleProcessTrait,
         zero_atom, radii::Number) where {D}
     _sdf2C_aniso(freq, power, zero_atom, radii)
 end
-function sdf2C_aniso(freq::NTuple{D}, power::AbstractArray{<:SMatrix, D},
+function sdf2C_aniso(
+        freq::NTuple{D}, power::AbstractArray{<:SMatrix, D}, ::MultipleTupleTrait,
         zero_atom, radii::Number) where {D}
     _sdf2C_aniso(freq, power, zero_atom, radii)
 end
-function sdf2C_aniso(freq::NTuple{D}, power::AbstractArray{<:Number, N},
+function sdf2C_aniso(
+        freq::NTuple{D}, power::AbstractArray{<:Number, N}, ::MultipleVectorTrait,
         zero_atom, radii::Number) where {D, N}
-    out = mapslices(z -> _sdf2C_aniso(freq, z, zero_atom, radii), power; dims = 3:ndims(y))
-    return reshape(out, size(out)[1:(ndims(out) - 1)])
+    @argcheck length(freq) <= ndims(power)
+    out = mapslices(
+        z -> _sdf2C_aniso(freq, z, zero_atom, radii), power; dims = (N - D + 1):ndims(y))
+    return reshape(out, size(out)[1:(N - D + 1)])
 end
 
 function _sdf2C_aniso(freq, power::AbstractArray, zero_atom, radius::Number)
@@ -143,6 +148,38 @@ function _sdf2C(f::IsotropicEstimate{E, D, P}, radius::Number) where {E, D, P}
     # iso weight essentially contains spacing already, because it integrates over an interval
     real(sum((s - zero_atom) * iso_weight(radius, k, spacing, Val{D}())
     for (s, k) in zip(spectra, freq)))
+end
+
+function sdf2C_iso(freq, power, zero_atom, radii::AbstractVector{<:Number})
+    [sdf2C_iso(freq, power, zero_atom, radius) for radius in radii]
+end
+function sdf2C_iso(
+        freq::NTuple{D}, power::AbstractArray{<:Number, D}, ::SingleProcessTrait,
+        zero_atom, radii::Number) where {D}
+    _sdf2C_iso(freq, power, zero_atom, radii, Val{D}())
+end
+function sdf2C_iso(
+        freq::NTuple{D}, power::AbstractArray{<:SMatrix, D}, ::MultipleTupleTrait,
+        zero_atom, radii::Number) where {D}
+    _sdf2C_iso(freq, power, zero_atom, radii, Val{D}())
+end
+function sdf2C_iso(
+        freq::NTuple{D}, power::AbstractArray{<:Number, N}, ::MultipleVectorTrait,
+        zero_atom, radii::Number) where {D, N}
+    @argcheck length(freq) <= ndims(power)
+    out = mapslices(
+        z -> _sdf2C_iso(freq, z, zero_atom, radii, Val{D}()), power; dims = (N - D + 1):ndims(y))
+    return reshape(out, size(out)[1:(N - D + 1)])
+end
+
+function _sdf2C_iso(freq, power, zero_atom, radius::Number, ::Val{D}) where {D}
+    real(sum((s - zero_atom) * iso_weight(radius, k, spacing, Val{D}())
+    for (s, k) in zip(power, freq)))
+end
+function _sdf2C_iso(
+        freq, power::AbstractArray, ::Nothing, radius::Number, ::Val{D}) where {D}
+    real(sum(s * iso_weight(radius, k, spacing, Val{D}())
+    for (s, k) in zip(power, freq)))
 end
 
 function iso_weight(r, k, s, ::Val{2})

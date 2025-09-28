@@ -260,6 +260,8 @@ function _sdf2C_anisotropic(freq, power, ::MultipleVectorTrait, zero_atom, radiu
     if length(freq) > ndims(power)
         throw(DimensionMismatch("Frequency dimensions ($(length(freq))) cannot exceed power array dimensions ($(ndims(power)))"))
     end
+    N = ndims(power)
+    D = length(freq)
 
     out = mapslices(
         z -> _sdf2C_anisotropic(freq, z, SingleProcessTrait(), zero_atom, radius),
@@ -279,7 +281,8 @@ function _sdf2C_isotropic(freq, power, ::Union{SingleProcessTrait, MultipleTuple
 end
 
 function _sdf2C_isotropic(
-        freq, power, ::MultipleVectorTrait, zero_atom, radius::Number, ::Val{D}) where {D}
+        freq, power::AbstractArray{<:Number, N}, ::MultipleVectorTrait,
+        zero_atom, radius::Number, ::Val{D}) where {D, N}
     if length(freq) > ndims(power)
         throw(DimensionMismatch("Frequency dimensions ($(length(freq))) cannot exceed power array dimensions ($(ndims(power)))"))
     end
@@ -298,43 +301,43 @@ end
 Compute individual terms in the C function sum.
 """
 function _compute_c_term(s, zero_atom, radius, k)
-    weight = _sphere_weight(radius, k, Val{length(k)}())
+    weight = _anisotropic_c_weight(radius, k, Val{length(k)}())
     return (s - zero_atom) * weight
 end
 function _compute_c_term(s, ::Nothing, radius, k)
-    weight = _sphere_weight(radius, k, Val{length(k)}())
+    weight = _anisotropic_c_weight(radius, k, Val{length(k)}())
     return s * weight
 end
 
 function _compute_c_term(s, zero_atom, radius, k, spacing, ::Val{D}) where {D}
-    weight = _isotropic_weight(radius, k, spacing, Val{D}())
+    weight = _isotropic_c_weight(radius, k, spacing, Val{D}())
     return (s - zero_atom) * weight
 end
 function _compute_c_term(s, ::Nothing, radius, k, spacing, ::Val{D}) where {D}
-    weight = _isotropic_weight(radius, k, spacing, Val{D}())
+    weight = _isotropic_c_weight(radius, k, spacing, Val{D}())
     return s * weight
 end
 
 # Spatial weighting functions
 
 """
-    _sphere_weight(r, u, ::Val{D})
+    _anisotropic_c_weight(r, u, ::Val{D})
 
 Compute spatial weighting function for D-dimensional c function.
 
 These functions represent the Fourier transform of spherical/circular domains.
 """
-function _sphere_weight(r, u, ::Val{1})
+function _anisotropic_c_weight(r, u, ::Val{1})
     x = norm(u)
     return 2r * sinc(2r * x)
 end
 
-function _sphere_weight(r, u, ::Val{2})
+function _anisotropic_c_weight(r, u, ::Val{2})
     x = norm(u)
     return (x < 1e-10) ? (π * r^2) : ((r / x) * besselj1(2π * r * x))
 end
 
-function _sphere_weight(r, u, ::Val{D}) where {D}
+function _anisotropic_c_weight(r, u, ::Val{D}) where {D}
     x = norm(u)
     if x < 1e-10
         # Handle singularity at origin using ball measure
@@ -345,18 +348,18 @@ function _sphere_weight(r, u, ::Val{D}) where {D}
 end
 
 """
-    _isotropic_weight(r, k, spacing, ::Val{D})
+    _isotropic_c_weight(r, k, spacing, ::Val{D})
 
 Compute weighting function for isotropic C functions.
 
 For isotropic estimates, the weighting accounts for the radial integration
 that has already been performed.
 """
-function _isotropic_weight(r, k, spacing, ::Val{2})
+function _isotropic_c_weight(r, k, spacing, ::Val{2})
     half_spacing = spacing / 2
     return besselj0(2π * r * (k - half_spacing)) - besselj0(2π * r * (k + half_spacing))
 end
 
-function _isotropic_weight(r, k, spacing, ::Val{D}) where {D}
+function _isotropic_c_weight(r, k, spacing, ::Val{D}) where {D}
     error("Isotropic weighting not implemented for D != 2")
 end

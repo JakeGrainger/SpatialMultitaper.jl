@@ -1,3 +1,38 @@
+"""
+    LFunction{E, D, P, Q, A, T, IP, IE} <: IsotropicEstimate{E, D, P, Q}
+
+L function estimate derived from Ripley's K function for spatial analysis.
+
+The L function is a variance-stabilizing transformation of Ripley's K function:
+``L(r) = (K(r)/V_d)^(1/d)``
+where V_d is the volume of a unit ball in d dimensions.
+
+For a Poisson process, ``L(r) = r``, making deviations easier to interpret.
+
+# Type Parameters
+- `E`: Estimate trait (e.g., `MarginalTrait`, `PartialTrait`)
+- `D`: Spatial dimension
+- `P`, `Q`: Process dimensions
+- `A`: Type of radii array
+- `T`: Type of L function values
+- `IP`: Type of process information
+- `IE`: Type of estimation information
+
+# Mathematical Background
+The L function transformation provides:
+- Better variance stabilization than K function
+- Linear behavior ``L(r) = r`` for Poisson processes
+- Easier interpretation of clustering/regularity patterns
+
+# Examples
+```julia
+# Compute L function from K function
+lf = l_function(k_func)
+
+# Direct computation from data
+lf = l_function(data, region, radii=0.1:0.1:2.0, nfreq=(32,32), fmax=(0.5,0.5), tapers=tapers)
+```
+"""
 struct LFunction{E, D, P, Q, A, T, IP, IE} <: IsotropicEstimate{E, D, P, Q}
     radii::A
     value::T
@@ -7,62 +42,158 @@ struct LFunction{E, D, P, Q, A, T, IP, IE} <: IsotropicEstimate{E, D, P, Q}
             estimationinfo::IE) where {E, A, T, IE, D}
         P, Q = checkinputs(radii, value, processinfo)
         IP = typeof(processinfo)
-        new{E, D, P, Q, A, T, IP, IE}(radii, value, processinfo, estimationinfo)
+        return new{E, D, P, Q, A, T, IP, IE}(radii, value, processinfo, estimationinfo)
     end
 end
+
 getbaseestimatename(::Type{<:LFunction}) = "L function"
+
+"""
+    getargument(f::LFunction)
+
+Get the radii at which the L function is evaluated.
+"""
 getargument(f::LFunction) = f.radii
+
+"""
+    getestimate(f::LFunction)
+
+Get the L function values.
+"""
 getestimate(f::LFunction) = f.value
 
-l_function(data, region; kwargs...) = l_function(spatial_data(data, region); kwargs...)
-function l_function(data::SpatialData; kwargs...)
+"""
+    l_function(data, region; kwargs...)
+
+Compute L function directly from data and region.
+"""
+function l_function(data, region; kwargs...)::LFunction
+    return l_function(spatial_data(data, region); kwargs...)
+end
+
+"""
+    l_function(data::SpatialData; kwargs...)
+
+Compute L function from spatial data.
+"""
+function l_function(data::SpatialData; kwargs...)::LFunction
     return l_function(k_function(data; kwargs...))
 end
-l_function(c::CFunction) = l_function(k_function(c))
-function l_function(spec::NormalOrRotationalSpectra; kwargs...)
-    l_function(k_function(spec; kwargs...))
+
+"""
+    l_function(c::CFunction)
+
+Compute L function from C function.
+"""
+function l_function(c::CFunction)::LFunction
+    return l_function(k_function(c))
 end
-function l_function(k::KFunction{E, D}) where {E, D}
+
+"""
+    l_function(spec::NormalOrRotationalSpectra; kwargs...)
+
+Compute L function from spectral estimates.
+"""
+function l_function(spec::NormalOrRotationalSpectra; kwargs...)::LFunction
+    return l_function(k_function(spec; kwargs...))
+end
+
+"""
+    l_function(k::KFunction{E, D}) where {E, D}
+
+Transform Ripley's K function to L function.
+
+Applies the variance-stabilizing transformation:
+``L(r) = (K(r)/V_d)^(1/d)``
+where ``V_d`` is the volume of a unit d-ball.
+
+# Arguments
+- `k::KFunction`: Input K function estimate
+
+# Returns
+A `LFunction` object with the transformed values.
+"""
+function l_function(k::KFunction{E, D})::LFunction{E, D} where {E, D}
     radii = getargument(k)
-    value = K2L(getestimate(k), Val{D}())
+    value = _k_to_l_transform(getestimate(k), Val{D}())
     processinfo = getprocessinformation(k)
     estimationinfo = getestimationinformation(k)
     return LFunction{E}(radii, value, processinfo, estimationinfo)
 end
 
-function partial_l_function(data, region; kwargs...)
-    partial_l_function(spatial_data(data, region); kwargs...)
+# Partial L functions
+
+"""
+    partial_l_function(data, region; kwargs...)
+
+Compute partial L function directly from data and region.
+"""
+function partial_l_function(data, region; kwargs...)::LFunction{PartialTrait}
+    return partial_l_function(spatial_data(data, region); kwargs...)
 end
-function partial_l_function(data::SpatialData; kwargs...)
-    l_function(partial_k_function(data; kwargs...))
+
+"""
+    partial_l_function(data::SpatialData; kwargs...)
+
+Compute partial L function from spatial data.
+"""
+function partial_l_function(data::SpatialData; kwargs...)::LFunction{PartialTrait}
+    return l_function(partial_k_function(data; kwargs...))
 end
-function partial_l_function(spectrum::NormalOrRotationalSpectra{PartialTrait}; kwargs...)
-    k_function(spectrum; kwargs...)
+
+function partial_l_function(spectrum::NormalOrRotationalSpectra{PartialTrait};
+        kwargs...)::LFunction{PartialTrait}
+    return l_function(k_function(spectrum; kwargs...))
 end
-function partial_l_function(spectrum::NormalOrRotationalSpectra{MarginalTrait}; kwargs...)
-    k_function(partial_spectra(spectrum); kwargs...)
+
+function partial_l_function(spectrum::NormalOrRotationalSpectra{MarginalTrait};
+        kwargs...)::LFunction{PartialTrait}
+    return l_function(k_function(partial_spectra(spectrum); kwargs...))
 end
 
 partial_l_function(est::CFunction{PartialTrait}) = l_function(est)
 partial_l_function(est::KFunction{PartialTrait}) = l_function(est)
+
 function partial_l_function(est::Union{CFunction{MarginalTrait}, KFunction{MarginalTrait}})
-    throw(partial_from_marginal_error(LFunction, typeof(est)))
+    throw(ArgumentError(
+        "Cannot compute partial L function from marginal $(typeof(est)). " *
+        "Use partial spectral estimates or partial_k_function first."
+    ))
 end
 
-## internals
-function K2L(k::AbstractArray, ::Val{D}) where {D}
-    out = zeros(eltype(k), size(k))
-    for idx in eachindex(out)
-        out[idx] = _K2L(k[idx], Val{D}())
+# Internal transformation functions
+
+"""
+    _k_to_l_transform(k_values::AbstractArray, ::Val{D})
+
+Transform K function values to L function values for any array structure.
+"""
+function _k_to_l_transform(k_values::AbstractArray, ::Val{D}) where {D}
+    output = similar(k_values)
+    for idx in eachindex(output)
+        output[idx] = _compute_l_from_k(k_values[idx], Val{D}())
     end
-    return out
+    return output
 end
 
-function _K2L(k, ::Val{D}) where {D}
-    V = unitless_measure(Ball(Point(ntuple(x -> 0, Val{D}())), 1))
-    sign.(k) .* (abs.(k) ./ V) .^ (1 / D) # broadcast because may contain SVectors
+"""
+    _compute_l_from_k(k_value, ::Val{D})
+
+Core L function computation: ``L(r) = (K(r)/V_d)^(1/d)``.
+
+Handles sign preservation for negative K values by using:
+``L(r) = sign(K) * (|K|/V_d)^(1/d)``
+"""
+function _compute_l_from_k(k_value, ::Val{D}) where {D}
+    unit_ball_volume = unitless_measure(Ball(Point(ntuple(_ -> 0, Val{D}())), 1))
+    return sign.(k_value) .* (abs.(k_value) ./ unit_ball_volume) .^ (1 / D)
 end
 
-function _K2L(k, ::Val{2})
-    sign.(k) .* sqrt.(abs.(k) ./ pi) # broadcast because may contain SVectors
+"""
+    _compute_l_from_k(k_value, ::Val{2})
+
+Optimized L function computation for 2D: ``L(r) = sign(K) * sqrt(|K|/π)``.
+"""
+function _compute_l_from_k(k_value, ::Val{2})
+    return sign.(k_value) .* sqrt.(abs.(k_value) ./ π)
 end

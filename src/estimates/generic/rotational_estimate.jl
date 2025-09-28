@@ -87,6 +87,8 @@ This is useful for analyzing scale-dependent properties without directional bias
 
 # Returns
 A `RotationalEstimate` containing the rotationally averaged values.
+The exception is if kernel is `NoRotational`, in which case the input estimate is returned.
+This is used to skip rotational averaging in some downstream cases.
 
 # Examples
 ```julia
@@ -100,14 +102,9 @@ rot_est = rotational_estimate(spectrum, radii=radii, kernel=kernel)
 ```
 """
 function rotational_estimate(
-        est::AnisotropicEstimate{E};
-        radii = default_rotational_radii(est),
-        kernel = default_rotational_kernel(est)
-)::RotationalEstimate{E} where {E}
-    rot_est = _rotational_estimate(est, radii, kernel)
-    processinfo = getprocessinformation(est)
-    estimationinfo = getestimationinformation(est)
-    return RotationalEstimate{E, typeof(est)}(radii, rot_est, processinfo, estimationinfo)
+        est::AnisotropicEstimate; radii = default_rotational_radii(est),
+        kernel = default_rotational_kernel(est))
+    return _rotational_estimate(est, radii, kernel)
 end
 
 """
@@ -228,8 +225,12 @@ _rotational_estimate(a::AbstractEstimate, radii, ::NoRotational) = a
 
 Internal function to compute rotational averaging with a given kernel.
 """
-function _rotational_estimate(a::AbstractEstimate, radii, kernel)
-    return smoothed_rotational(getargument(a), getestimate(a), radii, kernel)
+function _rotational_estimate(est::AbstractEstimate{E}, radii, kernel) where {E}
+    rot_est = _smoothed_rotational(
+        getargument(est), getestimate(est), process_trait(est), radii, kernel)
+    processinfo = getprocessinformation(est)
+    estimationinfo = getestimationinformation(est)
+    return RotationalEstimate{E, typeof(est)}(radii, rot_est, processinfo, estimationinfo)
 end
 
 """
@@ -239,33 +240,24 @@ Core rotational averaging computation.
 
 Computes weighted averages over circular annuli using the specified kernel.
 """
-function _smoothed_rotational(
-        x::NTuple{D}, y::AbstractArray{T, D}, radii, kernel) where {
-        D, T <: Union{<:Number, <:SMatrix}}
+function _smoothed_rotational(x::NTuple{D}, y::AbstractArray{T, D},
+        ::Union{SingleProcessTrait, MultipleTupleTrait}, radii,
+        kernel) where {D, T <: Union{<:Number, <:SMatrix}}
+    @argcheck length(x) == ndims(y)
+    @argcheck size(y) == length.(x)
     xitr = Iterators.ProductIterator(x)
     return [sum(f * kernel(norm(u) - r) for (u, f) in zip(xitr, y)) /
             sum(kernel(norm(u) - r) for u in xitr) for r in radii]
 end
 
-function smoothed_rotational(
-        x::NTuple{D}, y::AbstractArray{<:Number, D}, radii, kernel) where {D}
-    @argcheck length(x) == ndims(y)
-    @argcheck size(y) == length.(x)
-    _smoothed_rotational(x, y, radii, kernel)
-end
-function smoothed_rotational(
-        x::NTuple{D}, y::AbstractArray{<:SMatrix, D}, radii, kernel) where {D}
-    @argcheck length(x) == ndims(y)
-    @argcheck size(y) == length.(x)
-    _smoothed_rotational(x, y, radii, kernel)
-end
-function smoothed_rotational(
-        x::NTuple{D}, y::AbstractArray{<:Number, N}, radii, kernel) where {D, N}
+function _smoothed_rotational(
+        x::NTuple{D}, y::AbstractArray{<:Number, N}, ::MultipleVectorTrait, radii, kernel) where {
+        D, N}
     @argcheck length(x) <= ndims(y)
     # assumes the that last D dimensions are the spatial ones
     @argcheck size(y)[3:end] == length.(x)
     out = mapslices(
-        z -> _smoothed_rotational(x, z, radii, kernel), y; dims = (N + 1 - D):ndims(y))
+        z -> _smoothed_rotational(x, z, SingleProcessTrait(), radii, kernel), y; dims = (N + 1 - D):ndims(y))
     return reshape(out, size(out)[1:(N + 1 - D)]) # The D spatial dimensions have been collapsed into one
 end
 

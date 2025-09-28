@@ -28,7 +28,7 @@ import SpatialMultitaper: Spectra, getargument, getestimate, _dft_to_spectral_ma
 
     @testset "Single process case" begin
         freq = (1:10,)
-        power = rand(rng, Float64, 10)
+        power = rand(rng, Float64, 1, 1, 10)
         processinfo = ProcessInformation{1, MultipleVectorTrait}(
             [1], [1], ones(1, 1), ones(1, 1))
         estimationinfo = EstimationInformation(3)

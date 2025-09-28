@@ -5,8 +5,9 @@ using .TestData
 import SpatialMultitaper: RotationalEstimate, MarginallyTransformedEstimate, Coherence,
                           rotational_estimate, default_rotational_radii, is_partial,
                           default_rotational_kernel, GaussKernel, RectKernel,
-                          smoothed_rotational, getestimate, getargument, getestimatename,
-                          getestimationinformation, getprocessinformation
+                          _smoothed_rotational, getestimate, getargument, getestimatename,
+                          getestimationinformation, getprocessinformation,
+                          SingleProcessTrait
 
 @testset "Rotational Kernels" begin
     @testset "GaussKernel" begin
@@ -83,14 +84,14 @@ end
     end
 end
 
-@testset "smoothed_rotational function" begin
+@testset "_smoothed_rotational function" begin
     @testset "1D case" begin
         x = (range(-1, 1, length = 21),)  # 1D frequencies
         y = ones(21)  # Constant function
         radii = [0.0, 0.5, 1.0]
         kernel = RectKernel(0.2)
 
-        result = smoothed_rotational(x, y, radii, kernel)
+        result = _smoothed_rotational(x, y, SingleProcessTrait(), radii, kernel)
 
         @test length(result) == length(radii)
         @test all(result .> 0)  # Should be positive since y is positive
@@ -108,7 +109,7 @@ end
         radii = [0.0, 0.5, 1.0, 1.4]  # Note: √2 ≈ 1.414 is max radius for this grid
         kernel = RectKernel(0.3)
 
-        result = smoothed_rotational(x, y, radii, kernel)
+        result = _smoothed_rotational(x, y, SingleProcessTrait(), radii, kernel)
 
         @test length(result) == length(radii)
         @test all(result .> 0)
@@ -126,7 +127,7 @@ end
         radii = [0.0, 0.5, 1.0, 1.5]
         kernel = RectKernel(0.2)
 
-        result = smoothed_rotational(x, y, radii, kernel)
+        result = _smoothed_rotational(x, y, SingleProcessTrait(), radii, kernel)
 
         @test length(result) == length(radii)
         @test result[1] > result[2] > result[3] > result[4]  # Should decrease with radius

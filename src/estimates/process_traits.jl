@@ -10,16 +10,6 @@ struct SingleProcessTrait <: ProcessTrait end
 struct MultipleVectorTrait <: ProcessTrait end
 struct MultipleTupleTrait <: ProcessTrait end
 
-function _process_trait_from_info(::ProcessInformation{D, SingleProcessTrait}) where {D}
-    SingleProcessTrait()
-end
-function _process_trait_from_info(::ProcessInformation{D, MultipleVectorTrait}) where {D}
-    MultipleVectorTrait()
-end
-function _process_trait_from_info(::ProcessInformation{D, MultipleTupleTrait}) where {D}
-    MultipleTupleTrait()
-end
-
 """
     process_trait(data::MultipleSpatialDataVec)
 

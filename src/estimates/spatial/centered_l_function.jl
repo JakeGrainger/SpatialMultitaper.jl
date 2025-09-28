@@ -27,9 +27,9 @@ centered_l_function(c::CFunction) = centered_l_function(l_function(c))
 centered_l_function(k::KFunction) = centered_l_function(l_function(k))
 function centered_l_function(l::LFunction{E, D}) where {E, D}
     radii = getargument(l)
-    value = L2centeredL(getargument(l), getestimate(l))
-    processinfo = getprocessinformation(k)
-    estimationinfo = getestimationinformation(k)
+    value = L2centeredL(getargument(l), getestimate(l), process_trait(l))
+    processinfo = getprocessinformation(l)
+    estimationinfo = getestimationinformation(l)
     return CenteredLFunction{E}(radii, value, processinfo, estimationinfo)
 end
 
@@ -57,7 +57,25 @@ end
 
 ## internals
 
-# TODO: only works for array of SMatrix
-function L2centeredL(radii, k_function)
-    [k .- r for (k, r) in zip(k_function, radii)]
+function L2centeredL(radii, est::AbstractArray, ::MultipleVectorTrait)
+    out = zeros(eltype(est), size(est))
+    for idx in CartesianIndices(size(est)[1:(ndims(est) - 1)])
+        for (i, radius) in enumerate(radii)
+            out[idx, i] = _L2centeredL(radius, est[idx, i])
+        end
+    end
+    return out
+end
+
+function L2centeredL(
+        radii, est::AbstractArray, ::Union{MultipleTupleTrait, SingleProcessTrait})
+    out = zeros(eltype(est), size(est))
+    for (i, radius) in enumerate(radii)
+        out[i] = _L2centeredL(radius, est[i])
+    end
+    return out
+end
+
+function _L2centeredL(radius, est)
+    est .- radius
 end

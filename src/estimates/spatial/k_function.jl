@@ -21,7 +21,7 @@ end
 function k_function(c::CFunction{E, D}) where {E, D}
     mean_prod = getprocessinformation(c).mean_product
     radii = getargument(c)
-    value = C2K(getargument(c), getestimate(c), mean_prod, Val{D}())
+    value = C2K(getargument(c), getestimate(c), process_trait(c), mean_prod, Val{D}())
     processinfo = getprocessinformation(c)
     estimationinfo = getestimationinformation(c)
     return KFunction{E}(radii, value, processinfo, estimationinfo)
@@ -48,12 +48,32 @@ function partial_k_function(::CFunction{MarginalTrait})
 end
 
 # internals
-
-function C2K(radii, c_function, mean_prod, ::Val{D}) where {D}
-    V = unitless_measure(Ball(Point(ntuple(x -> 0, Val{D}())), 1))
-    return [c ./ mean_prod .+ (V * (r^D)) for (r, c) in zip(radii, c_function)]
+function C2K(radii, c::AbstractArray,
+        ::MultipleVectorTrait, mean_prod, ::Val{D}) where {D}
+    out = zeros(eltype(c), size(c))
+    for idx in CartesianIndices(size(c)[1:(ndims(c) - 1)])
+        mean_prod_slice = mean_prod[idx]
+        for (i, radius) in enumerate(radii)
+            out[idx, i] = _C2K(radius, c[idx, i], mean_prod_slice, Val{D}())
+        end
+    end
+    return out
 end
 
-function C2K(radii, c_function, mean_prod, ::Val{2})
-    return [c ./ mean_prod .+ (pi * r^2) for (r, c) in zip(radii, c_function)]
+function C2K(radii, c::AbstractArray,
+        ::Union{MultipleTupleTrait, SingleProcessTrait}, mean_prod, ::Val{D}) where {D}
+    out = zeros(eltype(c), size(c))
+    for (i, radius) in enumerate(radii)
+        out[i] = _C2K(radius, c[i], mean_prod, Val{D}())
+    end
+    return out
+end
+
+function _C2K(radius, c, mean_prod, ::Val{D}) where {D}
+    V = unitless_measure(Ball(Point(ntuple(x -> 0, Val{D}())), 1))
+    return c ./ mean_prod .+ (V * (radius^D))
+end
+
+function _C2K(radius, c, mean_prod, ::Val{2})
+    return c ./ mean_prod .+ (pi * radius^2)
 end

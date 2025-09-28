@@ -42,15 +42,16 @@ end
         # Valid cases
         processinfo = ProcessInformation{2, MultipleVectorTrait}(
             [1, 2], [1, 2], ones(2, 2), ones(2, 2))
-        @test checkprocessinformation(processinfo, 2, 2) === nothing
+        @test checkprocessinformation(processinfo, randn(2, 2, 10, 10)) == (2, 2)
 
         # Invalid cases
-        @test_throws ArgumentError checkprocessinformation(processinfo, 3, 2)  # Wrong P
-        @test_throws ArgumentError checkprocessinformation(processinfo, 2, 3)  # Wrong Q
+        @test_throws ArgumentError checkprocessinformation(
+            processinfo, randn(3, 2, 10, 10))  # Wrong P
+        @test_throws ArgumentError checkprocessinformation(
+            processinfo, randn(2, 3, 10, 10))  # Wrong Q
 
-        processinfo_bad = ProcessInformation{2, MultipleVectorTrait}(
-            [1, 2], [1, 2], ones(2, 3), ones(2, 2))
-        @test_throws ArgumentError checkprocessinformation(processinfo_bad, 2, 2)  # Wrong mean_product size
+        @test_throws ArgumentError ProcessInformation{2, MultipleVectorTrait}(
+            [1, 2], [1, 2], ones(2, 3), ones(2, 2))  # Wrong mean_product size
     end
 end
 
@@ -103,7 +104,7 @@ end
         # Valid 1D case
         processinfo = ProcessInformation{1, MultipleVectorTrait}(
             [1], [1], ones(1, 1), ones(1, 1))
-        @test checkinputs((1:10,), rand(10), processinfo) == (1, 1)
+        @test checkinputs((1:10,), rand(1, 1, 10), processinfo) == (1, 1)
 
         # Valid 2D case with matrices
         pi_2d = ProcessInformation{2, MultipleVectorTrait}(
@@ -112,7 +113,7 @@ end
 
         # Invalid dimension mismatch
         @test_throws ArgumentError checkinputs((1:10,), rand(2, 2, 10, 10), pi_2d)  # Wrong dimensions
-        @test_throws AssertionError checkinputs((1:10, 1:5), rand(2, 2, 10, 10), pi_2d)  # Size mismatch
+        @test_throws ArgumentError checkinputs((1:10, 1:5), rand(2, 2, 10, 10), pi_2d)  # Size mismatch
     end
 end
 

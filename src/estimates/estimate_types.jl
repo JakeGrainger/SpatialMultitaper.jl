@@ -60,11 +60,43 @@ end
 function getprocessinformationindex(est::AbstractEstimate, p, q)
     processinformation = getprocessinformation(est)
     processtrait = index_process_trait(est, p, q)
-    return ProcessInformation{embeddim(processinformation), processtrait}(
+    return _getprocessinformationindex(processinformation, processtrait, p, q)
+end
+
+function _getprocessinformationindex(
+        processinformation, processtrait::SingleProcessTrait, p, q)
+    return ProcessInformation{embeddim(processinformation), typeof(processtrait)}(
         processinformation.process_indices_1[p],
         processinformation.process_indices_2[q],
         processinformation.mean_product[p, q],
         processinformation.atoms[p, q]
+    )
+end
+function _getprocessinformationindex(
+        processinformation, ::MultipleVectorTrait, p::Int, q::Int)
+    _getprocessinformationindex(processinformation, SingleProcessTrait(), p, q)
+end
+function _getprocessinformationindex(
+        processinformation, ::MultipleTupleTrait, p::Int, q::Int)
+    _getprocessinformationindex(processinformation, SingleProcessTrait(), p, q)
+end
+function _getprocessinformationindex(
+        processinformation, processtrait::MultipleVectorTrait, p, q)
+    return ProcessInformation{embeddim(processinformation), typeof(processtrait)}(
+        processinformation.process_indices_1[p],
+        processinformation.process_indices_2[q],
+        processinformation.mean_product[_index_to_vec(p), _index_to_vec(q)],
+        processinformation.atoms[_index_to_vec(p), _index_to_vec(q)]
+    )
+end
+
+function _getprocessinformationindex(
+        processinformation, processtrait::MultipleTupleTrait, p, q)
+    return ProcessInformation{embeddim(processinformation), typeof(processtrait)}(
+        processinformation.process_indices_1[p],
+        processinformation.process_indices_2[q],
+        processinformation.mean_product[_index_to_svec(p), _index_to_svec(q)],
+        processinformation.atoms[_index_to_svec(p), _index_to_svec(q)]
     )
 end
 
@@ -214,6 +246,21 @@ function _checkindexbounds(
 end
 
 ## getindex
+"""
+    Base.getindex(estimate::AbstractEstimate, p, q)
+    Base.getindex(estimate::AbstractEstimate, p, q, i...)
+
+Get a subset of the estimate corresponding to processes `p` and `q` and potentially spatial
+indices `i`.
+
+If `p` and `q` are integers, the result will be a single process estimate.
+Otherwise the result will be the same type of estimate but with the specified processes.
+If one of the indices is an integer and the other is not, the result will still have the
+original number of dimensions internally, in the sense that if results are stored as `Array`
+then the size would be `(1, Q, ...)` or `(P, 1, ...)` as appropriate.
+If they are `Array{SMatrix}` then the size of the array is the same, but each element is an
+`SMatrix{1, Q}` or `SMatrix{P, 1}` as appropriate.
+"""
 function Base.getindex(
         estimate::AbstractEstimate{E, D, P, Q, N},
         p,
@@ -280,7 +327,6 @@ function getestimateindex(
     _getestimateindex(getestimate(estimate), p, q)
 end
 
-# TODO: can we guarentee that if P and Q are 1, then the estimate is not an array of matrices?
 function getestimateindex(
         estimate::AbstractEstimate{E, D, 1, 1, N}, p, q) where {E, D, N}
     getestimate(estimate)
@@ -295,19 +341,41 @@ function _getestimateindex(
     _getestimateindex(estimate, p, q)[i...]
 end
 function _getestimateindex(estimate::AbstractArray{<:SMatrix, N}, p, q) where {N}
+    getindex.(estimate, Ref(_index_to_svec(p)), Ref(_index_to_svec(q)))
+end
+function _getestimateindex(estimate::AbstractArray{<:SMatrix, N}, p::Int, q::Int) where {N}
     getindex.(estimate, p, q)
 end
 
+_index_to_svec(i::Int) = SVector(i)
+_index_to_svec(i::SVector) = i
+_index_to_svec(i::SOneTo) = i
+_index_to_svec(i::AbstractVector) = SVector(i...)
+
+function _getestimateindex(
+        estimate::AbstractArray{<:Number, M},
+        p::Int,
+        q::Int,
+        i::Vararg{Any, N}
+) where {M, N}
+    estimate[p, q, i...]
+end
 function _getestimateindex(
         estimate::AbstractArray{<:Number, M},
         p,
         q,
         i::Vararg{Any, N}
 ) where {M, N}
-    estimate[p, q, i...]
+    estimate[_index_to_vec(p), _index_to_vec(q), i...]
+end
+_index_to_vec(i::Int) = i:i
+_index_to_vec(i::AbstractVector) = i
+
+function _getestimateindex(estimate::AbstractArray{<:Number, N}, p::Int, q::Int) where {N}
+    estimate[p, q, ntuple(Returns(:), Val{N - 2}())] # once first is selected, second becomes first
 end
 function _getestimateindex(estimate::AbstractArray{<:Number, N}, p, q) where {N}
-    collect(selectdim(selectdim(estimate, 1, p), 1, q)) # once first is selected, second becomes first
+    estimate[_index_to_vec(p), _index_to_vec(q), ntuple(Returns(:), Val{N - 2}())...] # once first is selected, second becomes first
 end
 
 function _getestimateindex( # one process case, p and q have been checked by this point but should be 1
@@ -317,43 +385,18 @@ end
 
 ## constructor input checking
 function checkinputs(
-        argument::NTuple{D},
-        estimate::AbstractArray{<:SMatrix{P, Q}, N},
-        processinformation::ProcessInformation
-) where {D, P, Q, N}
-    @assert N==D "frequencies and estimate should be same dimension when estimate is an array of matrices."
-    @assert length.(argument) == size(estimate)
-    checkprocessinformation(processinformation, P, Q)
-    return P, Q
-end
-
-function checkinputs(
         argument::AbstractVector, estimate, processinformation::ProcessInformation)
     checkinputs((argument,), estimate, processinformation)
 end
 
-function checkinputs(argument::NTuple{D, F}, estimate::AbstractArray{<:Number, D},
-        processinformation::ProcessInformation) where {D, F}
-    @assert length.(argument)==size(estimate) "argument should have same length as each dimension of estimate, but got $(length.(argument)) and $(size(estimate))"
-    checkprocessinformation(processinformation, 1, 1)
-    return 1, 1
-end
-
-function checkinputs(
-        argument::NTuple{D, F}, estimate::AbstractArray{<:Number, N},
-        processinformation::ProcessInformation) where {D, F, N}
-    if N !== D + 2
-        throw(ArgumentError("""
-            argument should either have same dimension as estimate (if one process being analysed)
-            or the dim(estimate)==dim(freq)+2. but got dim(argument)=$(D) and dim(estimate)=$(N).
-        """))
-    end
-    @assert length.(argument) == size(estimate)[3:end]
-    checkprocessinformation(processinformation, size(estimate, 1), size(estimate, 2))
-    return size(estimate, 1), size(estimate, 2)
+function checkinputs(argument::NTuple{D}, estimate::AbstractArray{T, N},
+        processinformation::ProcessInformation) where {D, T, N}
+    @argcheck length(argument) <= ndims(estimate) <= length(argument) + 2
+    @argcheck length.(argument) == size(estimate)[(N + 1 - D):end]
+    return checkprocessinformation(processinformation, estimate)
 end
 
 function checkinputs(argument::Union{NTuple{N, <:Number}, Number}, estimate::Number,
         processinformation::ProcessInformation) where {N}
-    return 1, 1
+    return 1, 1 # TODO: currently not checking process information
 end

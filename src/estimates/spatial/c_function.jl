@@ -99,13 +99,14 @@ A `CFunction` object containing the spatial C function.
 function c_function(
         data::SpatialData; radii, nfreq, fmax,
         freq_radii = default_rotational_radii(nfreq, fmax),
-        rotational_method = default_rotational_kernel(nfreq, fmax),
+        rotational_method = default_c_rotational_kernel(nfreq, fmax),
         spectra_kwargs...
 )::CFunction
     spectrum = spectra(data; nfreq, fmax, spectra_kwargs...)
     return c_function(spectrum; radii = radii, freq_radii = freq_radii,
         rotational_method = rotational_method)
 end
+default_c_rotational_kernel(args...) = NoRotational()
 
 """
     c_function(spectrum::Spectra; radii, freq_radii, rotational_method)
@@ -124,7 +125,7 @@ A `CFunction` object with the C function values.
 function c_function(
         spectrum::Spectra; radii,
         freq_radii = default_rotational_radii(spectrum),
-        rotational_method = default_rotational_kernel(spectrum)
+        rotational_method = default_c_rotational_kernel(spectrum)
 )::CFunction
     return _c_function(spectrum, radii, freq_radii, rotational_method)
 end
@@ -135,7 +136,7 @@ end
 Compute C function from an already rotationally averaged spectrum.
 """
 function c_function(spectrum::RotationalSpectra{E}; radii)::CFunction{E} where {E}
-    value = sdf2C(spectrum, radii)
+    value = _sdf2C(spectrum, radii)
     return CFunction{E}(
         radii, value, getprocessinformation(spectrum), getestimationinformation(spectrum))
 end
@@ -188,7 +189,7 @@ Internal function to compute C function with rotational averaging.
 function _c_function(spectrum::Spectra{E}, radii, freq_radii, rotational_method) where {E}
     # Perform rotational averaging if needed
     rot_spec = rotational_estimate(spectrum, radii = freq_radii, kernel = rotational_method)
-    value = sdf2C(rot_spec, radii)
+    value = _sdf2C(rot_spec, radii)
     return CFunction{E}(
         radii, value, getprocessinformation(spectrum), getestimationinformation(spectrum))
 end
@@ -196,52 +197,33 @@ end
 # Core transformation functions
 
 """
-    sdf2C(f, radii::AbstractVector{<:Number})
+    _sdf2C(f::Spectra, radii::Number)
 
-Convert spectral density to C function at multiple radii.
-
-This function computes an inverse transform of the power spectral density
-to obtain the spatial C function.
-
-# Arguments
-- `f`: Spectral estimate (anisotropic or isotropic)
-- `radii`: Vector of distances at which to evaluate the C function
-
-# Returns
-Vector of C function values corresponding to the input radii.
-"""
-function sdf2C(f, radii::AbstractVector{<:Number})
-    return [_sdf2C(f, radius) for radius in radii]
-end
-
-"""
-    _sdf2C(f::Spectra, radius::Number)
-
-Convert spectral density to C function at a single radius.
+Convert spectral density to C function at some collection of radii.
 
 Uses appropriate weighting functions based on spatial dimension and handles
 zero-atom corrections when present.
 """
-function _sdf2C(f::Spectra, radius::Number)
+function _sdf2C(f::Spectra, radii)
     freq = getargument(f)
     spectra = getestimate(f)
     zero_atom = getprocessinformation(f).atoms
-    return _sdf2C_anisotropic(freq, spectra, process_trait(f), zero_atom, radius)
+    return _sdf2C_anisotropic(freq, spectra, process_trait(f), zero_atom, radii)
 end
 
 """
-    _sdf2C(f::IsotropicEstimate{E, D, P}, radius::Number) where {E, D, P}
+    _sdf2C(f::IsotropicEstimate{E, D, P}, radius) where {E, D, P}
 
-Convert isotropic spectral density to C function at a single radius.
+Convert isotropic spectral density to C function at some radii.
 
-For isotropic estimates, uses specialized weighting functions that account for
-the radial symmetry.
+For isotropic estimates, weights are integrated over each interval in the integral being
+approximated.
 """
-function _sdf2C(f::IsotropicEstimate{E, D, P}, radius::Number) where {E, D, P}
+function _sdf2C(f::IsotropicEstimate{E, D, P}, radii) where {E, D, P}
     freq = getargument(f)
     spectra = getestimate(f)
     zero_atom = getprocessinformation(f).atoms
-    return _sdf2C_isotropic(freq, spectra, process_trait(f), zero_atom, radius, Val{D}())
+    return _sdf2C_isotropic(freq, spectra, process_trait(f), zero_atom, radii, Val{D}())
 end
 
 # Anisotropic correlation function computation
@@ -256,17 +238,37 @@ function _sdf2C_anisotropic(freq, power, ::Union{SingleProcessTrait, MultipleTup
     return frequency_spacing * real(c)
 end
 
-function _sdf2C_anisotropic(freq, power, ::MultipleVectorTrait, zero_atom, radius::Number)
+function _sdf2C_anisotropic(
+        freq, power, trait::Union{SingleProcessTrait, MultipleTupleTrait},
+        zero_atom, radii::AbstractVector)
+    out = zeros(eltype(power), length(radii))
+    for (i, radius) in enumerate(radii)
+        out[i] = _sdf2C_anisotropic(freq, power, trait, zero_atom, radius)
+    end
+    return out
+end
+
+function _sdf2C_anisotropic(
+        freq::NTuple{D}, power::AbstractArray{<:Number, N}, ::MultipleVectorTrait,
+        zero_atom, radii::AbstractVector) where {D, N}
     if length(freq) > ndims(power)
         throw(DimensionMismatch("Frequency dimensions ($(length(freq))) cannot exceed power array dimensions ($(ndims(power)))"))
     end
-    N = ndims(power)
-    D = length(freq)
+    if !isnothing(zero_atom)
+        @argcheck ndims(zero_atom) + length(freq) == ndims(power)
+    end
 
-    out = mapslices(
-        z -> _sdf2C_anisotropic(freq, z, SingleProcessTrait(), zero_atom, radius),
-        power; dims = (N - D + 1):ndims(power))
-    return reshape(out, size(out)[1:(N - D)]) # The D spatial dimensions have been collapsed into one singleton (at one radius)
+    # Create a function that extracts the corresponding zero_atom slice
+    out = zeros(eltype(power), size(power)[1:((N - D))]..., length(radii))
+    for idx in CartesianIndices(size(power)[1:(N - D)])
+        power_slice = view(power, idx, ntuple(Returns(:), D)...)
+        zero_atom_slice = _slice_zero_atom(zero_atom, idx)
+        for (i, radius) in enumerate(radii)
+            out[idx, i] = _sdf2C_anisotropic(
+                freq, power_slice, SingleProcessTrait(), zero_atom_slice, radius)
+        end
+    end
+    return out
 end
 
 ## _sdf2C_isotropic
@@ -286,12 +288,24 @@ function _sdf2C_isotropic(
     if length(freq) > ndims(power)
         throw(DimensionMismatch("Frequency dimensions ($(length(freq))) cannot exceed power array dimensions ($(ndims(power)))"))
     end
+    if !isnothing(zero_atom)
+        @argcheck ndims(zero_atom) + length(freq) == ndims(power)
+    end
 
-    out = mapslices(
-        z -> _sdf2C_isotropic(freq, z, SingleProcessTrait(), zero_atom, radius, Val{D}()),
-        power; dims = (N - D + 1):ndims(power))
+    # Create a function that extracts the corresponding zero_atom slice
+    out = zeros(eltype(power), size(power)[1:((N - D) + 1)])
+    for idx in CartesianIndices(size(power)[1:(N - D)])
+        power_slice = view(power, idx, ntuple(Returns(:), D)...)
+        zero_atom_slice = _slice_zero_atom(zero_atom, idx)
+        out[idx, :] = _sdf2C_isotropic(
+            freq, power_slice, SingleProcessTrait(), zero_atom_slice, radius, Val{D}())
+    end
+
     return reshape(out, size(out)[1:(N - D)]) # The D spatial dimensions have been collapsed into one singleton (at one radius)
 end
+
+_slice_zero_atom(zero_atom, idx) = zero_atom[idx]
+_slice_zero_atom(::Nothing, _) = nothing
 
 # Helper functions for C function computation
 
@@ -329,7 +343,7 @@ These functions represent the Fourier transform of spherical/circular domains.
 """
 function _anisotropic_c_weight(r, u, ::Val{1})
     x = norm(u)
-    return 2r * sinc(2r * x)
+    return 2r * sinc(2r * x) # sinc(x) = sin(πx)/(πx)
 end
 
 function _anisotropic_c_weight(r, u, ::Val{2})
@@ -355,11 +369,18 @@ Compute weighting function for isotropic C functions.
 For isotropic estimates, the weighting accounts for the radial integration
 that has already been performed.
 """
+function _isotropic_c_weight(r, k, spacing, ::Val{1})
+    half_spacing = spacing / 2
+    # note sinint is for the unnormalised sinc integral
+    return (sinint(2r * (k + half_spacing)) - sinint(2r * (k - half_spacing))) / pi
+end
 function _isotropic_c_weight(r, k, spacing, ::Val{2})
     half_spacing = spacing / 2
     return besselj0(2π * r * (k - half_spacing)) - besselj0(2π * r * (k + half_spacing))
 end
 
 function _isotropic_c_weight(r, k, spacing, ::Val{D}) where {D}
-    error("Isotropic weighting not implemented for D != 2")
+    throw(ArgumentError(
+        "Isotropic weighting not implemented for D > 2, try calling c_function with rotational_method=NoRotational()"
+    ))
 end

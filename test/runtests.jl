@@ -82,12 +82,25 @@ if run_all
         include("estimates/generic/test-marginal-transform.jl")
     end
 
-    @safetestset "spatial functions" begin
-        include("estimates/test-spatial-functions.jl")
-    end
-
     @safetestset "Printing" begin
         include("estimates/test-printing.jl")
+    end
+
+    # spatial
+    @safetestset "c function" begin
+        include("estimates/spatial/test-c-function.jl")
+    end
+
+    @safetestset "k function" begin
+        include("estimates/spatial/test-k-function.jl")
+    end
+
+    @safetestset "L function" begin
+        include("estimates/spatial/test-l-function.jl")
+    end
+
+    @safetestset "Centered L function" begin
+        include("estimates/spatial/test-centered-l-function.jl")
     end
 
     @safetestset "Resampling" begin

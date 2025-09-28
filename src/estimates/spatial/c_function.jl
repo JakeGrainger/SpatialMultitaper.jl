@@ -23,8 +23,8 @@ the reduced covariance measure.
 - `estimationinformation::IE`: Information about the estimation procedure
 
 # Mathematical Background
-For a stationary process with power spectral density S(k), the C function is:
-C(r) = ∫ S(k) W(r,k) dk
+For a stationary process with power spectral density f(k), the C function is:
+C(r) = ∫ f(k) W(r,k) dk
 where W(r,k) is a spatial weighting function depending on the dimension.
 
 # Examples

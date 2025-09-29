@@ -48,7 +48,8 @@ makedocs(;
     repo = "https://github.com/JakeGrainger/SpatialMultitaper.jl/blob/{commit}{path}#{line}",
     sitename = "SpatialMultitaper.jl",
     format = Documenter.HTML(;
-        canonical = "https://JakeGrainger.github.io/SpatialMultitaper.jl"),
+        canonical = "https://JakeGrainger.github.io/SpatialMultitaper.jl",
+        size_threshold = 1_000_000),
     plugins = [bib],
     pages = ["index.md";
              "tutorials" => ["basics" => "tutorials/basic_estimation.md",

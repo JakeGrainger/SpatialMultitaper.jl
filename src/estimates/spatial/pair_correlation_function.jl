@@ -53,15 +53,15 @@ function partial_pair_correlation_function(est::CFunction{PartialTrait}; kwargs.
 end
 
 ## direct method
-function paircorrelation_function_direct(data, region; kwargs...)
-    paircorrelation_function_direct(spatial_data(data, region); kwargs...)
+function pair_correlation_function_direct(data, region; kwargs...)
+    pair_correlation_function_direct(spatial_data(data, region); kwargs...)
 end
-function paircorrelation_function_direct(data::SpatialData; radii, spectra_kwargs...)
+function pair_correlation_function_direct(data::SpatialData; radii, spectra_kwargs...)
     spectrum = spectra(data; spectra_kwargs...)
-    return paircorrelation_function_direct(spectrum, radii = radii)
+    return pair_correlation_function_direct(spectrum, radii = radii)
 end
 
-function paircorrelation_function_direct(f::Spectra{E}; radii) where {E}
+function pair_correlation_function_direct(f::Spectra{E}; radii) where {E}
     value = sdf2pcf(f, radii)
     processinfo = getprocessinformation(f)
     estimationinfo = getestimationinformation(f)

@@ -135,7 +135,6 @@ function padto(x::AbstractArray{T, D}, n::NTuple{D, Int}) where {T, D}
         )
         throw(err)
     end
-    @assert all(size(x) .≤ n) "size(x) must be smaller than n in each dimension"
     y = zeros(T, n)
     y[CartesianIndices(x)] .= x
     return y

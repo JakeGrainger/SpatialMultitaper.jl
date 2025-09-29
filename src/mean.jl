@@ -27,10 +27,6 @@ function mean_estimate(data::AbstractVector, region, mean_method)
     [mean_estimate(data[i], region, mean_method[i]) for i in eachindex(data)]
 end
 
-function mean_estimate(data::NTuple{1}, region, mean_method)
-    _mean_estimate(data[1], region, mean_method[1])
-end
-
 function mean_estimate(data::Union{PointSet, GeoTable}, region, mean_method)
     _mean_estimate(data, region, mean_method)
 end

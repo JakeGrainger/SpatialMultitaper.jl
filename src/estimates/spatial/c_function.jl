@@ -258,7 +258,6 @@ function _sdf2C_anisotropic(
         @argcheck ndims(zero_atom) + length(freq) == ndims(power)
     end
 
-    # Create a function that extracts the corresponding zero_atom slice
     out = zeros(eltype(power), size(power)[1:((N - D))]..., length(radii))
     for idx in CartesianIndices(size(power)[1:(N - D)])
         power_slice = view(power, idx, ntuple(Returns(:), D)...)
@@ -272,6 +271,16 @@ function _sdf2C_anisotropic(
 end
 
 ## _sdf2C_isotropic
+function _sdf2C_isotropic(
+        freq, power, trait::Union{SingleProcessTrait, MultipleTupleTrait},
+        zero_atom, radii::AbstractVector, ::Val{D}) where {D}
+    out = zeros(eltype(power), length(radii))
+    for (i, radius) in enumerate(radii)
+        out[i] = _sdf2C_isotropic(freq, power, trait, zero_atom, radius, Val{D}())
+    end
+    return out
+end
+
 function _sdf2C_isotropic(freq, power, ::Union{SingleProcessTrait, MultipleTupleTrait},
         zero_atom, radius::Number, ::Val{D}) where {D}
     spacing = step(freq)
@@ -284,24 +293,22 @@ end
 
 function _sdf2C_isotropic(
         freq, power::AbstractArray{<:Number, N}, ::MultipleVectorTrait,
-        zero_atom, radius::Number, ::Val{D}) where {D, N}
-    if length(freq) > ndims(power)
-        throw(DimensionMismatch("Frequency dimensions ($(length(freq))) cannot exceed power array dimensions ($(ndims(power)))"))
-    end
+        zero_atom, radii::AbstractVector, ::Val{D}) where {D, N}
     if !isnothing(zero_atom)
-        @argcheck ndims(zero_atom) + length(freq) == ndims(power)
+        @argcheck ndims(zero_atom) + 1 == ndims(power)
     end
+    @argcheck size(power, ndims(power)) == length(freq)
 
-    # Create a function that extracts the corresponding zero_atom slice
-    out = zeros(eltype(power), size(power)[1:((N - D) + 1)])
-    for idx in CartesianIndices(size(power)[1:(N - D)])
+    out = zeros(eltype(power), size(power)[1:(N - 1)]..., length(radii))
+    for idx in CartesianIndices(size(power)[1:(N - 1)])
         power_slice = view(power, idx, ntuple(Returns(:), D)...)
         zero_atom_slice = _slice_zero_atom(zero_atom, idx)
-        out[idx, :] = _sdf2C_isotropic(
-            freq, power_slice, SingleProcessTrait(), zero_atom_slice, radius, Val{D}())
+        for (i, radius) in enumerate(radii)
+            out[idx, i] = _sdf2C_isotropic(
+                freq, power_slice, SingleProcessTrait(), zero_atom_slice, radius, Val{D}())
+        end
     end
-
-    return reshape(out, size(out)[1:(N - D)]) # The D spatial dimensions have been collapsed into one singleton (at one radius)
+    return out
 end
 
 _slice_zero_atom(zero_atom, idx) = zero_atom[idx]

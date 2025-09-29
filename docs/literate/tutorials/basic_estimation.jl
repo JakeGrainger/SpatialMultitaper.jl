@@ -84,8 +84,17 @@ spec = spectra(data; tapers = tapers, nfreq = nfreq, fmax = fmax)
 
 Mke.heatmap(collect(real(spec[1, 2]))...)
 
+# However, the cross-spectrum is complex-valued, and so it is often more useful to look at
+# the magnitude coherence and phase. These are defined as
+# $$|C_{XY}(k)| = {|f_{XY}(k)|}/\sqrt{f_{XX}(k) f_{YY}(k)}$$
+# and
+# $$\phi_{XY}(k) = \arg(f_{XY}(k))$$
+# respectively, where $f_{XY}(k)$ is the cross-spectrum between processes $X$ and $Y$, and
+# $f_{XX}(k)$ and $f_{YY}(k)$ are the spectra of processes $X$ and $Y$ respectively.
+
 example_coh = magnitude_coherence(spec)
 example_phase = phase(spec)
+
 fig = Mke.Figure()
 ax_coh = Mke.Axis(fig[1, 1], title = "Magnitude Coherence", aspect = 1)
 Mke.heatmap!(ax_coh, collect(example_coh[1, 2])..., colorrange = (0, 1))

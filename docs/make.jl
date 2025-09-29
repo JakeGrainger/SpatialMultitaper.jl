@@ -52,8 +52,8 @@ makedocs(;
         size_threshold = 1_000_000),
     plugins = [bib],
     pages = ["index.md";
-             "tutorials" => ["basics" => "tutorials/basic_estimation.md",
-                 "tapers" => "tutorials/tapers.md"]
+             "Tutorials" => ["Basics" => "tutorials/basic_estimation.md",
+                 "Tapers" => "tutorials/tapers.md", "K function" => "tutorials/k_function.md"]
              numbered_pages]
 )
 

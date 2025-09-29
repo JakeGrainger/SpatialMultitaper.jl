@@ -311,7 +311,6 @@ end
     @test c_vec isa CFunction
     @test c_tuple isa CFunction
 
-    println(getargument(c_vec))
 
     @test getestimate(c_single) ≈ getestimate(c_vec)[1, 1, :]
     @test getestimate(c_single) ≈ getindex.(getestimate(c_tuple), 1, 1)

@@ -379,7 +379,7 @@ that has already been performed.
 function _isotropic_c_weight(r, k, spacing, ::Val{1})
     half_spacing = spacing / 2
     # note sinint is for the unnormalised sinc integral
-    return (sinint(2r * (k + half_spacing)) - sinint(2r * (k - half_spacing))) / pi
+    return (sinint(2π * r * (k + half_spacing)) - sinint(2π * r * (k - half_spacing))) / π
 end
 function _isotropic_c_weight(r, k, spacing, ::Val{2})
     half_spacing = spacing / 2

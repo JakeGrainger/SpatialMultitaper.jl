@@ -1,4 +1,5 @@
-using SpatialMultitaper, Test
+using SpatialMultitaper, Test, StaticArrays
+
 import SpatialMultitaper: mean_estimate
 
 region = Box(Point(0, 0), Point(2, 2))
@@ -17,3 +18,5 @@ griddata = georef((rf = rf,), grid)
 
 @test mean_estimate(pointdata, region, KnownMean(1.0)) == 1.0
 @test mean_estimate(griddata, region, KnownMean(1.0)) == 1.0
+
+@test mean_estimate(spatial_data((points,), region), DefaultMean()) isa SVector{1}

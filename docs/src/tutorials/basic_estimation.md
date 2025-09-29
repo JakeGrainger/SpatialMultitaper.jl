@@ -5,13 +5,13 @@ EditURL = "../../literate/tutorials/basic_estimation.jl"
 # Basic Estimation
 
 Multitapering is a popular technique for estimating the spectral density function of a
-signal in time[thomson1982spectrum](@citep). Multitapering can also be extended to spatial processes, including both
+signal in time[thomson1982spectrum](@citep). Multitapering can also be extended to spatial processes, including
 random fields [hanssen1997multidimensional](@citep),
-point processes [rajala2023what](@citep) and multivariate processes which are a mixture of
-the two [grainger2025spectral](@citep).
+point processes [rajala2023what](@citep), marked point processes [grainger2025spectral](@citep) and multivariate processes which are a mixture of
+the three [grainger2025spectral](@citep).
 
 This tutorial demonstrates the basic usage of the `SpatialMultitaper.jl` package for
-spectral estimation on spatial data. We will cover how to prepare your data, perform
+spectral estimation from spatial data. We will cover how to prepare your data, perform
 spectral estimation, and visualize the results.
 
 ````@example basic_estimation
@@ -37,8 +37,11 @@ region:
 region = Box(Point(0, 0), Point(100, 100))
 X = rand(PoissonProcess(0.01), region)
 Y = rand(PoissonProcess(0.01), region)
-data = (X, Y)
+data = spatial_data((X, Y), region)
 ````
+
+constructing the `SpatialData` object automatically restricts the data to the specified
+region.
 
 We can visualise this as follows:
 
@@ -59,7 +62,7 @@ specify the tapers to use, the number of frequencies we want to compute in each 
 tapers = sin_taper_family((4, 4), region)
 nfreq = (100, 100)
 fmax = (0.1, 0.1)
-spec = spectra(data, region; tapers = tapers, nfreq = nfreq, fmax = fmax)
+spec = spectra(data; tapers = tapers, nfreq = nfreq, fmax = fmax)
 ````
 
 ## Visualising the output
@@ -71,7 +74,19 @@ processes.
 
 ````@example basic_estimation
 spec11 = spec[1, 1]
-Mke.heatmap(spec11.freq..., real.(spec11.power))
+````
+
+Certain marginal transformations are available, such as taking the real part:
+
+````@example basic_estimation
+r_spec11 = real.(spec11)
+````
+
+Then to plot we can use collect to convert any object to a tuple of (x, y, ..., power) and
+then splat into the appropriate plotting function
+
+````@example basic_estimation
+Mke.heatmap(collect(r_spec11)...)
 ````
 
 ## A more interesting example
@@ -84,12 +99,12 @@ shift = 10.0
 big_region = Box(Point(-shift, -shift), Point(100 + shift, 100 + shift))
 X = rand(PoissonProcess(0.01), big_region)
 Y = Translate(shift, shift)(X)
-data = mask.((X, Y), Ref(region))
+data = spatial_data((X, Y), region) # automatically restrict to region
 
 tapers = sin_taper_family((4, 4), region)
 nfreq = (100, 100)
 fmax = (0.1, 0.1)
-spec = spectra(data, region; tapers = tapers, nfreq = nfreq, fmax = fmax)
+spec = spectra(data; tapers = tapers, nfreq = nfreq, fmax = fmax)
 
 Mke.heatmap(collect(real(spec[1, 2]))...)
 

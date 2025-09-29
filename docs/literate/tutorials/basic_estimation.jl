@@ -3,13 +3,13 @@
 =#
 
 # Multitapering is a popular technique for estimating the spectral density function of a
-# signal in time[thomson1982spectrum](@citep). Multitapering can also be extended to spatial processes, including both
+# signal in time[thomson1982spectrum](@citep). Multitapering can also be extended to spatial processes, including
 # random fields [hanssen1997multidimensional](@citep),
-# point processes [rajala2023what](@citep) and multivariate processes which are a mixture of
-# the two [grainger2025spectral](@citep).
+# point processes [rajala2023what](@citep), marked point processes [grainger2025spectral](@citep) and multivariate processes which are a mixture of
+# the three [grainger2025spectral](@citep).
 
 # This tutorial demonstrates the basic usage of the `SpatialMultitaper.jl` package for
-# spectral estimation on spatial data. We will cover how to prepare your data, perform
+# spectral estimation from spatial data. We will cover how to prepare your data, perform
 # spectral estimation, and visualize the results.
 
 using SpatialMultitaper, GeoStatsProcesses
@@ -31,7 +31,10 @@ import GLMakie as Mke
 region = Box(Point(0, 0), Point(100, 100))
 X = rand(PoissonProcess(0.01), region)
 Y = rand(PoissonProcess(0.01), region)
-data = (X, Y)
+data = spatial_data((X, Y), region)
+
+# constructing the `SpatialData` object automatically restricts the data to the specified
+# region.
 
 # We can visualise this as follows:
 viz(boundary(region), color = :gray, axis = (aspect = 1,))
@@ -47,7 +50,7 @@ Mke.current_figure()
 tapers = sin_taper_family((4, 4), region)
 nfreq = (100, 100)
 fmax = (0.1, 0.1)
-spec = spectra(data, region; tapers = tapers, nfreq = nfreq, fmax = fmax)
+spec = spectra(data; tapers = tapers, nfreq = nfreq, fmax = fmax)
 
 # ## Visualising the output
 # The spectral estimate is returned as a `Spectra` object. There are various
@@ -56,7 +59,13 @@ spec = spectra(data, region; tapers = tapers, nfreq = nfreq, fmax = fmax)
 # The object is multidimensional, but we can index it to get the estimate between two
 # processes.
 spec11 = spec[1, 1]
-Mke.heatmap(spec11.freq..., real.(spec11.power))
+
+# Certain marginal transformations are available, such as taking the real part:
+r_spec11 = real.(spec11)
+
+# Then to plot we can use collect to convert any object to a tuple of (x, y, ..., power) and
+# then splat into the appropriate plotting function
+Mke.heatmap(collect(r_spec11)...)
 
 # ## A more interesting example
 # Let's consider a more interesting example, where we have a bivariate process with some
@@ -66,12 +75,12 @@ shift = 10.0
 big_region = Box(Point(-shift, -shift), Point(100 + shift, 100 + shift))
 X = rand(PoissonProcess(0.01), big_region)
 Y = Translate(shift, shift)(X)
-data = mask.((X, Y), Ref(region))
+data = spatial_data((X, Y), region) # automatically restrict to region
 
 tapers = sin_taper_family((4, 4), region)
 nfreq = (100, 100)
 fmax = (0.1, 0.1)
-spec = spectra(data, region; tapers = tapers, nfreq = nfreq, fmax = fmax)
+spec = spectra(data; tapers = tapers, nfreq = nfreq, fmax = fmax)
 
 Mke.heatmap(collect(real(spec[1, 2]))...)
 

@@ -1,4 +1,5 @@
 using SpatialMultitaper, Test, StableRNGs, LinearAlgebra, StaticArrays
+using LinearAlgebra: SingularException, LAPACKException
 include("../../test_utilities/TestUtils.jl")
 using .TestUtils
 
@@ -282,7 +283,8 @@ end
         S = zeros(2, 2)
 
         # Should throw error or handle gracefully (matrix is not invertible)
-        @test_throws SingularException partial_spectra(S, nothing)
+        # Different Julia versions throw different exception types for singular matrices
+        @test_throws Union{SingularException, LAPACKException} partial_spectra(S, nothing)
     end
 
     @testset "Identity matrix" begin

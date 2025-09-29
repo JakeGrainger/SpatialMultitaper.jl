@@ -1,7 +1,7 @@
 """
 	LinearOperator
 
-A linear operator. Assumes that inputspace and outputspace are defined. 
+A linear operator. Assumes that inputspace and outputspace are defined.
 One should also define mul!(y, L::LinearOperator, x) and preallocate_output(L::LinearOperator, x) for efficiency.
 """
 abstract type LinearOperator end
@@ -13,7 +13,8 @@ Base.:*(L::LinearOperator, x::AbstractArray) = mul!(preallocate_output(L, x), L,
 preallocate_input(::LinearOperator) = nothing
 preallocate_output(::LinearOperator, ::Nothing) = nothing
 
-struct CompositeLinearOperator{L1<:LinearOperator,L2<:LinearOperator,A} <: LinearOperator
+struct CompositeLinearOperator{L1 <: LinearOperator, L2 <: LinearOperator, A} <:
+       LinearOperator
     input::L1
     output::L2
     intermediate::A
@@ -21,10 +22,21 @@ end
 
 inputspace(c::CompositeLinearOperator) = inputspace(c.input)
 outputspace(c::CompositeLinearOperator) = outputspace(c.output)
-preallocate_output(c::CompositeLinearOperator, x) =
+function preallocate_output(c::CompositeLinearOperator, x::Nothing) # needed for dispatch
     preallocate_output(c.output, c.intermediate)
-preallocate_output(::CompositeLinearOperator{LinearOperator,LinearOperator,Nothing}, x) =
+end
+function preallocate_output(c::CompositeLinearOperator, x)
+    preallocate_output(c.output, c.intermediate)
+end
+
+function preallocate_output(
+        ::CompositeLinearOperator{LinearOperator, LinearOperator, Nothing}, x::Nothing)
     error("Not well specified enough to run composite operator. Please rebuild.")
+end
+function preallocate_output( # needed for dispatch
+        op::CompositeLinearOperator{LinearOperator, LinearOperator, Nothing}, x)
+    preallocate_output(op, nothing)
+end
 preallocate_input(c::CompositeLinearOperator) = preallocate_input(c.input)
 function LinearAlgebra.mul!(y::AbstractArray, c::CompositeLinearOperator, x::AbstractArray)
     mul!(c.intermediate, c.input, x)
@@ -37,24 +49,26 @@ function Base.:*(output::LinearOperator, input::LinearOperator)
     _CompositeLinearOperator(
         input,
         output,
-        preallocate_output(input, preallocate_input(input)),
+        preallocate_output(input, preallocate_input(input))
     )
 end
 
-_CompositeLinearOperator(input::LinearOperator, output::LinearOperator, intermediate) =
-    CompositeLinearOperator(input, output, intermediate)
 function _CompositeLinearOperator(
-    input::LinearOperator,
-    output::CompositeLinearOperator{L1,L2,Nothing},
-    intermediate,
-) where {L1,L2}
+        input::LinearOperator, output::LinearOperator, intermediate)
+    CompositeLinearOperator(input, output, intermediate)
+end
+function _CompositeLinearOperator(
+        input::LinearOperator,
+        output::CompositeLinearOperator{L1, L2, Nothing},
+        intermediate
+) where {L1, L2}
     if intermediate === nothing
         CompositeLinearOperator(input, output, intermediate)
     else # We rebuild the output intermediate storage if we now know its type from our new input. This will recursively rebuild any missing types.
         rebuilt_output = _CompositeLinearOperator(
             output.input,
             output.output,
-            preallocate_output(output.input, intermediate),
+            preallocate_output(output.input, intermediate)
         ) # because intermediate is the input type of output.input
         CompositeLinearOperator(input, rebuilt_output, intermediate)
     end
@@ -66,7 +80,7 @@ function check_compatible(input::LinearOperator, output::LinearOperator)
     nothing
 end
 
-struct SupportProjection{T,D,A<:AbstractArray{T,D}} <: LinearOperator
+struct SupportProjection{T, D, A <: AbstractArray{T, D}} <: LinearOperator
     region::A
 end
 function LinearAlgebra.mul!(y, s::SupportProjection, x)
@@ -75,8 +89,10 @@ function LinearAlgebra.mul!(y, s::SupportProjection, x)
 end
 inputspace(s::SupportProjection) = AnyElementSpace(size(s.region))
 outputspace(s::SupportProjection) = AnyElementSpace(size(s.region))
-preallocate_output(::SupportProjection{T,D,A}, x::AbstractArray{S,D}) where {T,S,D,A} =
+function preallocate_output(
+        ::SupportProjection{T, D, A}, x::AbstractArray{S, D}) where {T, S, D, A}
     similar(x)
+end
 
 struct FourierTransform{P} <: LinearOperator
     plan::P
@@ -95,45 +111,46 @@ end
 Base.inv(F::FourierTransform) = InvFourierTransform(size(inputspace(F)))
 Base.inv(F::InvFourierTransform) = FourierTransform(size(inputspace(F)))
 
-const FT = Union{FourierTransform,InvFourierTransform}
+const FT = Union{FourierTransform, InvFourierTransform}
 function LinearAlgebra.mul!(y, F::FT, x)
     y .= x
     mul!(y, F.plan, y)
     return y
 end
 inputspace(F::FT) = AnyElementSpace(size(F.plan))
-outputspace(F::FT) = TensorSpace{ComplexF64,length(size(F.plan))}(size(F.plan))
-function preallocate_output(F::FT, x::AbstractArray{T,D}) where {T,D}
+outputspace(F::FT) = TensorSpace{ComplexF64, length(size(F.plan))}(size(F.plan))
+function preallocate_output(F::FT, x::AbstractArray{T, D}) where {T, D}
     @assert size(x) == size(F.plan)
-    Array{ComplexF64,D}(undef, size(x))
+    Array{ComplexF64, D}(undef, size(x))
 end
-struct Vec{T,D} <: LinearOperator
-    m::NTuple{D,Int}
-    Vec(m::NTuple{D,Int}, ::Val{T}) where {T,D} = new{T,D}(m)
+struct Vec{T, D} <: LinearOperator
+    m::NTuple{D, Int}
+    Vec(m::NTuple{D, Int}, ::Val{T}) where {T, D} = new{T, D}(m)
 end
 function LinearAlgebra.mul!(
-    y::AbstractVector{T},
-    v::Vec{T,D},
-    x::AbstractArray{T,D},
-) where {T,D}
+        y::AbstractVector{T},
+        v::Vec{T, D},
+        x::AbstractArray{T, D}
+) where {T, D}
     @assert size(y) == (prod(v.m),)
     fast_reshape!(y, x)
 end
-inputspace(v::Vec{T,D}) where {T,D} = TensorSpace{T,D}(v.m)
-outputspace(v::Vec{T,D}) where {T,D} = TensorSpace{T,1}((prod(v.m),))
-preallocate_output(v::Vec{T,D}, x::AbstractArray{T,D}) where {T,D} =
+inputspace(v::Vec{T, D}) where {T, D} = TensorSpace{T, D}(v.m)
+outputspace(v::Vec{T, D}) where {T, D} = TensorSpace{T, 1}((prod(v.m),))
+function preallocate_output(v::Vec{T, D}, x::AbstractArray{T, D}) where {T, D}
     similar(x, T, (prod(v.m),))
-preallocate_input(v::Vec{T,D}) where {T,D} = Array{T,D}(undef, v.m)
-
-struct invVec{T,D} <: LinearOperator
-    m::NTuple{D,Int}
 end
-Base.inv(v::Vec{T,D}) where {T,D} = invVec{T,D}(v.m)
+preallocate_input(v::Vec{T, D}) where {T, D} = Array{T, D}(undef, v.m)
+
+struct invVec{T, D} <: LinearOperator
+    m::NTuple{D, Int}
+end
+Base.inv(v::Vec{T, D}) where {T, D} = invVec{T, D}(v.m)
 function LinearAlgebra.mul!(
-    y::AbstractArray{T,D},
-    v::invVec{T,D},
-    x::AbstractVector{T},
-) where {T,D}
+        y::AbstractArray{T, D},
+        v::invVec{T, D},
+        x::AbstractVector{T}
+) where {T, D}
     @assert size(y) == v.m
     fast_reshape!(y, x)
 end
@@ -145,26 +162,29 @@ function fast_reshape!(y, x)
     return y
 end
 
-inputspace(v::invVec{T,D}) where {T,D} = TensorSpace{T,1}((prod(v.m),))
-outputspace(v::invVec{T,D}) where {T,D} = TensorSpace{T,D}(v.m)
-preallocate_output(v::invVec{T,D}, x::AbstractArray{T,1}) where {T,D} = similar(x, T, v.m)
-preallocate_input(v::invVec{T,D}) where {T,D} = Array{T,1}(undef, (prod(v.m),))
+inputspace(v::invVec{T, D}) where {T, D} = TensorSpace{T, 1}((prod(v.m),))
+outputspace(v::invVec{T, D}) where {T, D} = TensorSpace{T, D}(v.m)
+function preallocate_output(v::invVec{T, D}, x::AbstractArray{T, 1}) where {T, D}
+    similar(x, T, v.m)
+end
+preallocate_input(v::invVec{T, D}) where {T, D} = Array{T, 1}(undef, (prod(v.m),))
 
 struct IdentityOperator{A} <: LinearOperator
     inputspace::A
 end
 inputspace(id::IdentityOperator) = id.inputspace
 outputspace(id::IdentityOperator) = id.inputspace
-function LinearAlgebra.mul!(y, id::IdentityOperator, x)
+function LinearAlgebra.mul!(y::AbstractArray, id::IdentityOperator, x::AbstractArray)
     @assert size(x) == size(y) == size(inputspace(id))
     y .= x
     return y
 end
-preallocate_output(::IdentityOperator, x) = similar(x)
-preallocate_input(v::IdentityOperator{TensorSpace{T,D}}) where {T,D} =
-    Array{T,D}(undef, size(inputspace(v)))
+preallocate_output(::IdentityOperator, x::AbstractArray) = similar(x)
+function preallocate_input(v::IdentityOperator{TensorSpace{T, D}}) where {T, D}
+    Array{T, D}(undef, size(inputspace(v)))
+end
 
-struct RealPart{T<:Real} <: LinearOperator end
+struct RealPart{T <: Real} <: LinearOperator end
 function LinearAlgebra.mul!(y, ::RealPart, x)
     y .= real.(x)
     return y
@@ -172,7 +192,9 @@ end
 
 inputspace(::RealPart) = AnySpace()
 outputspace(::RealPart{T}) where {T} = AnySizeSpace{T}()
-preallocate_output(
-    ::RealPart{T},
-    x::AbstractArray{S,D},
-) where {T,D,S<:Union{Complex{T},T}} = Array{real(T),D}(undef, size(x))
+function preallocate_output(
+        ::RealPart{T},
+        x::AbstractArray{S, D}
+) where {T, D, S <: Union{Complex{T}, T}}
+    Array{real(T), D}(undef, size(x))
+end

@@ -1,24 +1,109 @@
-using SpatialMultitaper
-import SpatialMultitaper as Spmt
-using Test
-include("SpatialMultitaperTestingUtils.jl")
-using .SpatialMultitaperTestingUtils
+using SpatialMultitaper, Test, SafeTestsets, Aqua
 
-#=
-Don't add your tests to runtests.jl. Instead, create files named
+# Aqua.test_all(SpatialMultitaper)
+run_all = true
 
-    test-title-for-my-test.jl
+# Core functionality tests
+if run_all
+    @safetestset "Covariance zero atom" begin
+        include("test-covariance_zero_atom.jl")
+    end
 
-The file will be automatically included inside a `@testset` with title "Title For My Test".
-=#
-for (root, dirs, files) in walkdir(@__DIR__)
-    for file in files
-        if isnothing(match(r"^test-.*\.jl$", file))
-            continue
-        end
-        title = titlecase(replace(splitext(file[6:end])[1], "-" => " "))
-        @testset "$title" begin
-            include(joinpath(root, file))
-        end
+    @safetestset "Utils" begin
+        include("test-utils.jl")
+    end
+    @safetestset "General Tapers" begin
+        include("tapers/test-general-tapers.jl")
+    end
+    @safetestset "Tapers" begin
+        include("tapers/test-tapers.jl")
+    end
+    @safetestset "Input Checking" begin
+        include("test-input-data.jl")
+    end
+    @safetestset "Mean" begin
+        include("test-mean.jl")
+    end
+
+    # # DFT Interface tests
+    @safetestset "FFT Interface" begin
+        include("dft_interface/test-fft-interface.jl")
+    end
+    @safetestset "Frequencies" begin
+        include("dft_interface/test-frequencies.jl")
+    end
+    @safetestset "NUFFT Interface" begin
+        include("dft_interface/test-nufft-interface.jl")
+    end
+
+    # # Slepian Solver tests
+    @safetestset "Diagonalisation" begin
+        include("SlepianSolver/test-diagonalisation.jl")
+    end
+    @safetestset "Operator" begin
+        include("SlepianSolver/test-operator.jl")
+    end
+
+    # Dft tests
+    @safetestset "Tapered DFT" begin
+        include("test-tapered-dft.jl")
+    end
+
+    # estimate tests
+    @safetestset "Estimate Types" begin
+        include("estimates/test-estimate-types.jl")
+    end
+
+    @safetestset "Error Messages" begin
+        include("estimates/test-errors.jl")
+    end
+
+    @safetestset "Spectral Estimate" begin
+        include("estimates/wavenumber/test-spectra.jl")
+    end
+
+    @safetestset "Transforms" begin
+        include("estimates/wavenumber/test-spectral-matrix-transforms.jl")
+    end
+
+    @safetestset "Partial spectra" begin
+        include("estimates/wavenumber/test-partial-spectra.jl")
+    end
+
+    @safetestset "coherence" begin
+        include("estimates/wavenumber/test-coherence.jl")
+    end
+
+    @safetestset "Rotational estimate" begin
+        include("estimates/generic/test-rotational-estimate.jl")
+    end
+
+    @safetestset "Marginal transform" begin
+        include("estimates/generic/test-marginal-transform.jl")
+    end
+
+    @safetestset "Printing" begin
+        include("estimates/test-printing.jl")
+    end
+
+    # spatial
+    @safetestset "c function" begin
+        include("estimates/spatial/test-c-function.jl")
+    end
+
+    @safetestset "k function" begin
+        include("estimates/spatial/test-k-function.jl")
+    end
+
+    @safetestset "L function" begin
+        include("estimates/spatial/test-l-function.jl")
+    end
+
+    @safetestset "Centered L function" begin
+        include("estimates/spatial/test-centered-l-function.jl")
+    end
+
+    @safetestset "Resampling" begin
+        include("test-resampling.jl")
     end
 end

@@ -1,9 +1,9 @@
 # Transformations
 
-There are various transformations that one can compute from estimates of the spectral density function. Each of them can either be applied to a `Matrix`, or a `SpectralEstimate`.
+There are various transformations that one can compute from estimates of the spectral density function. Each of them can either be applied to a `Matrix`, or a `Spectra`.
 As a running example, consider a simulated example of three independent Poisson processes:
 ```@example poisson_example
-import CairoMakie as Mke
+import GLMakie as Mke
 using SpatialMultitaper, GeoStatsProcesses
 region = Box(Point(0,0), Point(100, 100))
 X = rand(PoissonProcess(0.01), region)
@@ -21,7 +21,7 @@ fig
 We can then estimate the spectral density function
 ```@example poisson_example
 tapers = sin_taper_family((4,4), region)
-sdf = multitaper_estimate(data, region; tapers = tapers, nfreq = (100,100), fmax = (1,1))
+sdf = spectra(data, region; tapers = tapers, nfreq = (100,100), fmax = (1,1))
 ```
 
 ## Coherence

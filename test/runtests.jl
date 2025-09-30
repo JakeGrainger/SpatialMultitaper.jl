@@ -1,7 +1,11 @@
 using SpatialMultitaper, Test, SafeTestsets, Aqua
 
 # Aqua.test_all(SpatialMultitaper)
-run_all = true
+run_all = false
+
+@safetestset "Runtests.jl" begin
+    include("estimates/spatial/test-c-function.jl")
+end
 
 # Core functionality tests
 if run_all

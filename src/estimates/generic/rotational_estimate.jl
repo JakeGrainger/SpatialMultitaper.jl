@@ -328,3 +328,8 @@ function default_rotational_kernel(wavenumber::NTuple{D, AbstractVector{<:Real}}
     max_step = maximum(step, wavenumber)
     return RectKernel(2 * max_step)
 end
+
+function default_rotational_kernel(wavenumber::AbstractVector{<:Real})
+    max_step = step(wavenumber)
+    return RectKernel(2 * max_step)
+end

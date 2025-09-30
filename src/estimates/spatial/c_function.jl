@@ -96,17 +96,22 @@ via inverse Fourier transform with appropriate spatial weighting.
 # Returns
 A `CFunction` object containing the spatial C function.
 """
-function c_function(
-        data::SpatialData; radii, nfreq, fmax,
-        freq_radii = default_rotational_radii(nfreq, fmax),
-        rotational_method = default_c_rotational_kernel(nfreq, fmax),
-        spectra_kwargs...
-)::CFunction
-    spectrum = spectra(data; nfreq, fmax, spectra_kwargs...)
-    return c_function(spectrum; radii = radii, freq_radii = freq_radii,
-        rotational_method = rotational_method)
+function c_function(data::SpatialData; radii, rotational_freq_radii = nothing,
+        rotational_method = nothing, kwargs...)::CFunction
+    spectrum = spectra(data; kwargs...)
+    freq_radii_processed = process_c_rotational_radii(rotational_freq_radii; kwargs...)
+    rotational_method_processed = process_c_rotational_kernel(rotational_method; kwargs...)
+    return c_function(spectrum; radii = radii, freq_radii = freq_radii_processed,
+        rotational_method = rotational_method_processed)
 end
-default_c_rotational_kernel(args...) = NoRotational()
+process_c_rotational_kernel(::Nothing; kwargs...) = default_c_rotational_kernel(; kwargs...)
+process_c_rotational_kernel(kernel; kwargs...) = kernel
+process_c_rotational_radii(::Nothing; kwargs...) = default_c_rotational_radii(; kwargs...)
+process_c_rotational_radii(radii; kwargs...) = radii
+
+default_c_rotational_kernel(args...; kwargs...) = NoRotational()
+default_c_rotational_radii(spectrum) = default_rotational_radii(spectrum)
+default_c_rotational_radii(; nfreq, fmax, kwargs...) = default_rotational_radii(nfreq, fmax)
 
 """
     c_function(spectrum::Spectra; radii, freq_radii, rotational_method)
@@ -124,7 +129,7 @@ A `CFunction` object with the C function values.
 """
 function c_function(
         spectrum::Spectra; radii,
-        freq_radii = default_rotational_radii(spectrum),
+        freq_radii = default_c_rotational_radii(spectrum),
         rotational_method = default_c_rotational_kernel(spectrum)
 )::CFunction
     return _c_function(spectrum, radii, freq_radii, rotational_method)
@@ -161,9 +166,8 @@ Partial C functions show direct spatial relationships with the influence
 of other processes removed.
 """
 function partial_c_function(
-        data::SpatialData; radii, nfreq, fmax, spectra_kwargs...
-)::CFunction{PartialTrait}
-    f_mt = partial_spectra(data; nfreq, fmax, spectra_kwargs...)
+        data::SpatialData; radii, spectra_kwargs...)::CFunction{PartialTrait}
+    f_mt = partial_spectra(data; spectra_kwargs...)
     return c_function(f_mt; radii = radii)
 end
 

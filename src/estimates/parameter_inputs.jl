@@ -50,7 +50,7 @@ end
 function _validate_wavenumber_params(nk::Nothing, kmax, dk, dim)
     _kmax = _validate_kmax(kmax, dim)
     _dk = _validate_dk(dk, dim)
-    _nk = ceil.(2 .* _kmax ./ _dk)
+    _nk = ceil.(Int, 2 .* _kmax ./ _dk)
     return _nk, _kmax
 end
 

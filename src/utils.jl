@@ -189,26 +189,26 @@ function downsample(x::AbstractArray{T, D}, spacing::NTuple{D, Int}) where {D, T
 end
 
 """
-	upsample(x::AbstractArray, grid::CartesianGrid, freq_downsample)
+	upsample(x::AbstractArray, grid::CartesianGrid, wavenumber_downsample)
 
 Upsamples an array using linear interpolation, checking the grid size against x.
 Note this is specific to downsample as used here, and shouldn't be used for general upsampling.
 """
 upsample(x::AbstractArray, ::CartesianGrid, ::Nothing) = x
-function upsample(x::AbstractArray, grid::CartesianGrid, freq_downsample)
+function upsample(x::AbstractArray, grid::CartesianGrid, wavenumber_downsample)
     if ndims(x) != embeddim(grid)
         throw(DimensionMismatch("x must have the same number of dimensions as the grid"))
     end
 
     sides = grid2sides(grid)
-    if size(x) .* freq_downsample != length.(sides)
+    if size(x) .* wavenumber_downsample != length.(sides)
         err = DimensionMismatch(
-            """we need size(x) .* freq_downsample == length.(sides), but size(x)=$(size(x)),
-            freq_downsample=$(freq_downsample), and length.(sides)=$(length.(sides))"""
+            """we need size(x) .* wavenumber_downsample == length.(sides), but size(x)=$(size(x)),
+            wavenumber_downsample=$(wavenumber_downsample), and length.(sides)=$(length.(sides))"""
         )
         throw(err)
     end
-    x_sides = downsample.(sides, freq_downsample)
+    x_sides = downsample.(sides, wavenumber_downsample)
     x_intp = linear_interpolation(x_sides, x, extrapolation_bc = Interpolations.Line())
     return [x_intp(a...) for a in Iterators.product(sides...)]
 end

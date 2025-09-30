@@ -29,8 +29,8 @@ if run_all
     @safetestset "FFT Interface" begin
         include("dft_interface/test-fft-interface.jl")
     end
-    @safetestset "Frequencies" begin
-        include("dft_interface/test-frequencies.jl")
+    @safetestset "Wavenumbers" begin
+        include("dft_interface/test-wavenumbers.jl")
     end
     @safetestset "NUFFT Interface" begin
         include("dft_interface/test-nufft-interface.jl")
@@ -56,6 +56,10 @@ if run_all
 
     @safetestset "Error Messages" begin
         include("estimates/test-errors.jl")
+    end
+
+    @safetestset "Parameter Inputs" begin
+        include("estimates/test-parameter-inputs.jl")
     end
 
     @safetestset "Spectral Estimate" begin

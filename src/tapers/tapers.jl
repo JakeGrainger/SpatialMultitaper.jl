@@ -10,14 +10,14 @@ struct DiscreteTaperSeq{T <: AbstractArray, G <: CartesianGrid}
 end
 struct DiscreteTaperFT{H}
     taper_ft::H
-    function DiscreteTaperFT(taper, grid, freq_res)
-        freq_res = process_res(freq_res, boundingbox(grid))
+    function DiscreteTaperFT(taper, grid, wavenumber_res)
+        wavenumber_res = process_res(wavenumber_res, boundingbox(grid))
         ft_desc = fft_anydomain(
-            taper, grid, freq_res, 1 ./ (2 .* unitless_spacing(grid))) .*
+            taper, grid, wavenumber_res, 1 ./ (2 .* unitless_spacing(grid))) .*
                   prod(unitless_spacing(grid))
-        freq = fftshift.(fftfreq.(size(ft_desc), inv.(unitless_spacing(grid))))
+        wavenumber = fftshift.(fftfreq.(size(ft_desc), inv.(unitless_spacing(grid))))
 
-        ft_interp = linear_interpolation(freq, ft_desc, extrapolation_bc = Periodic())
+        ft_interp = linear_interpolation(wavenumber, ft_desc, extrapolation_bc = Periodic())
         new{typeof(ft_interp)}(ft_interp)
     end
 end
@@ -50,7 +50,7 @@ Base.getindex(taper::TaperFamily, i) = taper.tapers[i]
 function discretetaper(
         taper::AbstractArray,
         grid::CartesianGrid;
-        freq_res = size(grid),
+        wavenumber_res = size(grid),
         rescale = true
 )
     @assert size(taper) == size(grid)
@@ -61,7 +61,7 @@ function discretetaper(
     end
 
     disc_taper = DiscreteTaperSeq(taper_scaled, grid)
-    ft_interp = DiscreteTaperFT(taper_scaled, grid, freq_res)
+    ft_interp = DiscreteTaperFT(taper_scaled, grid, wavenumber_res)
 
     Taper(disc_taper, ft_interp)
 end
@@ -93,7 +93,7 @@ function L2_inner_product_interpolated(
     )
 end
 
-function interpolate_tapers(raw_tapers, grid; freq_res = size(grid))
+function interpolate_tapers(raw_tapers, grid; wavenumber_res = size(grid))
     sides = grid2sides(grid)
     scaled_taper = raw_tapers ./
                    sqrt(L2_inner_product_interpolated(raw_tapers, raw_tapers, grid))
@@ -104,7 +104,7 @@ function interpolate_tapers(raw_tapers, grid; freq_res = size(grid))
     )
     Taper(
         InterpolatedTaperFunc(taper_interp),
-        InterpolatedTaperFT(DiscreteTaperFT(scaled_taper, grid, freq_res), grid)
+        InterpolatedTaperFT(DiscreteTaperFT(scaled_taper, grid, wavenumber_res), grid)
     )
 end
 
@@ -165,22 +165,25 @@ Converts continuous tapers to a discrete taper family on the provided grid.
 If the grid is `NoGrid`, it returns the tapers unchanged.
 This is used for checking if the tapers are suitable for the combination of grids present in the data.
 """
-function tapers_on_grid(tapers::TaperFamily, ::NoGrid; freq_res = 500) # currently ignore freq_res
+function tapers_on_grid(tapers::TaperFamily, ::NoGrid; wavenumber_res = 500) # currently ignore wavenumber_res
     return tapers
 end
 function tapers_on_grid(
         tapers::TaperFamily{M},
         grid::CartesianGrid;
-        freq_res = 500
+        wavenumber_res = 500
 ) where {M}
     return TaperFamily(
-        ntuple(i -> single_taper_on_grid(tapers[i], grid; freq_res = freq_res), Val{M}()),
+        ntuple(i -> single_taper_on_grid(tapers[i], grid; wavenumber_res = wavenumber_res),
+        Val{M}()),
     )
 end
-function single_taper_on_grid(taper::ContinuousTaper, grid::CartesianGrid; freq_res = 500)
+function single_taper_on_grid(
+        taper::ContinuousTaper, grid::CartesianGrid; wavenumber_res = 500)
     taper_evaluated = reshape(
         map(i -> taper(centroid(grid, i)), eachindex(grid)), size(grid))
-    return discretetaper(taper_evaluated, grid, freq_res = freq_res, rescale = false) # don't rescale as taper transform gets rescaled later and we account for this in the norm
+    return discretetaper(
+        taper_evaluated, grid, wavenumber_res = wavenumber_res, rescale = false) # don't rescale as taper transform gets rescaled later and we account for this in the norm
 end
 
 function tapers_normalisations(taper_families)
@@ -247,8 +250,8 @@ Will return the lowest resolution to mitigate some effects of interpolation that
 """
 function choose_concentration_resolution(tapers_on_grids, concentration_region)
     bbox = boundingbox(concentration_region)
-    nfreqs = [_nfreq_in_box(tapers[1], bbox) for tapers in tapers_on_grids]
-    concentration_res = ntuple(i -> minimum(x -> x[i], nfreqs), Val{embeddim(bbox)}())
+    nks = [_nk_in_box(tapers[1], bbox) for tapers in tapers_on_grids]
+    concentration_res = ntuple(i -> minimum(x -> x[i], nks), Val{embeddim(bbox)}())
     if any(x -> x < 30, concentration_res)
         @warn "The resolution for computing the concentration of the tapers is very low. You may want to increase the wavenumber domain resolution used when precomputing taper Fourier transforms."
     end
@@ -256,29 +259,30 @@ function choose_concentration_resolution(tapers_on_grids, concentration_region)
 end
 
 """
-    _freq_in_box
+    _wavenumber_in_box
 
-Internal function to compute the number of frequencies at which the Fourier transform of a taper was evaluated in given box.
+Internal function to compute the number of wavenumbers at which the Fourier transform of a taper was evaluated in given box.
 """
-function _nfreq_in_box(taper::ContinuousTaper, box::Box)
+function _nk_in_box(taper::ContinuousTaper, box::Box)
     return ntuple(d -> 2^63 - 1, embeddim(box))
 end
-function _nfreq_in_box(taper::Taper, box::Box)
-    freq = _evaluation_frequencies(taper)
+function _nk_in_box(taper::Taper, box::Box)
+    wavenumber = _evaluation_wavenumbers(taper)
     sides = box2sides(box)
-    return ntuple(d -> sum(x -> sides[d][1] ≤ x ≤ sides[d][2], freq[d]), embeddim(box))
+    return ntuple(
+        d -> sum(x -> sides[d][1] ≤ x ≤ sides[d][2], wavenumber[d]), embeddim(box))
 end
 
-function _evaluation_frequencies(taper::DiscreteTaper)
+function _evaluation_wavenumbers(taper::DiscreteTaper)
     taper.taper_ft.taper_ft.itp.ranges
 end
 
-function _evaluation_frequencies(taper::InterpolatedTaper)
+function _evaluation_wavenumbers(taper::InterpolatedTaper)
     taper.taper_ft.taper_ft.taper_ft.itp.ranges
 end
 
 """
-    check_tapers_for_data(data, tapers, bandwidth; freq_res, tol, min_concentration)
+    check_tapers_for_data(data, tapers, bandwidth; wavenumber_res, tol, min_concentration)
 
 This function checks if the tapers are suitable for the provided data.
 In particular, it checks that the tapers work for the type of grids provided in the data.
@@ -290,14 +294,14 @@ If you have a problem, you can use `taper_checks` to check the tapers directly.
 
 Importantly, these checks are very expensive to compute.
 In some cases failures in the checks may be due to the quality of the approximation of the Fourier transform of the tapers.
-Sometimes this can be mitigated by increasing the frequency resolution of the tapers here.
+Sometimes this can be mitigated by increasing the wavenumber resolution of the tapers here.
 However, when using interpolated tapers, you may also need to increase the resolution of the grid used to compute the Fourier transform of those tapers.
 
 # Arguments
 - `data`: The data to check the tapers for.
 - `tapers`: The tapers to check.
 - `bandwidth`: The bandwidth of the tapers.
-- `freq_res`: The frequency resolution to use for the tapers generated from the data grids.
+- `wavenumber_res`: The wavenumber resolution to use for the tapers generated from the data grids.
 - `tol`: The tolerance for the L2 norm of the tapers.
 - `min_concentration`: The minimum concentration of the tapers before they are considered invalid and an error is thrown.
 """
@@ -305,12 +309,12 @@ function check_tapers_for_data(
         data,
         tapers,
         bandwidth;
-        freq_res = 1000,
+        wavenumber_res = 1000,
         tol = 1e-1,
         min_concentration = 0.95
 )
     normalisations, concentrations = taper_checks(
-        data, tapers, bandwidth, freq_res = freq_res)
+        data, tapers, bandwidth, wavenumber_res = wavenumber_res)
     concentrations_diag = [concentrations[i, i, k, l]
                            for i in axes(concentrations, 1),
     k in axes(concentrations, 3), l in axes(concentrations, 4)]
@@ -326,11 +330,11 @@ function check_tapers_for_data(
     @info "Tapers are suitable for the data."
 end
 
-function taper_checks(data, tapers, bandwidth; freq_res = 500)
+function taper_checks(data, tapers, bandwidth; wavenumber_res = 500)
     @assert bandwidth>0 "Bandwidth must be positive"
 
     observational_types = unique(get_grid.(data))
-    tapers_on_grids = [tapers_on_grid(tapers, grid; freq_res = freq_res)
+    tapers_on_grids = [tapers_on_grid(tapers, grid; wavenumber_res = wavenumber_res)
                        for grid in observational_types]
     concentration_region = Ball(Point(ntuple(i -> 0.0, _getdims(data[1]))), bandwidth)
     conc_res = choose_concentration_resolution(tapers_on_grids, concentration_region)
@@ -342,30 +346,30 @@ end
 
 ## specific taper families
 """
-	interpolated_taper_family(raw_tapers, grid; freq_res=size(grid))
+	interpolated_taper_family(raw_tapers, grid; wavenumber_res=size(grid))
 
 Constructs a multitaper object from multiple taper discrete impulse responses on a grid.
 
 # Arguments
 - `raw_tapers`: A `Vector` of `AbstractArray`s containing the taper impulse response.
 - `grid`: The grid corresponding to the tapers.
-- `freq_res`: Optional named argument specifying the upsampling for computing the transfer function.
+- `wavenumber_res`: Optional named argument specifying the upsampling for computing the transfer function.
 
-# Frequency sampling
-- The frequency grid on which the transfer function will be sampled has:
-	- length `freq_res`.
-	- interval `unitless_spacing(grid)/freq_res`.
+# Wavenumber sampling
+- The wavenumber grid on which the transfer function will be sampled has:
+	- length `wavenumber_res`.
+	- interval `unitless_spacing(grid)/wavenumber_res`.
 """
 function interpolated_taper_family(
         raw_tapers::Vector{<:AbstractArray},
         grid::CartesianGrid;
-        freq_res = size(grid)
+        wavenumber_res = size(grid)
 )
     check_interpolated_tapers_cross(raw_tapers, grid; tol = 1e-2)
 
     interpolated_tapers = TaperFamily(
         ntuple(
-        d -> interpolate_tapers(raw_tapers[d], grid, freq_res = freq_res),
+        d -> interpolate_tapers(raw_tapers[d], grid, wavenumber_res = wavenumber_res),
         length(raw_tapers)
     ),
     )
@@ -447,7 +451,7 @@ end
 sin_ft(k, m, l) = sin_ft_base(k * l, m) * sqrt(l)
 
 """
-    make_tapers(region; bandwidth, threshold = 0.99, space_res = 100, freq_res = 500, freq_generate_res = 500, ntapers_max = 30)
+    make_tapers(region; bandwidth, threshold = 0.99, space_res = 100, wavenumber_res = 500, wavenumber_generate_res = 500, ntapers_max = 30)
 
 A function to create tapers for a given region.
 
@@ -456,8 +460,8 @@ A function to create tapers for a given region.
 - `bandwidth`: The bandwidth of the tapers
 - `threshold`: The threshold for the number of tapers to use.
 - `space_res`: The resolution of the grid to create the tapers on.
-- `freq_res`: The resolution of the frequency grid to compute the transfer function on.
-- `freq_generate_res`: The resolution of the frequency grid to generate the tapers on.
+- `wavenumber_res`: The resolution of the wavenumber grid to compute the transfer function on.
+- `wavenumber_generate_res`: The resolution of the wavenumber grid to generate the tapers on.
 - `ntapers_max`: The maximum number of tapers to generate.
 
 As a rough rule of thumb, setting the bandwidth to an integer multiple (say `x`) of a side length of the bounding square of a region will
@@ -468,27 +472,27 @@ function make_tapers(
         bandwidth,
         threshold = 0.99,
         space_res = 100,
-        freq_res = 500,
-        freq_generate_res = 500,
+        wavenumber_res = 500,
+        wavenumber_generate_res = 500,
         ntapers_max = 30
 )
     bbox = boundingbox(region)
     space_res_processed = process_res(space_res, bbox)
-    freq_res_processed = process_res(freq_res, bbox)
-    freq_generate_res_processed = process_res(freq_generate_res, bbox)
+    wavenumber_res_processed = process_res(wavenumber_res, bbox)
+    wavenumber_generate_res_processed = process_res(wavenumber_generate_res, bbox)
 
     grid = CartesianGrid(bbox.min, bbox.max, dims = space_res_processed)
     # TODO: need to do some rounding here to make this more reliable
 
-    freq_region = Ball(Meshes.Point(0, 0), bandwidth)
+    wavenumber_region = Ball(Meshes.Point(0, 0), bandwidth)
     @info "Computing tapers..."
     h, λ = optimaltapers(
         region,
         grid,
-        freq_region = freq_region,
+        wavenumber_region = wavenumber_region,
         ntapers = Int(ntapers_max),
-        freq_res = freq_generate_res_processed,
-        freq_downsample = nothing,
+        wavenumber_res = wavenumber_generate_res_processed,
+        wavenumber_downsample = nothing,
         tol = 1e-8,
         check_grid = false
     )
@@ -504,7 +508,8 @@ function make_tapers(
     @info "...number of tapers to use: $ntapers out of $(length(λ)) available."
 
     @info "Making Fourier transform of tapers..."
-    tapers = interpolated_taper_family(h[1:ntapers], grid, freq_res = freq_res_processed)
+    tapers = interpolated_taper_family(
+        h[1:ntapers], grid, wavenumber_res = wavenumber_res_processed)
     @info "...made Fourier transform."
 
     return tapers, λ[1:ntapers]

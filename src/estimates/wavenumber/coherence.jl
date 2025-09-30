@@ -1,49 +1,49 @@
 """
     Coherence{E, D, P, Q, N, A, T, IP, IE} <: AbstractEstimate{E, D, P, Q, N}
 
-A coherence estimate structure containing frequency information and coherence values.
+A coherence estimate structure containing wavenumber information and coherence values.
 
 # Type Parameters
 - `E`: Estimate trait (e.g., `MarginalTrait`, `PartialTrait`)
 - `D`: Spatial dimension
 - `P`, `Q`: Process dimensions
-- `N`: Number of frequency dimensions
-- `A`: Type of frequency argument
+- `N`: Number of wavenumber dimensions
+- `A`: Type of wavenumber argument
 - `T`: Type of coherence values
 - `IP`: Type of process information
 - `IE`: Type of estimation information
 
 # Fields
-- `freq`: Frequency grid or values
+- `wavenumber`: Wavenumber grid or values
 - `coherence`: Coherence estimates
 - `processinformation`: Information about the processes
 - `estimationinformation`: Information about the estimation procedure
 """
 struct Coherence{E, D, P, Q, N, A, T, IP, IE} <: AbstractEstimate{E, D, P, Q, N}
-    freq::A
+    wavenumber::A
     coherence::T
     processinformation::IP
     estimationinformation::IE
     function Coherence{E}(
-            freq::NTuple{N}, coherence::T, processinfo::ProcessInformation{D},
+            wavenumber::NTuple{N}, coherence::T, processinfo::ProcessInformation{D},
             estimationinfo::IE) where {E <: EstimateTrait, D, N, T, IE}
-        P, Q = checkinputs(freq, coherence, processinfo)
+        P, Q = checkinputs(wavenumber, coherence, processinfo)
         IP = typeof(processinfo)
-        A = typeof(freq)
+        A = typeof(wavenumber)
         return new{E, D, P, Q, N, A, T, IP, IE}(
-            freq, coherence, processinfo, estimationinfo)
+            wavenumber, coherence, processinfo, estimationinfo)
     end
     function Coherence{E}( # for inputs that are rotational
-            freq::A, coherence::T, processinfo::ProcessInformation{D},
+            wavenumber::A, coherence::T, processinfo::ProcessInformation{D},
             estimationinfo::IE) where {E <: EstimateTrait, D, A, T, IE}
-        P, Q = checkinputs(freq, coherence, processinfo)
+        P, Q = checkinputs(wavenumber, coherence, processinfo)
         IP = typeof(processinfo)
         return new{E, D, P, Q, 1, A, T, IP, IE}(
-            freq, coherence, processinfo, estimationinfo)
+            wavenumber, coherence, processinfo, estimationinfo)
     end
 end
 const RotationalCoherence{E, D, P, Q, S <: Coherence} = RotationalEstimate{E, D, P, Q, S}
-getargument(est::Coherence) = est.freq
+getargument(est::Coherence) = est.wavenumber
 getestimate(est::Coherence) = est.coherence
 
 """
@@ -92,7 +92,7 @@ A `Coherence` object containing the coherence estimates.
 coh = coherence(spec)
 
 # Direct computation from data
-coh = coherence(data, region, nfreq=(32, 32), fmax=(0.5, 0.5), tapers=tapers)
+coh = coherence(data, region, nk=(32, 32), kmax=(0.5, 0.5), tapers=tapers)
 ```
 """
 function coherence(spectrum::NormalOrRotationalSpectra{E})::Coherence{E} where {E}

@@ -21,15 +21,15 @@ import SpatialMultitaper: getestimate, getargument, KFunction
             # Define test parameters
             radii = dim == 1 ? [0.1, 0.5, 1.0] :
                     dim == 2 ? [0.1, 0.3, 0.8] : [0.1, 0.2, 0.5]
-            nfreq = dim == 1 ? (32,) : dim == 2 ? (16, 16) : (8, 8, 8)
-            fmax = dim == 1 ? (2.0,) : dim == 2 ? (1.5, 1.5) : (1.0, 1.0, 1.0)
+            nk = dim == 1 ? (32,) : dim == 2 ? (16, 16) : (8, 8, 8)
+            kmax = dim == 1 ? (2.0,) : dim == 2 ? (1.5, 1.5) : (1.0, 1.0, 1.0)
             bw = ntuple(_ -> 3, dim)
             tapers = sin_taper_family(bw, region)
 
             raw_result = k_function(
-                points_raw, region, radii = radii, nfreq = nfreq, fmax = fmax, tapers = tapers)
+                points_raw, region, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
             spatial_result = k_function(
-                points_spatial, radii = radii, nfreq = nfreq, fmax = fmax, tapers = tapers)
+                points_spatial, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
             @test getargument(raw_result) ≈ getargument(spatial_result)
             @test getestimate(raw_result) ≈ getestimate(spatial_result)
@@ -47,14 +47,14 @@ import SpatialMultitaper: getestimate, getargument, KFunction
                     return_type = return_type, point_number = 40)
 
                 radii = dim == 1 ? [0.2, 0.6] : dim == 2 ? [0.2, 0.5] : [0.1, 0.3]
-                nfreq = dim == 1 ? (24,) : dim == 2 ? (12, 12) : (6, 6, 6)
-                fmax = dim == 1 ? (1.5,) : dim == 2 ? (1.2, 1.2) : (0.8, 0.8, 0.8)
+                nk = dim == 1 ? (24,) : dim == 2 ? (12, 12) : (6, 6, 6)
+                kmax = dim == 1 ? (1.5,) : dim == 2 ? (1.2, 1.2) : (0.8, 0.8, 0.8)
                 bw = ntuple(_ -> 3, dim)
                 region = getregion(points_data)
                 tapers = sin_taper_family(bw, region)
 
                 result = k_function(
-                    points_data, radii = radii, nfreq = nfreq, fmax = fmax, tapers = tapers)
+                    points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
                 @test result isa KFunction
                 @test getargument(result) ≈ radii
@@ -74,21 +74,21 @@ import SpatialMultitaper: getestimate, getargument, KFunction
                     return_type = return_type, point_number = 35)
 
                 radii = dim == 1 ? [0.15, 0.4] : [0.15, 0.35]
-                nfreq = dim == 1 ? (20,) : dim == 2 ? (10, 10) : (6, 6, 6)
-                fmax = dim == 1 ? (1.2,) : dim == 2 ? (1.0, 1.0) : (0.6, 0.6, 0.6)
+                nk = dim == 1 ? (20,) : dim == 2 ? (10, 10) : (6, 6, 6)
+                kmax = dim == 1 ? (1.2,) : dim == 2 ? (1.0, 1.0) : (0.6, 0.6, 0.6)
                 bw = ntuple(_ -> 3, dim)
                 region = getregion(points_data)
                 tapers = sin_taper_family(bw, region)
 
                 # First compute spectra
-                spectrum = spectra(points_data, nfreq = nfreq, fmax = fmax, tapers = tapers)
+                spectrum = spectra(points_data, nk = nk, kmax = kmax, tapers = tapers)
 
                 # Then compute k_function from spectra
                 k_from_spectra = k_function(spectrum, radii = radii)
 
                 # Compare with direct computation
                 k_direct = k_function(
-                    points_data, radii = radii, nfreq = nfreq, fmax = fmax, tapers = tapers)
+                    points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
                 @test getargument(k_from_spectra) ≈ getargument(k_direct)
                 @test getestimate(k_from_spectra) ≈ getestimate(k_direct)
@@ -101,22 +101,22 @@ import SpatialMultitaper: getestimate, getargument, KFunction
                     return_type = return_type, point_number = 35)
 
                 radii = dim == 1 ? [0.15, 0.4] : [0.15, 0.35]
-                nfreq = dim == 1 ? (20,) : dim == 2 ? (10, 10) : (6, 6, 6)
-                fmax = dim == 1 ? (1.2,) : dim == 2 ? (1.0, 1.0) : (0.6, 0.6, 0.6)
+                nk = dim == 1 ? (20,) : dim == 2 ? (10, 10) : (6, 6, 6)
+                kmax = dim == 1 ? (1.2,) : dim == 2 ? (1.0, 1.0) : (0.6, 0.6, 0.6)
                 bw = ntuple(_ -> 3, dim)
                 region = getregion(points_data)
                 tapers = sin_taper_family(bw, region)
 
                 # First compute C function
                 c_func = c_function(
-                    points_data, radii = radii, nfreq = nfreq, fmax = fmax, tapers = tapers)
+                    points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
                 # Then compute K function from C function
                 k_from_c = k_function(c_func)
 
                 # Compare with direct computation
                 k_direct = k_function(
-                    points_data, radii = radii, nfreq = nfreq, fmax = fmax, tapers = tapers)
+                    points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
                 @test getargument(k_from_c) ≈ getargument(k_direct)
                 @test getestimate(k_from_c) ≈ getestimate(k_direct)
@@ -130,14 +130,14 @@ import SpatialMultitaper: getestimate, getargument, KFunction
                         return_type = return_type, point_number = 30)
 
                     radii = dim == 1 ? [0.1, 0.3] : [0.1, 0.25]
-                    nfreq = dim == 1 ? (16,) : dim == 2 ? (8, 8) : (4, 4, 4)
-                    fmax = dim == 1 ? (1.0,) : dim == 2 ? (0.8, 0.8) : (0.5, 0.5, 0.5)
+                    nk = dim == 1 ? (16,) : dim == 2 ? (8, 8) : (4, 4, 4)
+                    kmax = dim == 1 ? (1.0,) : dim == 2 ? (0.8, 0.8) : (0.5, 0.5, 0.5)
                     bw = ntuple(_ -> 3, dim)
                     region = getregion(points_data)
                     tapers = sin_taper_family(bw, region)
 
                     partial_result = partial_k_function(points_data, radii = radii,
-                        nfreq = nfreq, fmax = fmax, tapers = tapers)
+                        nk = nk, kmax = kmax, tapers = tapers)
 
                     @test partial_result isa KFunction
                     @test getargument(partial_result) ≈ radii
@@ -158,15 +158,15 @@ import SpatialMultitaper: getestimate, getargument, KFunction
                         return_type = return_type, point_number = 25)
 
                     radii = dim == 1 ? [0.2] : [0.2]
-                    nfreq = dim == 1 ? (12,) : dim == 2 ? (8, 8) : (4, 4, 4)
-                    fmax = dim == 1 ? (0.8,) : dim == 2 ? (0.6, 0.6) : (0.4, 0.4, 0.4)
+                    nk = dim == 1 ? (12,) : dim == 2 ? (8, 8) : (4, 4, 4)
+                    kmax = dim == 1 ? (0.8,) : dim == 2 ? (0.6, 0.6) : (0.4, 0.4, 0.4)
                     bw = ntuple(_ -> 3, dim)
                     region = getregion(points_data)
                     tapers = sin_taper_family(bw, region)
 
                     # Compute partial spectra first
                     partial_spec = partial_spectra(
-                        points_data, nfreq = nfreq, fmax = fmax, tapers = tapers)
+                        points_data, nk = nk, kmax = kmax, tapers = tapers)
 
                     # Then k_function from partial spectra
                     k_from_partial = k_function(partial_spec, radii = radii)
@@ -184,15 +184,15 @@ import SpatialMultitaper: getestimate, getargument, KFunction
                         return_type = return_type, point_number = 25)
 
                     radii = dim == 1 ? [0.2] : [0.2]
-                    nfreq = dim == 1 ? (12,) : dim == 2 ? (8, 8) : (4, 4, 4)
-                    fmax = dim == 1 ? (0.8,) : dim == 2 ? (0.6, 0.6) : (0.4, 0.4, 0.4)
+                    nk = dim == 1 ? (12,) : dim == 2 ? (8, 8) : (4, 4, 4)
+                    kmax = dim == 1 ? (0.8,) : dim == 2 ? (0.6, 0.6) : (0.4, 0.4, 0.4)
                     bw = ntuple(_ -> 3, dim)
                     region = getregion(points_data)
                     tapers = sin_taper_family(bw, region)
 
                     # Compute partial C function first
                     partial_c = partial_c_function(
-                        points_data, radii = radii, nfreq = nfreq, fmax = fmax, tapers = tapers)
+                        points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
                     # Then K function from partial C function
                     k_from_partial_c = k_function(partial_c)
@@ -202,7 +202,7 @@ import SpatialMultitaper: getestimate, getargument, KFunction
 
                     # Compare with direct partial K function computation
                     k_partial_direct = partial_k_function(
-                        points_data, radii = radii, nfreq = nfreq, fmax = fmax, tapers = tapers)
+                        points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
                     @test getargument(k_from_partial_c) ≈ getargument(k_partial_direct)
                     @test getestimate(k_from_partial_c) ≈ getestimate(k_partial_direct)
@@ -216,14 +216,14 @@ import SpatialMultitaper: getestimate, getargument, KFunction
                     return_type = return_type, point_number = 25)
 
                 radii = [0.1, 0.2, 0.3]
-                nfreq = dim == 1 ? (8,) : dim == 2 ? (6, 6) : (4, 4, 4)
-                fmax = dim == 1 ? (0.5,) : dim == 2 ? (0.4, 0.4) : (0.3, 0.3, 0.3)
+                nk = dim == 1 ? (8,) : dim == 2 ? (6, 6) : (4, 4, 4)
+                kmax = dim == 1 ? (0.5,) : dim == 2 ? (0.4, 0.4) : (0.3, 0.3, 0.3)
                 bw = ntuple(_ -> 3, dim)
                 region = getregion(points_data)
                 tapers = sin_taper_family(bw, region)
 
                 result = k_function(
-                    points_data, radii = radii, nfreq = nfreq, fmax = fmax, tapers = tapers)
+                    points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
                 @test result isa KFunction
                 @test getargument(result) isa AbstractVector
@@ -257,14 +257,14 @@ import SpatialMultitaper: getestimate, getargument, KFunction
                     return_type = return_type, point_number = 30)
 
                 radii = [0.1, 0.25, 0.5]
-                nfreq = dim == 1 ? (12,) : dim == 2 ? (8, 8) : (4, 4, 4)
-                fmax = dim == 1 ? (0.8,) : dim == 2 ? (0.6, 0.6) : (0.4, 0.4, 0.4)
+                nk = dim == 1 ? (12,) : dim == 2 ? (8, 8) : (4, 4, 4)
+                kmax = dim == 1 ? (0.8,) : dim == 2 ? (0.6, 0.6) : (0.4, 0.4, 0.4)
                 bw = ntuple(_ -> 3, dim)
                 region = getregion(points_data)
                 tapers = sin_taper_family(bw, region)
 
                 result = k_function(
-                    points_data, radii = radii, nfreq = nfreq, fmax = fmax, tapers = tapers)
+                    points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
                 # Test indexing into results
                 radii_result = getargument(result)
@@ -301,17 +301,17 @@ import SpatialMultitaper: getestimate, getargument, KFunction
                     return_type = return_type, point_number = 30)
 
                 radii = dim == 1 ? [0.1, 0.3] : dim == 2 ? [0.1, 0.3] : [0.1, 0.2]
-                nfreq = dim == 1 ? (16,) : dim == 2 ? (10, 10) : (6, 6, 6)
-                fmax = dim == 1 ? (1.0,) : dim == 2 ? (0.8, 0.8) : (0.6, 0.6, 0.6)
+                nk = dim == 1 ? (16,) : dim == 2 ? (10, 10) : (6, 6, 6)
+                kmax = dim == 1 ? (1.0,) : dim == 2 ? (0.8, 0.8) : (0.6, 0.6, 0.6)
                 bw = ntuple(_ -> 3, dim)
                 region = getregion(points_data)
                 tapers = sin_taper_family(bw, region)
 
                 # Compute both K and C functions
                 k_result = k_function(
-                    points_data, radii = radii, nfreq = nfreq, fmax = fmax, tapers = tapers)
+                    points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
                 c_result = c_function(
-                    points_data, radii = radii, nfreq = nfreq, fmax = fmax, tapers = tapers)
+                    points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
                 @test getargument(k_result) ≈ getargument(c_result)
 
@@ -339,19 +339,19 @@ import SpatialMultitaper: getestimate, getargument, KFunction
         region = getregion(points_data)
         tapers = sin_taper_family(bw, region)
         result = k_function(
-            points_data, radii = small_radii, nfreq = (8, 8), fmax = (0.5, 0.5), tapers = tapers)
+            points_data, radii = small_radii, nk = (8, 8), kmax = (0.5, 0.5), tapers = tapers)
         @test all(x -> all(isfinite.(x)), getestimate(result))
 
         # Test large radii
         large_radii = [2.0, 5.0]
         result_large = k_function(
-            points_data, radii = large_radii, nfreq = (8, 8), fmax = (0.5, 0.5), tapers = tapers)
+            points_data, radii = large_radii, nk = (8, 8), kmax = (0.5, 0.5), tapers = tapers)
         @test all(x -> all(isfinite.(x)), getestimate(result_large))
 
         # Test K function at zero (should be zero or near zero)
         zero_radius = [0.0]
         result_zero = k_function(
-            points_data, radii = zero_radius, nfreq = (8, 8), fmax = (0.5, 0.5), tapers = tapers)
+            points_data, radii = zero_radius, nk = (8, 8), kmax = (0.5, 0.5), tapers = tapers)
         @test abs(getestimate(result_zero)[1]) < 1e-6  # K(0) should be approximately 0
     end
 end

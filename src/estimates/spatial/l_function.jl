@@ -30,7 +30,7 @@ The L function transformation provides:
 lf = l_function(k_func)
 
 # Direct computation from data
-lf = l_function(data, region, radii=0.1:0.1:2.0, nfreq=(32,32), fmax=(0.5,0.5), tapers=tapers)
+lf = l_function(data, region, radii=0.1:0.1:2.0, nk=(32,32), kmax=(0.5,0.5), tapers=tapers)
 ```
 """
 struct LFunction{E, D, P, Q, A, T, IP, IE} <: IsotropicEstimate{E, D, P, Q}

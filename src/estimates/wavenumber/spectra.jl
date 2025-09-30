@@ -1,69 +1,73 @@
 struct Spectra{E, D, P, Q, A, T, IP, IE} <: AnisotropicEstimate{E, D, P, Q}
-    freq::NTuple{D, A}
+    wavenumber::NTuple{D, A}
     power::T
     processinformation::IP
     estimationinformation::IE
-    function Spectra{E}(freq::NTuple{D, A}, power::T, processinfo::IP,
+    function Spectra{E}(wavenumber::NTuple{D, A}, power::T, processinfo::IP,
             estimationinfo::IE) where {E <: EstimateTrait, D, A, T, IP, IE}
-        P, Q = checkinputs(freq, power, processinfo)
-        return new{E, D, P, Q, A, T, IP, IE}(freq, power, processinfo, estimationinfo)
+        P, Q = checkinputs(wavenumber, power, processinfo)
+        return new{E, D, P, Q, A, T, IP, IE}(wavenumber, power, processinfo, estimationinfo)
     end
 end
 
 const RotationalSpectra{E, D, P, Q, S <: Spectra} = RotationalEstimate{E, D, P, Q, S}
 const NormalOrRotationalSpectra{E} = Union{Spectra{E}, RotationalSpectra{E}}
-getargument(est::Spectra) = est.freq
+getargument(est::Spectra) = est.wavenumber
 getestimate(est::Spectra) = est.power
 
 """
-    spectra(data, region; nfreq, fmax, tapers, mean_method = DefaultMean())
+    spectra(data, region; nk, kmax, tapers, mean_method = DefaultMean())
 
 Compute the multitaper spectral estimate from a tapered DFT.
 
 # Arguments
 - `data`: The data to estimate the spectrum from
 - `region`: The region to estimate the spectrum from
-- `nfreq::NTuple{D,Int}`: The number of frequencies in each dimension
-- `fmax::NTuple{D,Real}`: The maximum frequency in each dimension
+- `nk`: The number of wavenumbers in each dimension
+- `kmax`: The maximum wavenumber in each dimension
+- `dk`: The wavenumber spacing in each dimension
 - `tapers`: A tuple of taper functions
 - `mean_method::MeanEstimationMethod`: The method to estimate the mean (default: `DefaultMean()`)
 
+If one of `nk` and `kmax` is specified, `dk` will be set to a default based on the region.
+Otherwise, you only need to specify two of the three parameters `nk`, `kmax`, and `dk`. They
+can either be scalars (applied uniformly across all dimensions) or tuples specifying each
+dimension. You can mix the two styles, e.g. `nk=100` and `kmax=(0.5, 1.0)` for 2D data.
+`nk` must be an `Int` or tuple of `Int`s and should be positive, `kmax` and `dk` must be
+`Real` or tuples of `Real`s and also positive.
+
 # Returns
-A `Spectra` object with `freq` and `power` fields:
-- `freq`: D-dimensional `NTuple` of frequency arrays for each dimension
+A `Spectra` object with `wavenumber` and `power` fields:
+- `wavenumber`: D-dimensional `NTuple` of wavenumber arrays for each dimension
 - `power`: Power spectral density in one of the following forms:
   - Single process: `n_1 × ... × n_D` array
   - `NTuple{P}` data: `n_1 × ... × n_D` array of `SMatrix{P, P}`
   - Vector of P processes: `P × P × n_1 × ... × n_D` array
 
 # Notes
-- Indexing into a `Spectra` object returns a subset with the same `freq`
+- Indexing into a `Spectra` object returns a subset with the same `wavenumber`
 - Use `KnownMean(x)` to specify a known mean value
 
 # Examples
 ```julia
-# Single process
-spec = spectra(data, region, nfreq=(64, 64), fmax=(0.5, 0.5), tapers=tapers)
-
-# Multiple processes with known mean
-spec = spectra(data, region, nfreq=(32, 32), fmax=(1.0, 1.0),
-               tapers=tapers, mean_method=KnownMean([0.0, 0.0]))
+spec = spectra(data, region, kmax=(0.5, 0.5), tapers=tapers)
 ```
 """
 function spectra(data, region::Meshes.Geometry; kwargs...)::Spectra
     return spectra(spatial_data(data, region); kwargs...)
 end
 
-function spectra(data::SpatialData; nfreq, fmax, tapers,
-        mean_method::MeanEstimationMethod = DefaultMean())::Spectra
-    freq = _make_frequency_grid(nfreq, fmax, embeddim(data))
-    J_n = tapered_dft(data, tapers, nfreq, fmax, mean_method)
+function spectra(data::SpatialData; nk = nothing, kmax, dk = default_dk(data, nk, kmax),
+        tapers, mean_method::MeanEstimationMethod = DefaultMean())::Spectra
+    _nk, _kmax = _validate_wavenumber_params(nk, kmax, dk, embeddim(data))
+    wavenumber = _make_wavenumber_grid(_nk, _kmax)
+    J_n = tapered_dft(data, tapers, _nk, _kmax, mean_method)
     power = _dft_to_spectral_matrix(J_n, process_trait(data))
 
     process_info = ProcessInformation(data; mean_method = mean_method)
     estimation_info = EstimationInformation(length(tapers))
 
-    return Spectra{MarginalTrait}(freq, power, process_info, estimation_info)
+    return Spectra{MarginalTrait}(wavenumber, power, process_info, estimation_info)
 end
 
 # Alias for backwards compatibility
@@ -167,23 +171,11 @@ Compute the averaged spectral matrix for a matrix.
 _compute_spectral_matrix(x::AbstractMatrix) = (x * x') ./ size(x, 2)
 
 """
-    _make_frequency_grid(nfreq::Int, fmax::Number, dim::Int)
+    _make_wavenumber_grid(nk, kmax)
 
-Create a frequency grid with uniform parameters across all dimensions.
+Create a wavenumber grid with dimension-specific parameters.
 """
-function _make_frequency_grid(nfreq::Int, fmax::Number, dim::Int)
-    return ntuple(d -> _choose_frequencies_1d(nfreq, fmax), dim)
-end
-
-"""
-    _make_frequency_grid(nfreq, fmax, dim::Int)
-
-Create a frequency grid with dimension-specific parameters.
-"""
-function _make_frequency_grid(nfreq, fmax, dim::Int)
-    freq = _choose_frequencies_1d.(nfreq, fmax)
-    if length(freq) != dim
-        throw(ArgumentError("Dimension mismatch: expected $dim frequency dimensions, got $(length(freq))"))
-    end
-    return freq
+function _make_wavenumber_grid(nk, kmax)
+    wavenumber = _choose_wavenumbers_1d.(nk, kmax)
+    return wavenumber
 end

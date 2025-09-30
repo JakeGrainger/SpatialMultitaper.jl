@@ -1,6 +1,6 @@
 
 # """
-#     create_intensities(data::NTuple{P,PointSet}, region; tapers, nfreq, fmax, radii, grid, smooth_width) where {P}
+#     create_intensities(data::NTuple{P,PointSet}, region; tapers, nk, kmax, radii, grid, smooth_width) where {P}
 
 # Constructs the internal intensities for each of the processes partial on all the others.
 
@@ -12,14 +12,14 @@
 #         data::NTuple{P, PointSet},
 #         region;
 #         tapers,
-#         nfreq,
-#         fmax,
+#         nk,
+#         kmax,
 #         radii,
 #         grid,
 #         mean_method::MeanEstimationMethod = DefaultMean(),
 #         smooth_width = nothing
 # ) where {P}
-#     spec = spectra(data, region; tapers = tapers, nfreq = nfreq, fmax = fmax)
+#     spec = spectra(data, region; tapers = tapers, nk = nk, kmax = kmax)
 #     intensity = mean_estimate(data, region, mean_method)
 #     kernels = prediction_kernel(spec, radii = radii, smooth_width = smooth_width)
 #     kernel_integral = integrate_prediction_kernel.(
@@ -77,22 +77,23 @@ end
 
 function prediction_kernel(spec::Spectra; radii, smooth_width = nothing)
     kernel_ft = prediction_kernel_ft(spec)
-    kernels = _ft2kernel.(Ref(kernel_ft.freq), kernel_ft.kernels, Ref(radii), smooth_width)
+    kernels = _ft2kernel.(
+        Ref(kernel_ft.wavenumber), kernel_ft.kernels, Ref(radii), smooth_width)
     return (radii = radii, kernels = kernels)
 end
 
-function _ft2kernel(freq::NTuple{D}, kernel_ft, radii, smooth_width::Int) where {D}
-    raw = _ft2kernel(freq, kernel_ft, radii, nothing)
+function _ft2kernel(wavenumber::NTuple{D}, kernel_ft, radii, smooth_width::Int) where {D}
+    raw = _ft2kernel(wavenumber, kernel_ft, radii, nothing)
     return movingaverage(raw[1], smooth_width)
 end
 
 function _ft2kernel(
-        freq::NTuple{D}, kernel_ft, radii, smooth_width::Nothing = nothing) where {D}
-    return [prod(step, freq) * real(
+        wavenumber::NTuple{D}, kernel_ft, radii, smooth_width::Nothing = nothing) where {D}
+    return [prod(step, wavenumber) * real(
                 sum(
                 f * pcf_weight(radius, k, Val{D}())
             for
-            (f, k) in zip(kernel_ft, Iterators.product(freq...))
+            (f, k) in zip(kernel_ft, Iterators.product(wavenumber...))
             ),
             ) for radius in radii]
 end
@@ -112,14 +113,14 @@ function movingaverage(x, width)
 end
 
 # commented out is for anisotropic version
-# function prediction_kernel_ft2space(freq, power::AbstractArray{D,T}) where {D,T<:Number}
-#     @assert length(freq) == ndims(power) - 1
-#     (length(power) * prod(step.(freq))) .*
+# function prediction_kernel_ft2space(wavenumber, power::AbstractArray{D,T}) where {D,T<:Number}
+#     @assert length(wavenumber) == ndims(power) - 1
+#     (length(power) * prod(step.(wavenumber))) .*
 #     fftshift(ifft(ifftshift(power, 2:ndims(power)), 2:ndims(power)), 2:ndims(power))
 # end
 
-# function prediction_kernel_ft2space(freq, power::AbstractArray{S,SMatrix})
-#     prediction_kernel_ft2space(freq, svectors2array(power))
+# function prediction_kernel_ft2space(wavenumber, power::AbstractArray{S,SMatrix})
+#     prediction_kernel_ft2space(wavenumber, svectors2array(power))
 # end
 
 # function svectors2array(x::Array{D,SVector{P,T}}) where {D,P,T}

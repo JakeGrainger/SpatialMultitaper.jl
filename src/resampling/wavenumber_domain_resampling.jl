@@ -1,22 +1,23 @@
-##### This is experiemental code for resampling in the frequency domain, not functional
+##### This is experiemental code for resampling in the wavenumber domain, not functional
 
-## freq domain null resampling
+## wavenumber domain null resampling
 function multitaper_estimate_resampled(
         data,
         region;
-        nfreq,
-        fmax,
+        nk,
+        kmax,
         tapers,
         mean_method::MeanEstimationMethod = DefaultMean(),
         nresamples::Int
 )
     data, dim = check_spatial_data(data)
-    freq = _make_frequency_grid(nfreq, fmax, dim)
-    J_n = tapered_dft(data, tapers, nfreq, fmax, region, mean_method)
+    _nk, _kmax = _validate_wavenumber_params(nk, kmax, nothing, dim)
+    wavenumber = _make_wavenumber_grid(_nk, _kmax)
+    J_n = tapered_dft(data, tapers, _nk, _kmax, region, mean_method)
     power = dft2spectralmatrix(J_n)
-    resampled = [Spectra(freq, dft2spectralmatrix(null_resample(J_n)))
+    resampled = [Spectra(wavenumber, dft2spectralmatrix(null_resample(J_n)))
                  for _ in 1:nresamples]
-    observed = Spectra(freq, power)
+    observed = Spectra(wavenumber, power)
     return (observed = observed, resampled = resampled)
 end
 

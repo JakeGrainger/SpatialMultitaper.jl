@@ -28,7 +28,7 @@ where G = S⁻¹ is the inverse spectral matrix.
 partial_spec = partial_spectra(marginal_spec)
 
 # Direct computation from data::SpatialData
-partial_spec = partial_spectra(data; nfreq=nfreq, fmax=fmax, tapers=tapers)
+partial_spec = partial_spectra(data; nk=nk, kmax=kmax, tapers=tapers)
 ```
 """
 function partial_spectra(spectrum::Spectra{MarginalTrait})::Spectra{PartialTrait}
@@ -109,7 +109,7 @@ function partial_spectra(spectrum::RotationalSpectra{MarginalTrait})::Rotational
         ))
     end
 
-    freq = getargument(spectrum)
+    wavenumber = getargument(spectrum)
     power = getestimate(spectrum)
     trait = process_trait(spectrum)
     # Note: Debiasing is different for rotational estimates (not currently implemented)
@@ -118,7 +118,7 @@ function partial_spectra(spectrum::RotationalSpectra{MarginalTrait})::Rotational
     estimationinfo = getestimationinformation(spectrum)
 
     return RotationalEstimate{PartialTrait, typeof(spectrum)}(
-        freq, value, processinfo, estimationinfo)
+        wavenumber, value, processinfo, estimationinfo)
 end
 
 """

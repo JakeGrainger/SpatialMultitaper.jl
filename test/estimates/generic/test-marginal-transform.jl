@@ -15,7 +15,7 @@ import SpatialMultitaper: MarginallyTransformedEstimate, apply_marginal_transfor
         data = make_points_example(
             rng, n_processes = 2, return_type = :tuple, point_number = 40)
         region = getregion(data)
-        spec = spectra(data, nfreq = (6, 6), fmax = (0.3, 0.3),
+        spec = spectra(data, nk = (6, 6), kmax = (0.3, 0.3),
             tapers = sin_taper_family((2, 2), region))
 
         # Apply transform
@@ -35,7 +35,7 @@ end
     data = make_points_example(
         rng, n_processes = 2, return_type = :tuple, point_number = 30)
     region = getregion(data)
-    spec = spectra(data, nfreq = (4, 4), fmax = (0.2, 0.2),
+    spec = spectra(data, nk = (4, 4), kmax = (0.2, 0.2),
         tapers = sin_taper_family((2, 2), region))
 
     @testset "real transform" begin
@@ -153,7 +153,7 @@ end
     end
 
     @testset "Regular array input" begin
-        data = rand(ComplexF64, 3, 3, 5, 5)  # P x Q x freq1 x freq2
+        data = rand(ComplexF64, 3, 3, 5, 5)  # P x Q x k1 x k2
 
         result = apply_marginal_transform(abs, data)
         @test size(result) == size(data)
@@ -167,7 +167,7 @@ end
     data = make_points_example(
         rng, n_processes = 2, return_type = :tuple, point_number = 30)
     region = getregion(data)
-    spec = spectra(data, nfreq = (4, 4), fmax = (0.2, 0.2),
+    spec = spectra(data, nk = (4, 4), kmax = (0.2, 0.2),
         tapers = sin_taper_family((2, 2), region))
 
     @testset "Estimate naming" begin
@@ -191,7 +191,7 @@ end
     data = make_points_example(
         rng, n_processes = 2, return_type = :tuple, point_number = 30)
     region = getregion(data)
-    spec = spectra(data, nfreq = (4, 4), fmax = (0.2, 0.2),
+    spec = spectra(data, nk = (4, 4), kmax = (0.2, 0.2),
         tapers = sin_taper_family((2, 2), region))
 
     @testset "Multiple transforms" begin
@@ -217,7 +217,7 @@ end
     data = make_points_example(
         rng, n_processes = 3, return_type = :tuple, point_number = 30)
     region = getregion(data)
-    spec = spectra(data, nfreq = (4, 4), fmax = (0.2, 0.2),
+    spec = spectra(data, nk = (4, 4), kmax = (0.2, 0.2),
         tapers = sin_taper_family((2, 2), region))
 
     real_spec = real(spec)
@@ -229,15 +229,15 @@ end
         @test getargument(real_sub) == getargument(real_spec)
     end
 
-    @testset "Frequency indexing" begin
-        real_freq = real_spec[1, 1, 2, 3]
-        @test real_freq isa MarginallyTransformedEstimate
-        @test size(real_freq) == (1, 1)
+    @testset "Wavenumber indexing" begin
+        real_wavenumber = real_spec[1, 1, 2, 3]
+        @test real_wavenumber isa MarginallyTransformedEstimate
+        @test size(real_wavenumber) == (1, 1)
 
-        # Check frequency was correctly indexed
-        freq_arg = getargument(real_freq)
-        @test length(freq_arg[1]) == 1
-        @test length(freq_arg[2]) == 1
+        # Check wavenumber was correctly indexed
+        wavenumber_arg = getargument(real_wavenumber)
+        @test length(wavenumber_arg[1]) == 1
+        @test length(wavenumber_arg[2]) == 1
     end
 end
 
@@ -246,7 +246,7 @@ end
     data = make_points_example(
         rng, n_processes = 2, return_type = :tuple, point_number = 20)
     region = getregion(data)
-    spec = spectra(data, nfreq = (4, 4), fmax = (0.2, 0.2),
+    spec = spectra(data, nk = (4, 4), kmax = (0.2, 0.2),
         tapers = sin_taper_family((2, 2), region))
 
     @testset "Type stability" begin
@@ -285,7 +285,7 @@ end
         data = make_points_example(
             rng, n_processes = 1, return_type = :single, point_number = 10)
         region = getregion(data)
-        spec = spectra(data, nfreq = (2, 2), fmax = (0.1, 0.1),
+        spec = spectra(data, nk = (2, 2), kmax = (0.1, 0.1),
             tapers = sin_taper_family((1, 1), region))
 
         abs_spec = abs(spec)

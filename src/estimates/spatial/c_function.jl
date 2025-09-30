@@ -33,7 +33,7 @@ where W(r,k) is a spatial weighting function depending on the dimension.
 cf = c_function(spectrum, radii=0.1:0.1:2.0)
 
 # Direct computation from data
-cf = c_function(data, region, radii=0.1:0.1:2.0, nfreq=(32,32), fmax=(0.5,0.5), tapers=tapers)
+cf = c_function(data, region, radii=0.1:0.1:2.0, nk=(32,32), kmax=(0.5,0.5), tapers=tapers)
 ```
 """
 struct CFunction{E, D, P, Q, A, T, IP, IE} <: IsotropicEstimate{E, D, P, Q}
@@ -77,7 +77,7 @@ function c_function(data, region; kwargs...)::CFunction
 end
 
 """
-    c_function(data::SpatialData; radii, nfreq, fmax, freq_radii, rotational_method, spectra_kwargs...)
+    c_function(data::SpatialData; radii, nk, kmax, wavenumber_radii, rotational_method, spectra_kwargs...)
 
 Compute spatial C function from spatial data.
 
@@ -87,36 +87,41 @@ via inverse Fourier transform with appropriate spatial weighting.
 # Arguments
 - `data::SpatialData`: Input spatial data
 - `radii`: Distances at which to evaluate the C function
-- `nfreq`: Number of frequencies per dimension for spectral estimation
-- `fmax`: Maximum frequency per dimension for spectral estimation
-- `freq_radii`: Radial frequencies for rotational averaging (default: from nfreq, fmax)
-- `rotational_method`: Kernel for rotational averaging (default: from nfreq, fmax)
-- `spectra_kwargs...`: Additional arguments passed to spectral estimation
+- `wavenumber_radii`: Radial wavenumbers for rotational averaging (default: from nk, kmax)
+- `rotational_method`: Kernel for rotational averaging (default: from nk, kmax)
+- `spectra_kwargs...`: Additional arguments passed to `spectra`
 
 # Returns
 A `CFunction` object containing the spatial C function.
 """
-function c_function(
-        data::SpatialData; radii, nfreq, fmax,
-        freq_radii = default_rotational_radii(nfreq, fmax),
-        rotational_method = default_c_rotational_kernel(nfreq, fmax),
-        spectra_kwargs...
-)::CFunction
-    spectrum = spectra(data; nfreq, fmax, spectra_kwargs...)
-    return c_function(spectrum; radii = radii, freq_radii = freq_radii,
-        rotational_method = rotational_method)
+function c_function(data::SpatialData; radii, rotational_wavenumber_radii = nothing,
+        rotational_method = nothing, kwargs...)::CFunction
+    spectrum = spectra(data; kwargs...)
+    wavenumber_radii_processed = process_c_rotational_radii(
+        rotational_wavenumber_radii; kwargs...)
+    rotational_method_processed = process_c_rotational_kernel(rotational_method; kwargs...)
+    return c_function(
+        spectrum; radii = radii, wavenumber_radii = wavenumber_radii_processed,
+        rotational_method = rotational_method_processed)
 end
-default_c_rotational_kernel(args...) = NoRotational()
+process_c_rotational_kernel(::Nothing; kwargs...) = default_c_rotational_kernel(; kwargs...)
+process_c_rotational_kernel(kernel; kwargs...) = kernel
+process_c_rotational_radii(::Nothing; kwargs...) = default_c_rotational_radii(; kwargs...)
+process_c_rotational_radii(radii; kwargs...) = radii
+
+default_c_rotational_kernel(args...; kwargs...) = NoRotational()
+default_c_rotational_radii(spectrum) = default_rotational_radii(spectrum)
+default_c_rotational_radii(; nk, kmax, kwargs...) = default_rotational_radii(nk, kmax)
 
 """
-    c_function(spectrum::Spectra; radii, freq_radii, rotational_method)
+    c_function(spectrum::Spectra; radii, wavenumber_radii, rotational_method)
 
 Compute spatial C function from a spectral estimate.
 
 # Arguments
 - `spectrum::Spectra`: Input power spectral density estimate
 - `radii`: Distances for C function evaluation
-- `freq_radii`: Radial frequencies for rotational averaging (default: from spectrum)
+- `wavenumber_radii`: Radial wavenumbers for rotational averaging (default: from spectrum)
 - `rotational_method`: Smoothing kernel for rotational averaging (default: from spectrum)
 
 # Returns
@@ -124,10 +129,10 @@ A `CFunction` object with the C function values.
 """
 function c_function(
         spectrum::Spectra; radii,
-        freq_radii = default_rotational_radii(spectrum),
+        wavenumber_radii = default_c_rotational_radii(spectrum),
         rotational_method = default_c_rotational_kernel(spectrum)
 )::CFunction
-    return _c_function(spectrum, radii, freq_radii, rotational_method)
+    return _c_function(spectrum, radii, wavenumber_radii, rotational_method)
 end
 
 """
@@ -153,7 +158,7 @@ function partial_c_function(data, region; kwargs...)::CFunction{PartialTrait}
 end
 
 """
-    partial_c_function(data::SpatialData; radii, nfreq, fmax, spectra_kwargs...)
+    partial_c_function(data::SpatialData; radii, nk, kmax, spectra_kwargs...)
 
 Compute partial spatial C function from spatial data.
 
@@ -161,9 +166,8 @@ Partial C functions show direct spatial relationships with the influence
 of other processes removed.
 """
 function partial_c_function(
-        data::SpatialData; radii, nfreq, fmax, spectra_kwargs...
-)::CFunction{PartialTrait}
-    f_mt = partial_spectra(data; nfreq, fmax, spectra_kwargs...)
+        data::SpatialData; radii, spectra_kwargs...)::CFunction{PartialTrait}
+    f_mt = partial_spectra(data; spectra_kwargs...)
     return c_function(f_mt; radii = radii)
 end
 
@@ -182,13 +186,15 @@ end
 # Internal implementation
 
 """
-    _c_function(spectrum::Spectra{E}, radii, freq_radii, rotational_method) where {E}
+    _c_function(spectrum::Spectra{E}, radii, wavenumber_radii, rotational_method) where {E}
 
 Internal function to compute C function with rotational averaging.
 """
-function _c_function(spectrum::Spectra{E}, radii, freq_radii, rotational_method) where {E}
+function _c_function(
+        spectrum::Spectra{E}, radii, wavenumber_radii, rotational_method) where {E}
     # Perform rotational averaging if needed
-    rot_spec = rotational_estimate(spectrum, radii = freq_radii, kernel = rotational_method)
+    rot_spec = rotational_estimate(
+        spectrum, radii = wavenumber_radii, kernel = rotational_method)
     value = _sdf2C(rot_spec, radii)
     return CFunction{E}(
         radii, value, getprocessinformation(spectrum), getestimationinformation(spectrum))
@@ -205,10 +211,10 @@ Uses appropriate weighting functions based on spatial dimension and handles
 zero-atom corrections when present.
 """
 function _sdf2C(f::Spectra, radii)
-    freq = getargument(f)
+    wavenumber = getargument(f)
     spectra = getestimate(f)
     zero_atom = getprocessinformation(f).atoms
-    return _sdf2C_anisotropic(freq, spectra, process_trait(f), zero_atom, radii)
+    return _sdf2C_anisotropic(wavenumber, spectra, process_trait(f), zero_atom, radii)
 end
 
 """
@@ -220,42 +226,44 @@ For isotropic estimates, weights are integrated over each interval in the integr
 approximated.
 """
 function _sdf2C(f::IsotropicEstimate{E, D, P}, radii) where {E, D, P}
-    freq = getargument(f)
+    wavenumber = getargument(f)
     spectra = getestimate(f)
     zero_atom = getprocessinformation(f).atoms
-    return _sdf2C_isotropic(freq, spectra, process_trait(f), zero_atom, radii, Val{D}())
+    return _sdf2C_isotropic(
+        wavenumber, spectra, process_trait(f), zero_atom, radii, Val{D}())
 end
 
 # Anisotropic correlation function computation
 
-function _sdf2C_anisotropic(freq, power, ::Union{SingleProcessTrait, MultipleTupleTrait},
+function _sdf2C_anisotropic(
+        wavenumber, power, ::Union{SingleProcessTrait, MultipleTupleTrait},
         zero_atom, radius::Number)
-    frequency_spacing = prod(step, freq)
+    wavenumber_spacing = prod(step, wavenumber)
 
     c = sum(_compute_c_term(s, zero_atom, radius, k)
-    for (s, k) in zip(power, Iterators.product(freq...)))
+    for (s, k) in zip(power, Iterators.product(wavenumber...)))
 
-    return frequency_spacing * real(c)
+    return wavenumber_spacing * real(c)
 end
 
 function _sdf2C_anisotropic(
-        freq, power, trait::Union{SingleProcessTrait, MultipleTupleTrait},
+        wavenumber, power, trait::Union{SingleProcessTrait, MultipleTupleTrait},
         zero_atom, radii::AbstractVector)
     out = zeros(eltype(power), length(radii))
     for (i, radius) in enumerate(radii)
-        out[i] = _sdf2C_anisotropic(freq, power, trait, zero_atom, radius)
+        out[i] = _sdf2C_anisotropic(wavenumber, power, trait, zero_atom, radius)
     end
     return out
 end
 
 function _sdf2C_anisotropic(
-        freq::NTuple{D}, power::AbstractArray{<:Number, N}, ::MultipleVectorTrait,
+        wavenumber::NTuple{D}, power::AbstractArray{<:Number, N}, ::MultipleVectorTrait,
         zero_atom, radii::AbstractVector) where {D, N}
-    if length(freq) > ndims(power)
-        throw(DimensionMismatch("Frequency dimensions ($(length(freq))) cannot exceed power array dimensions ($(ndims(power)))"))
+    if length(wavenumber) > ndims(power)
+        throw(DimensionMismatch("Wavenumber dimensions ($(length(wavenumber))) cannot exceed power array dimensions ($(ndims(power)))"))
     end
     if !isnothing(zero_atom)
-        @argcheck ndims(zero_atom) + length(freq) == ndims(power)
+        @argcheck ndims(zero_atom) + length(wavenumber) == ndims(power)
     end
 
     out = zeros(eltype(power), size(power)[1:((N - D))]..., length(radii))
@@ -264,7 +272,7 @@ function _sdf2C_anisotropic(
         zero_atom_slice = _slice_zero_atom(zero_atom, idx)
         for (i, radius) in enumerate(radii)
             out[idx, i] = _sdf2C_anisotropic(
-                freq, power_slice, SingleProcessTrait(), zero_atom_slice, radius)
+                wavenumber, power_slice, SingleProcessTrait(), zero_atom_slice, radius)
         end
     end
     return out
@@ -272,32 +280,33 @@ end
 
 ## _sdf2C_isotropic
 function _sdf2C_isotropic(
-        freq, power, trait::Union{SingleProcessTrait, MultipleTupleTrait},
+        wavenumber, power, trait::Union{SingleProcessTrait, MultipleTupleTrait},
         zero_atom, radii::AbstractVector, ::Val{D}) where {D}
     out = zeros(eltype(power), length(radii))
     for (i, radius) in enumerate(radii)
-        out[i] = _sdf2C_isotropic(freq, power, trait, zero_atom, radius, Val{D}())
+        out[i] = _sdf2C_isotropic(wavenumber, power, trait, zero_atom, radius, Val{D}())
     end
     return out
 end
 
-function _sdf2C_isotropic(freq, power, ::Union{SingleProcessTrait, MultipleTupleTrait},
+function _sdf2C_isotropic(
+        wavenumber, power, ::Union{SingleProcessTrait, MultipleTupleTrait},
         zero_atom, radius::Number, ::Val{D}) where {D}
-    spacing = step(freq)
+    spacing = step(wavenumber)
 
     c = sum(_compute_c_term(s, zero_atom, radius, k, spacing, Val{D}())
-    for (s, k) in zip(power, freq))
+    for (s, k) in zip(power, wavenumber))
 
     return real(c)
 end
 
 function _sdf2C_isotropic(
-        freq, power::AbstractArray{<:Number, N}, ::MultipleVectorTrait,
+        wavenumber, power::AbstractArray{<:Number, N}, ::MultipleVectorTrait,
         zero_atom, radii::AbstractVector, ::Val{D}) where {D, N}
     if !isnothing(zero_atom)
         @argcheck ndims(zero_atom) + 1 == ndims(power)
     end
-    @argcheck size(power, ndims(power)) == length(freq)
+    @argcheck size(power, ndims(power)) == length(wavenumber)
 
     out = zeros(eltype(power), size(power)[1:(N - 1)]..., length(radii))
     for idx in CartesianIndices(size(power)[1:(N - 1)])
@@ -305,7 +314,7 @@ function _sdf2C_isotropic(
         zero_atom_slice = _slice_zero_atom(zero_atom, idx)
         for (i, radius) in enumerate(radii)
             out[idx, i] = _sdf2C_isotropic(
-                freq, power_slice, SingleProcessTrait(), zero_atom_slice, radius, Val{D}())
+                wavenumber, power_slice, SingleProcessTrait(), zero_atom_slice, radius, Val{D}())
         end
     end
     return out

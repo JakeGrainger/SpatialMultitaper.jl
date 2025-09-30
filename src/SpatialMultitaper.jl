@@ -16,7 +16,7 @@ using .SlepianSolver
 
 include("tapers/general_tapers.jl")
 
-include("dft_interface/frequencies.jl")
+include("dft_interface/wavenumbers.jl")
 include("dft_interface/nufft_interface.jl")
 include("dft_interface/fft_interface.jl")
 
@@ -33,6 +33,7 @@ include("estimates/processinfo.jl")
 include("estimates/estimate_types.jl")
 include("estimates/printing.jl")
 include("estimates/errors.jl")
+include("estimates/parameter_inputs.jl")
 
 include("estimates/generic/rotational_estimate.jl")
 include("estimates/generic/marginal_transform.jl")

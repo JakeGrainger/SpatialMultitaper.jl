@@ -69,13 +69,13 @@ end
     @testset "Basic functionality" begin
         data = make_points_example(
             rng, n_processes = 3, return_type = :tuple, point_number = 40)
-        nfreq = (6, 6)
-        fmax = (0.3, 0.3)
+        nk = (6, 6)
+        kmax = (0.3, 0.3)
         region = getregion(data)
         tapers = sin_taper_family((2, 2), region)
 
         # Create marginal spectra
-        spec = spectra(data, nfreq = nfreq, fmax = fmax, tapers = tapers)
+        spec = spectra(data, nk = nk, kmax = kmax, tapers = tapers)
 
         # Convert to partial spectra
         partial_spec = partial_spectra(spec)
@@ -84,7 +84,7 @@ end
         @test is_partial(partial_spec) == true  # Should have PartialTrait
         @test size(partial_spec) == size(spec)
         @test embeddim(partial_spec) == embeddim(spec)
-        @test getargument(partial_spec) == getargument(spec)  # Same frequencies
+        @test getargument(partial_spec) == getargument(spec)  # Same wavenumbers
         @test getprocessinformation(partial_spec) == getprocessinformation(spec)
         @test getestimationinformation(partial_spec) == getestimationinformation(spec)
     end
@@ -92,12 +92,12 @@ end
     @testset "Direct from data" begin
         data = make_points_example(
             rng, n_processes = 2, return_type = :tuple, point_number = 30)
-        nfreq = (4, 4)
-        fmax = (0.2, 0.2)
+        nk = (4, 4)
+        kmax = (0.2, 0.2)
         region = getregion(data)
         tapers = sin_taper_family((2, 2), region)
 
-        partial_spec = partial_spectra(data, nfreq = nfreq, fmax = fmax, tapers = tapers)
+        partial_spec = partial_spectra(data, nk = nk, kmax = kmax, tapers = tapers)
 
         @test partial_spec isa Spectra
         @test is_partial(partial_spec) == true
@@ -108,7 +108,7 @@ end
         data = make_points_example(
             rng, n_processes = 2, return_type = :tuple, point_number = 30)
         region = getregion(data)
-        spec = spectra(data, nfreq = (4, 4), fmax = (0.2, 0.2),
+        spec = spectra(data, nk = (4, 4), kmax = (0.2, 0.2),
             tapers = sin_taper_family((2, 2), region))
 
         partial_corrected = partial_spectra(spec)
@@ -221,7 +221,7 @@ end
     data = make_points_example(
         rng, n_processes = 2, return_type = :tuple, point_number = 30)
     region = getregion(data)
-    spec = spectra(data, nfreq = (4, 4), fmax = (0.2, 0.2),
+    spec = spectra(data, nk = (4, 4), kmax = (0.2, 0.2),
         tapers = sin_taper_family((2, 2), region))
 
     partial_spec = partial_spectra(spec)
@@ -232,10 +232,10 @@ end
         @test size(partial_sub) == (1, 1)
         @test is_partial(partial_sub) == true
 
-        # Test frequency indexing
-        partial_freq = partial_spec[1, 1, 2, 3]
-        @test size(partial_freq) == (1, 1)
-        @test is_partial(partial_freq) == true
+        # Test wavenumber indexing
+        partial_wavenumber = partial_spec[1, 1, 2, 3]
+        @test size(partial_wavenumber) == (1, 1)
+        @test is_partial(partial_wavenumber) == true
     end
 
     @testset "Compatibility with other transforms" begin
@@ -301,7 +301,7 @@ end
         data = make_points_example(
             rng, n_processes = 1, return_type = :single, point_number = 20)
         region = getregion(data)
-        spec = spectra(data, nfreq = (4, 4), fmax = (0.2, 0.2),
+        spec = spectra(data, nk = (4, 4), kmax = (0.2, 0.2),
             tapers = sin_taper_family((2, 2), region))
 
         partial_spec = partial_spectra(spec)

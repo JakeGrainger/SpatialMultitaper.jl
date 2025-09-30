@@ -29,10 +29,10 @@ end
     g = CartesianGrid((0.0, 0.0), (1.0, 1.0), dims = (100, 100))
     g2 = CartesianGrid((0.0, 0.0), (1.0, 0.5), dims = (100, 100))
     options = (
-        freq_region = Ball(Point(0, 0), 0.1),
+        wavenumber_region = Ball(Point(0, 0), 0.1),
         ntapers = 2,
-        freq_res = 200,
-        freq_downsample = 2,
+        wavenumber_res = 200,
+        wavenumber_downsample = 2,
         tol = 0.1
     )
 

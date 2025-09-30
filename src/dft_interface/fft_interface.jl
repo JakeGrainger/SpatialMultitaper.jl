@@ -74,11 +74,11 @@ function fft_anydomain(
         )
     end
 
-    freq = Iterators.ProductIterator(_choose_wavenumbers_1d.(nk, kmax))
+    wavenumber = Iterators.ProductIterator(_choose_wavenumbers_1d.(nk, kmax))
     shift = unitless_minimum(grid) .+ unitless_spacing(grid) ./ 2
     for i in axes(J_unwrapped_reshaped, ndims(J_unwrapped_reshaped))
         J_unwrapped_slice = selectdim(J_unwrapped_reshaped, ndims(J_unwrapped_reshaped), i)
-        for (j, k) in zip(eachindex(J_unwrapped_slice), freq)
+        for (j, k) in zip(eachindex(J_unwrapped_slice), wavenumber)
             J_unwrapped_slice[j] *= exp(-2pi * 1im * sum(k .* shift))
         end
     end

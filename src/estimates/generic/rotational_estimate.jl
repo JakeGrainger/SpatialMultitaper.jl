@@ -262,7 +262,7 @@ function _smoothed_rotational(
 end
 
 """
-    default_rotational_radii(freq::NTuple{D,AbstractVector{<:Real}}) where {D}
+    default_rotational_radii(wavenumber::NTuple{D,AbstractVector{<:Real}}) where {D}
     default_rotational_radii(s::AbstractEstimate)
     default_rotational_radii(nk, kmax)
 
@@ -273,7 +273,7 @@ maximum wavenumbers across dimensions, with the number of points equal to
 the maximum wavenumber vector length.
 
 # Arguments
-- `freq`: Tuple of wavenumber vectors for each dimension
+- `wavenumber`: Tuple of wavenumber vectors for each dimension
 - `s`: An estimate from which to extract wavenumber information
 - `nk`, `kmax`: Number of wavenumbers and maximum wavenumber per dimension
 
@@ -293,9 +293,9 @@ function default_rotational_radii(s::AbstractEstimate)
     return default_rotational_radii(getargument(s))
 end
 
-function default_rotational_radii(freq::NTuple{D, AbstractVector{<:Real}}) where {D}
-    max_freq = minimum(x -> maximum(abs, x), freq)
-    n_freq = maximum(length, freq)
+function default_rotational_radii(wavenumber::NTuple{D, AbstractVector{<:Real}}) where {D}
+    max_freq = minimum(x -> maximum(abs, x), wavenumber)
+    n_freq = maximum(length, wavenumber)
     zero_range = range(zero(eltype(max_freq)), stop = max_freq, length = n_freq)
     # Offset by half step to integrate with endpoints at zero range steps
     used_range = range(step(zero_range) / 2, stop = max_freq, step = step(zero_range))
@@ -305,7 +305,7 @@ end
 """
     default_rotational_kernel(est::AbstractEstimate)
     default_rotational_kernel(nk, kmax)
-    default_rotational_kernel(freq::NTuple{D, AbstractVector{<:Real}}) where {D}
+    default_rotational_kernel(wavenumber::NTuple{D, AbstractVector{<:Real}}) where {D}
 
 Construct a default smoothing kernel for rotational averaging.
 
@@ -324,7 +324,7 @@ function default_rotational_kernel(nk, kmax)
     return default_rotational_kernel(_choose_wavenumbers_1d.(nk, kmax))
 end
 
-function default_rotational_kernel(freq::NTuple{D, AbstractVector{<:Real}}) where {D}
-    max_step = maximum(step, freq)
+function default_rotational_kernel(wavenumber::NTuple{D, AbstractVector{<:Real}}) where {D}
+    max_step = maximum(step, wavenumber)
     return RectKernel(2 * max_step)
 end

@@ -163,14 +163,14 @@ function _sdf2pcf(
         f::Spectra{E, D},
         radius::Number
 ) where {E, D}
-    freq = getargument(f)
+    wavenumber = getargument(f)
     spectra = getestimate(f)
     zeroatom = getprocessinformation(f).atoms
     mean_prod = getprocessinformation(f).mean_product
-    pcf_unweighted = prod(step, freq) * real(
+    pcf_unweighted = prod(step, wavenumber) * real(
         sum((f - zeroatom) * pcf_weight(radius, k, Val{D}())
     for
-    (f, k) in zip(spectra, Iterators.product(freq...))
+    (f, k) in zip(spectra, Iterators.product(wavenumber...))
     ))
     return pcf_unweighted ./ (mean_prod) .+ 1
 end

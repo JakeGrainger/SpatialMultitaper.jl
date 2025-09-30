@@ -67,14 +67,15 @@ function _single_tapered_dft(
     marks = values(observations(data))[1]
     points = domain(observations(data))
     region = getregion(data)
-    freq = Iterators.ProductIterator(_make_wavenumber_grid(nk, kmax, embeddim(points)))
+    wavenumber = Iterators.ProductIterator(_make_wavenumber_grid(
+        nk, kmax, embeddim(points)))
     tapered_marks = _apply_taper(points, marks, tapers)
 
     # perform transform
     J = nufft_anydomain(region, nk, kmax, points, tapered_marks, -1, 1e-14)
     for i in eachindex(tapers)
         J_h = selectdim(J, embeddim(points) + 1, i)
-        for (j, k) in zip(eachindex(J_h), freq)
+        for (j, k) in zip(eachindex(J_h), wavenumber)
             J_h[j] -= λ * taper_ft(tapers[i], k)
         end
     end

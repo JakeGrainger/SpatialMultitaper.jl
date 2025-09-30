@@ -68,7 +68,7 @@ spec = spectra(data; tapers = tapers, nk = nk, kmax = kmax)
 ## Visualising the output
 The spectral estimate is returned as a `Spectra` object. There are various
 transformations we can apply to this object. But if we want to visualise the raw output,
-we can get the wavenumbers and power from the fields `freq` and `power` respectively.
+we can get the wavenumbers and power from the fields `wavenumber` and `power` respectively.
 The object is multidimensional, but we can index it to get the estimate between two
 processes.
 

@@ -209,10 +209,10 @@ Uses appropriate weighting functions based on spatial dimension and handles
 zero-atom corrections when present.
 """
 function _sdf2C(f::Spectra, radii)
-    freq = getargument(f)
+    wavenumber = getargument(f)
     spectra = getestimate(f)
     zero_atom = getprocessinformation(f).atoms
-    return _sdf2C_anisotropic(freq, spectra, process_trait(f), zero_atom, radii)
+    return _sdf2C_anisotropic(wavenumber, spectra, process_trait(f), zero_atom, radii)
 end
 
 """
@@ -224,42 +224,44 @@ For isotropic estimates, weights are integrated over each interval in the integr
 approximated.
 """
 function _sdf2C(f::IsotropicEstimate{E, D, P}, radii) where {E, D, P}
-    freq = getargument(f)
+    wavenumber = getargument(f)
     spectra = getestimate(f)
     zero_atom = getprocessinformation(f).atoms
-    return _sdf2C_isotropic(freq, spectra, process_trait(f), zero_atom, radii, Val{D}())
+    return _sdf2C_isotropic(
+        wavenumber, spectra, process_trait(f), zero_atom, radii, Val{D}())
 end
 
 # Anisotropic correlation function computation
 
-function _sdf2C_anisotropic(freq, power, ::Union{SingleProcessTrait, MultipleTupleTrait},
+function _sdf2C_anisotropic(
+        wavenumber, power, ::Union{SingleProcessTrait, MultipleTupleTrait},
         zero_atom, radius::Number)
-    wavenumber_spacing = prod(step, freq)
+    wavenumber_spacing = prod(step, wavenumber)
 
     c = sum(_compute_c_term(s, zero_atom, radius, k)
-    for (s, k) in zip(power, Iterators.product(freq...)))
+    for (s, k) in zip(power, Iterators.product(wavenumber...)))
 
     return wavenumber_spacing * real(c)
 end
 
 function _sdf2C_anisotropic(
-        freq, power, trait::Union{SingleProcessTrait, MultipleTupleTrait},
+        wavenumber, power, trait::Union{SingleProcessTrait, MultipleTupleTrait},
         zero_atom, radii::AbstractVector)
     out = zeros(eltype(power), length(radii))
     for (i, radius) in enumerate(radii)
-        out[i] = _sdf2C_anisotropic(freq, power, trait, zero_atom, radius)
+        out[i] = _sdf2C_anisotropic(wavenumber, power, trait, zero_atom, radius)
     end
     return out
 end
 
 function _sdf2C_anisotropic(
-        freq::NTuple{D}, power::AbstractArray{<:Number, N}, ::MultipleVectorTrait,
+        wavenumber::NTuple{D}, power::AbstractArray{<:Number, N}, ::MultipleVectorTrait,
         zero_atom, radii::AbstractVector) where {D, N}
-    if length(freq) > ndims(power)
-        throw(DimensionMismatch("Wavenumber dimensions ($(length(freq))) cannot exceed power array dimensions ($(ndims(power)))"))
+    if length(wavenumber) > ndims(power)
+        throw(DimensionMismatch("Wavenumber dimensions ($(length(wavenumber))) cannot exceed power array dimensions ($(ndims(power)))"))
     end
     if !isnothing(zero_atom)
-        @argcheck ndims(zero_atom) + length(freq) == ndims(power)
+        @argcheck ndims(zero_atom) + length(wavenumber) == ndims(power)
     end
 
     out = zeros(eltype(power), size(power)[1:((N - D))]..., length(radii))
@@ -268,7 +270,7 @@ function _sdf2C_anisotropic(
         zero_atom_slice = _slice_zero_atom(zero_atom, idx)
         for (i, radius) in enumerate(radii)
             out[idx, i] = _sdf2C_anisotropic(
-                freq, power_slice, SingleProcessTrait(), zero_atom_slice, radius)
+                wavenumber, power_slice, SingleProcessTrait(), zero_atom_slice, radius)
         end
     end
     return out
@@ -276,32 +278,33 @@ end
 
 ## _sdf2C_isotropic
 function _sdf2C_isotropic(
-        freq, power, trait::Union{SingleProcessTrait, MultipleTupleTrait},
+        wavenumber, power, trait::Union{SingleProcessTrait, MultipleTupleTrait},
         zero_atom, radii::AbstractVector, ::Val{D}) where {D}
     out = zeros(eltype(power), length(radii))
     for (i, radius) in enumerate(radii)
-        out[i] = _sdf2C_isotropic(freq, power, trait, zero_atom, radius, Val{D}())
+        out[i] = _sdf2C_isotropic(wavenumber, power, trait, zero_atom, radius, Val{D}())
     end
     return out
 end
 
-function _sdf2C_isotropic(freq, power, ::Union{SingleProcessTrait, MultipleTupleTrait},
+function _sdf2C_isotropic(
+        wavenumber, power, ::Union{SingleProcessTrait, MultipleTupleTrait},
         zero_atom, radius::Number, ::Val{D}) where {D}
-    spacing = step(freq)
+    spacing = step(wavenumber)
 
     c = sum(_compute_c_term(s, zero_atom, radius, k, spacing, Val{D}())
-    for (s, k) in zip(power, freq))
+    for (s, k) in zip(power, wavenumber))
 
     return real(c)
 end
 
 function _sdf2C_isotropic(
-        freq, power::AbstractArray{<:Number, N}, ::MultipleVectorTrait,
+        wavenumber, power::AbstractArray{<:Number, N}, ::MultipleVectorTrait,
         zero_atom, radii::AbstractVector, ::Val{D}) where {D, N}
     if !isnothing(zero_atom)
         @argcheck ndims(zero_atom) + 1 == ndims(power)
     end
-    @argcheck size(power, ndims(power)) == length(freq)
+    @argcheck size(power, ndims(power)) == length(wavenumber)
 
     out = zeros(eltype(power), size(power)[1:(N - 1)]..., length(radii))
     for idx in CartesianIndices(size(power)[1:(N - 1)])
@@ -309,7 +312,7 @@ function _sdf2C_isotropic(
         zero_atom_slice = _slice_zero_atom(zero_atom, idx)
         for (i, radius) in enumerate(radii)
             out[idx, i] = _sdf2C_isotropic(
-                freq, power_slice, SingleProcessTrait(), zero_atom_slice, radius, Val{D}())
+                wavenumber, power_slice, SingleProcessTrait(), zero_atom_slice, radius, Val{D}())
         end
     end
     return out

@@ -51,9 +51,9 @@ end
     @testset "From wavenumber vectors" begin
         freq1 = range(0, 0.5, length = 11)
         freq2 = range(0, 0.3, length = 8)
-        freq = (freq1, freq2)
+        wavenumber = (freq1, freq2)
 
-        radii = default_rotational_radii(freq)
+        radii = default_rotational_radii(wavenumber)
 
         # Should use minimum of maximum wavenumbers
         max_radius = minimum([0.5, 0.3]) - step(radii) / 2

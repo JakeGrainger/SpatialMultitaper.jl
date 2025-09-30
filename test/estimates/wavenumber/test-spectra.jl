@@ -13,27 +13,27 @@ import SpatialMultitaper: Spectra, getargument, getestimate, _dft_to_spectral_ma
 
     @testset "Basic construction" begin
         # Create test data
-        freq = (1:10, 1:10)
+        wavenumber = (1:10, 1:10)
         power = rand(rng, ComplexF64, 2, 2, 10, 10)
         processinfo = ProcessInformation{2, MultipleVectorTrait}(
             [1, 2], [1, 2], ones(2, 2), ones(2, 2))
         estimationinfo = EstimationInformation(5)
 
-        spec = Spectra{MarginalTrait}(freq, power, processinfo, estimationinfo)
-        @test getargument(spec) == freq
+        spec = Spectra{MarginalTrait}(wavenumber, power, processinfo, estimationinfo)
+        @test getargument(spec) == wavenumber
         @test getestimate(spec) == power
         @test embeddim(spec) == 2
         @test size(spec) == (2, 2)
     end
 
     @testset "Single process case" begin
-        freq = (1:10,)
+        wavenumber = (1:10,)
         power = rand(rng, Float64, 1, 1, 10)
         processinfo = ProcessInformation{1, MultipleVectorTrait}(
             [1], [1], ones(1, 1), ones(1, 1))
         estimationinfo = EstimationInformation(3)
 
-        spec = Spectra{MarginalTrait}(freq, power, processinfo, estimationinfo)
+        spec = Spectra{MarginalTrait}(wavenumber, power, processinfo, estimationinfo)
         @test size(spec) == (1, 1)
         @test embeddim(spec) == 1
     end
@@ -145,22 +145,22 @@ end
 
 @testset "_make_wavenumber_grid function" begin
     @testset "Single wavenumber per dimension" begin
-        freq = _make_wavenumber_grid(10, 0.5, 1)
-        @test length(freq) == 1
-        @test length(freq[1]) == 10
-        @test maximum(abs, freq[1]) ≤ 0.5
+        wavenumber = _make_wavenumber_grid(10, 0.5, 1)
+        @test length(wavenumber) == 1
+        @test length(wavenumber[1]) == 10
+        @test maximum(abs, wavenumber[1]) ≤ 0.5
     end
 
     @testset "Different wavenumbers per dimension" begin
         nk = (8, 12)
         kmax = (0.4, 0.6)
-        freq = _make_wavenumber_grid(nk, kmax, 2)
+        wavenumber = _make_wavenumber_grid(nk, kmax, 2)
 
-        @test length(freq) == 2
-        @test length(freq[1]) == 8
-        @test length(freq[2]) == 12
-        @test maximum(abs, freq[1]) ≤ 0.4
-        @test maximum(abs, freq[2]) ≤ 0.6
+        @test length(wavenumber) == 2
+        @test length(wavenumber[1]) == 8
+        @test length(wavenumber[2]) == 12
+        @test maximum(abs, wavenumber[1]) ≤ 0.4
+        @test maximum(abs, wavenumber[2]) ≤ 0.6
     end
 end
 
@@ -211,8 +211,8 @@ end
         @test_throws ArgumentError _make_wavenumber_grid((8, 12), (0.4, 0.6), 3)  # Wrong number of dimensions
 
         # Test valid case doesn't throw
-        freq = _make_wavenumber_grid((8, 12), (0.4, 0.6), 2)
-        @test length(freq) == 2
+        wavenumber = _make_wavenumber_grid((8, 12), (0.4, 0.6), 2)
+        @test length(wavenumber) == 2
     end
 end
 

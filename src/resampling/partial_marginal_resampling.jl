@@ -83,21 +83,22 @@ end
 
 function create_single_intensity(
         idx, intensities::SVector{P, T}, data_ft, kernel_ft) where {P, T}
-    freq = kernel_ft.freq
+    wavenumber = kernel_ft.wavenumber
     ker = kernel_ft.kernels[idx]
     λz = SVector{P - 1, T}((intensities[1:(idx - 1)]..., intensities[(idx + 1):P]...))
 
-    base = intensities[idx] - (ker[findfirst.(Ref(iszero), freq)...] * λz)[1]
+    base = intensities[idx] - (ker[findfirst.(Ref(iszero), wavenumber)...] * λz)[1]
 
     idx_other = static_not(Val{P}(), idx)
     adjustment_ft = getindex.(ker .* getindex.(data_ft, Ref(idx_other)), 1)
     adjustment = bfft(adjustment_ft)
-    adjustment .*= prod(step, freq)
+    adjustment .*= prod(step, wavenumber)
 
     intensity = abs.(base .+ (adjustment)) # TODO: abs is probably not ideal
     grid = CartesianGrid(
-        length.(freq), ntuple(zero, length(freq)), 1 ./
-                                                   (length.(freq) .* step.(freq)))
+        length.(wavenumber), ntuple(zero, length(wavenumber)), 1 ./
+                                                               (length.(wavenumber) .*
+                                                                step.(wavenumber)))
     georef((intensity = vec(intensity),), grid)
 end
 
@@ -130,7 +131,7 @@ function prediction_kernel_ft(spec::Spectra{MarginalTrait, D, P, P}) where {D, P
             idx, getestimationinformation(spec).ntapers),
         Val{P}()
     )
-    return (freq = spec.freq, kernels = kernels)
+    return (wavenumber = spec.wavenumber, kernels = kernels)
 end
 
 function single_prediction_kernel_ft(S_mat::AbstractMatrix, idx::Int, ntapers::Int)

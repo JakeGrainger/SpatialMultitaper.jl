@@ -68,7 +68,7 @@ function Base.rand(rng::AbstractRNG, resampler::PartialResampler)
         J_cross, mean_cross,
         J_marginal, mean_marginal,
         atoms,
-        resampler.precompute.freq,
+        resampler.precompute.wavenumber,
         resampler.precompute.J_original,
         resampler.precompute.mean_original,
         resampler.precompute.f_inv_cross,
@@ -79,14 +79,14 @@ end
 
 function create_resampler_precompute(
         data::MultipleSpatialDataTuple; nk, kmax, tapers, mean_method = DefaultMean())
-    freq = _make_wavenumber_grid(nk, kmax, embeddim(data))
+    wavenumber = _make_wavenumber_grid(nk, kmax, embeddim(data))
     J_n = tapered_dft(data, tapers, nk, kmax, mean_method)
     power = _dft_to_spectral_matrix(J_n, process_trait(data))
     f_inv_cross = create_f_inv_cross(power)
     f_inv_marginal = create_f_inv_marginal(power)
     mean_original = mean_estimate(data, mean_method)
 
-    return (freq = freq, J_original = J_n, f_inv_cross = f_inv_cross,
+    return (wavenumber = wavenumber, J_original = J_n, f_inv_cross = f_inv_cross,
         f_inv_marginal = f_inv_marginal,
         mean_original = mean_original, ntapers = length(tapers))
 end
@@ -133,7 +133,7 @@ end
         J_marginal,
         mean_marginal,
         atoms,
-        freq,
+        wavenumber,
         J_original,
         mean_original,
         f_inv_cross,
@@ -142,7 +142,7 @@ end
         J_cross::NTuple{Q, AbstractArray{T, N}},
         J_marginal::NTuple{P, AbstractArray{T, N}},
         atoms,
-        freq,
+        wavenumber,
         J_original::NTuple{P, AbstractArray{T, N}},
         f_inv_cross::Matrix{AbstractArray{SMatrix{R, Q, T, S}, D}}},
         f_inv_marginal::NTuple{P, AbstractArray{SMatrix{Q, Q, T, L}, D}},
@@ -161,14 +161,14 @@ function partial_from_resampled(
         J_marginal,
         mean_marginal,
         atoms,
-        freq,
+        wavenumber,
         J_original,
         mean_original,
         f_inv_cross,
         f_inv_marginal,
         ntapers::Int) where {Q}
     par_spec = partial_from_resampled(
-        J_cross, mean_cross, J_marginal, mean_marginal, atoms, freq, J_original,
+        J_cross, mean_cross, J_marginal, mean_marginal, atoms, wavenumber, J_original,
         mean_original, f_inv_cross, f_inv_marginal, nothing
     )
     par = getestimate(par_spec)
@@ -177,7 +177,7 @@ function partial_from_resampled(
         par[i] = par[i] .* ntapers ./ denom
     end
     return Spectra{PartialTrait}(
-        freq, par, getprocessinformation(par_spec), EstimationInformation(ntapers))
+        wavenumber, par, getprocessinformation(par_spec), EstimationInformation(ntapers))
 end
 
 function partial_from_resampled(
@@ -186,7 +186,7 @@ function partial_from_resampled(
         J_marginal::NTuple{P, AbstractArray{T, N}},
         mean_marginal,
         atoms,
-        freq,
+        wavenumber,
         J_original::NTuple{P, AbstractArray{T, N}},
         mean_original,
         f_inv_cross::Union{Matrix{<:AbstractArray{SVector{R, T}, D}}, Nothing},
@@ -227,7 +227,7 @@ function partial_from_resampled(
     process_information = ProcessInformation{D, MultipleTupleTrait}(
         1:P, 1:P, mean_product, atoms) # should get the means for each part separately, means we should have means that are a matrix of products
     return Spectra{PartialTrait}(
-        freq, output, process_information, EstimationInformation(ntapers))
+        wavenumber, output, process_information, EstimationInformation(ntapers))
 end
 
 function partial_from_resampled_cross(

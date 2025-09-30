@@ -5,11 +5,11 @@ Constructs the concentration operator. Provide `real_tapers=Val{true}()` for rea
 Choose `real_tapers=Val{false}()` for complex valued tapers.
 """
 function make_concentration_operator(
-    R::AbstractArray,
-    K::AbstractArray,
-    real_tapers = Val{true}(),
+        R::AbstractArray,
+        K::AbstractArray,
+        real_tapers = Val{true}()
 )
-    size(R) == size(K) || error("Regions should be the same size in space and freq.")
+    size(R) == size(K) || error("Regions should be the same size in space and wavenumber.")
     P = SupportProjection(R)
     L = SupportProjection(K)
     Q = FourierTransform(size(inputspace(P)))
@@ -30,22 +30,22 @@ end
 Computes the eigenfunctions of the concentration operator. Provide `real_tapers=true` for real valued tapers.
 """
 function compute_eigenfunctions(
-    R::AbstractArray{Bool,D},
-    K::AbstractArray{Bool,D},
-    ntapers = 1;
-    imag_tol = 1e-5,
-    real_tapers = true,
-    tol = 0.0,
+        R::AbstractArray{Bool, D},
+        K::AbstractArray{Bool, D},
+        ntapers = 1;
+        imag_tol = 1e-5,
+        real_tapers = true,
+        tol = 0.0
 ) where {D}
     _compute_eigenfunctions(R, K, ntapers, imag_tol, Val{real_tapers}(), tol)
 end
 function _compute_eigenfunctions(
-    R::AbstractArray{Bool,D},
-    K::AbstractArray{Bool,D},
-    ntapers,
-    imag_tol,
-    real_tapers,
-    tol,
+        R::AbstractArray{Bool, D},
+        K::AbstractArray{Bool, D},
+        ntapers,
+        imag_tol,
+        real_tapers,
+        tol
 ) where {D}
     @assert size(K) == size(R)
     conc, reshp = make_concentration_operator(R, K, real_tapers)

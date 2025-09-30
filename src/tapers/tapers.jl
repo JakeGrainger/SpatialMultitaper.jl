@@ -15,9 +15,9 @@ struct DiscreteTaperFT{H}
         ft_desc = fft_anydomain(
             taper, grid, freq_res, 1 ./ (2 .* unitless_spacing(grid))) .*
                   prod(unitless_spacing(grid))
-        freq = fftshift.(fftfreq.(size(ft_desc), inv.(unitless_spacing(grid))))
+        wavenumber = fftshift.(fftfreq.(size(ft_desc), inv.(unitless_spacing(grid))))
 
-        ft_interp = linear_interpolation(freq, ft_desc, extrapolation_bc = Periodic())
+        ft_interp = linear_interpolation(wavenumber, ft_desc, extrapolation_bc = Periodic())
         new{typeof(ft_interp)}(ft_interp)
     end
 end
@@ -264,9 +264,10 @@ function _nk_in_box(taper::ContinuousTaper, box::Box)
     return ntuple(d -> 2^63 - 1, embeddim(box))
 end
 function _nk_in_box(taper::Taper, box::Box)
-    freq = _evaluation_wavenumbers(taper)
+    wavenumber = _evaluation_wavenumbers(taper)
     sides = box2sides(box)
-    return ntuple(d -> sum(x -> sides[d][1] ≤ x ≤ sides[d][2], freq[d]), embeddim(box))
+    return ntuple(
+        d -> sum(x -> sides[d][1] ≤ x ≤ sides[d][2], wavenumber[d]), embeddim(box))
 end
 
 function _evaluation_wavenumbers(taper::DiscreteTaper)

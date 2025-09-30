@@ -6,11 +6,11 @@ include("../test_utilities/TestUtils.jl")
 using .TestUtils: slow_dft
 
 function test_nufft1d1_anydomain(interval, nk, kmax, xj, cj)
-    freq = _choose_wavenumbers_1d(nk, kmax)
+    wavenumber = _choose_wavenumbers_1d(nk, kmax)
     fast_out = nufft1d1_anydomain(interval, nk, kmax, xj, cj, -1, 1e-14)[:, 1]
-    slow_out = slow_dft(xj, cj, freq, -1)
+    slow_out = slow_dft(xj, cj, wavenumber, -1)
     fast_out_pos = nufft1d1_anydomain(interval, nk, kmax, xj, cj, 1, 1e-14)[:, 1]
-    slow_out_pos = slow_dft(xj, cj, freq, 1)
+    slow_out_pos = slow_dft(xj, cj, wavenumber, 1)
     @test length(fast_out) == length(slow_out)
     @test fast_out ≈ slow_out
     @test fast_out_pos ≈ slow_out_pos
@@ -19,13 +19,13 @@ end
 function test_nufft2d1_anydomain(box, nk, kmax, xj, yj, cj)
     freq_x = _choose_wavenumbers_1d(nk[1], kmax[1])
     freq_y = _choose_wavenumbers_1d(nk[2], kmax[2])
-    freq = Iterators.product(freq_x, freq_y)
+    wavenumber = Iterators.product(freq_x, freq_y)
     uj = [(xj[i], yj[i]) for i in eachindex(xj, yj)]
 
     fast_out = nufft2d1_anydomain(box, nk, kmax, xj, yj, cj, -1, 1e-14)[:, :, 1]
-    slow_out = slow_dft(uj, cj, freq, -1)
+    slow_out = slow_dft(uj, cj, wavenumber, -1)
     fast_out_pos = nufft2d1_anydomain(box, nk, kmax, xj, yj, cj, 1, 1e-14)[:, :, 1]
-    slow_out_pos = slow_dft(uj, cj, freq, 1)
+    slow_out_pos = slow_dft(uj, cj, wavenumber, 1)
     @test length(fast_out) == length(slow_out)
     @test fast_out ≈ slow_out
     @test fast_out_pos ≈ slow_out_pos
@@ -35,14 +35,14 @@ function test_nufft3d1_anydomain(box, nk, kmax, xj, yj, zj, cj)
     freq_x = _choose_wavenumbers_1d(nk[1], kmax[1])
     freq_y = _choose_wavenumbers_1d(nk[2], kmax[2])
     freq_z = _choose_wavenumbers_1d(nk[3], kmax[3])
-    freq = Iterators.product(freq_x, freq_y, freq_z)
+    wavenumber = Iterators.product(freq_x, freq_y, freq_z)
     uj = [(xj[i], yj[i], zj[i]) for i in eachindex(xj, yj, zj)]
 
     fast_out = nufft3d1_anydomain(box, nk, kmax, xj, yj, zj, cj, -1, 1e-14)[:, :, :, 1]
-    slow_out = slow_dft(uj, cj, freq, -1)
+    slow_out = slow_dft(uj, cj, wavenumber, -1)
     fast_out_pos = nufft3d1_anydomain(box, nk, kmax, xj, yj, zj, cj, 1, 1e-14)[
         :, :, :, 1]
-    slow_out_pos = slow_dft(uj, cj, freq, 1)
+    slow_out_pos = slow_dft(uj, cj, wavenumber, 1)
     @test length(fast_out) == length(slow_out)
     @test fast_out ≈ slow_out
     @test fast_out_pos ≈ slow_out_pos

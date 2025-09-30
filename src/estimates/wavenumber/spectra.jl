@@ -1,18 +1,18 @@
 struct Spectra{E, D, P, Q, A, T, IP, IE} <: AnisotropicEstimate{E, D, P, Q}
-    freq::NTuple{D, A}
+    wavenumber::NTuple{D, A}
     power::T
     processinformation::IP
     estimationinformation::IE
-    function Spectra{E}(freq::NTuple{D, A}, power::T, processinfo::IP,
+    function Spectra{E}(wavenumber::NTuple{D, A}, power::T, processinfo::IP,
             estimationinfo::IE) where {E <: EstimateTrait, D, A, T, IP, IE}
-        P, Q = checkinputs(freq, power, processinfo)
-        return new{E, D, P, Q, A, T, IP, IE}(freq, power, processinfo, estimationinfo)
+        P, Q = checkinputs(wavenumber, power, processinfo)
+        return new{E, D, P, Q, A, T, IP, IE}(wavenumber, power, processinfo, estimationinfo)
     end
 end
 
 const RotationalSpectra{E, D, P, Q, S <: Spectra} = RotationalEstimate{E, D, P, Q, S}
 const NormalOrRotationalSpectra{E} = Union{Spectra{E}, RotationalSpectra{E}}
-getargument(est::Spectra) = est.freq
+getargument(est::Spectra) = est.wavenumber
 getestimate(est::Spectra) = est.power
 
 """
@@ -29,15 +29,15 @@ Compute the multitaper spectral estimate from a tapered DFT.
 - `mean_method::MeanEstimationMethod`: The method to estimate the mean (default: `DefaultMean()`)
 
 # Returns
-A `Spectra` object with `freq` and `power` fields:
-- `freq`: D-dimensional `NTuple` of wavenumber arrays for each dimension
+A `Spectra` object with `wavenumber` and `power` fields:
+- `wavenumber`: D-dimensional `NTuple` of wavenumber arrays for each dimension
 - `power`: Power spectral density in one of the following forms:
   - Single process: `n_1 × ... × n_D` array
   - `NTuple{P}` data: `n_1 × ... × n_D` array of `SMatrix{P, P}`
   - Vector of P processes: `P × P × n_1 × ... × n_D` array
 
 # Notes
-- Indexing into a `Spectra` object returns a subset with the same `freq`
+- Indexing into a `Spectra` object returns a subset with the same `wavenumber`
 - Use `KnownMean(x)` to specify a known mean value
 
 # Examples
@@ -56,14 +56,14 @@ end
 
 function spectra(data::SpatialData; nk, kmax, tapers,
         mean_method::MeanEstimationMethod = DefaultMean())::Spectra
-    freq = _make_wavenumber_grid(nk, kmax, embeddim(data))
+    wavenumber = _make_wavenumber_grid(nk, kmax, embeddim(data))
     J_n = tapered_dft(data, tapers, nk, kmax, mean_method)
     power = _dft_to_spectral_matrix(J_n, process_trait(data))
 
     process_info = ProcessInformation(data; mean_method = mean_method)
     estimation_info = EstimationInformation(length(tapers))
 
-    return Spectra{MarginalTrait}(freq, power, process_info, estimation_info)
+    return Spectra{MarginalTrait}(wavenumber, power, process_info, estimation_info)
 end
 
 # Alias for backwards compatibility
@@ -181,9 +181,9 @@ end
 Create a wavenumber grid with dimension-specific parameters.
 """
 function _make_wavenumber_grid(nk, kmax, dim::Int)
-    freq = _choose_wavenumbers_1d.(nk, kmax)
-    if length(freq) != dim
-        throw(ArgumentError("Dimension mismatch: expected $dim wavenumber dimensions, got $(length(freq))"))
+    wavenumber = _choose_wavenumbers_1d.(nk, kmax)
+    if length(wavenumber) != dim
+        throw(ArgumentError("Dimension mismatch: expected $dim wavenumber dimensions, got $(length(wavenumber))"))
     end
-    return freq
+    return wavenumber
 end

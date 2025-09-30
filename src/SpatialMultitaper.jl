@@ -33,6 +33,7 @@ include("estimates/processinfo.jl")
 include("estimates/estimate_types.jl")
 include("estimates/printing.jl")
 include("estimates/errors.jl")
+include("estimates/parameter_inputs.jl")
 
 include("estimates/generic/rotational_estimate.jl")
 include("estimates/generic/marginal_transform.jl")

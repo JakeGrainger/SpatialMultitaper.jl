@@ -58,6 +58,10 @@ if run_all
         include("estimates/test-errors.jl")
     end
 
+    @safetestset "Parameter Inputs" begin
+        include("estimates/test-parameter-inputs.jl")
+    end
+
     @safetestset "Spectral Estimate" begin
         include("estimates/wavenumber/test-spectra.jl")
     end

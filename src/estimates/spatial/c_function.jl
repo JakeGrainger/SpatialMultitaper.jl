@@ -87,11 +87,9 @@ via inverse Fourier transform with appropriate spatial weighting.
 # Arguments
 - `data::SpatialData`: Input spatial data
 - `radii`: Distances at which to evaluate the C function
-- `nk`: Number of wavenumbers per dimension for spectral estimation
-- `kmax`: Maximum wavenumber per dimension for spectral estimation
 - `wavenumber_radii`: Radial wavenumbers for rotational averaging (default: from nk, kmax)
 - `rotational_method`: Kernel for rotational averaging (default: from nk, kmax)
-- `spectra_kwargs...`: Additional arguments passed to spectral estimation
+- `spectra_kwargs...`: Additional arguments passed to `spectra`
 
 # Returns
 A `CFunction` object containing the spatial C function.

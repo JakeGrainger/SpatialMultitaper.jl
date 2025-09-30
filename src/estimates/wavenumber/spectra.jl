@@ -23,10 +23,18 @@ Compute the multitaper spectral estimate from a tapered DFT.
 # Arguments
 - `data`: The data to estimate the spectrum from
 - `region`: The region to estimate the spectrum from
-- `nk::NTuple{D,Int}`: The number of wavenumbers in each dimension
-- `kmax::NTuple{D,Real}`: The maximum wavenumber in each dimension
+- `nk`: The number of wavenumbers in each dimension
+- `kmax`: The maximum wavenumber in each dimension
+- `dk`: The wavenumber spacing in each dimension
 - `tapers`: A tuple of taper functions
 - `mean_method::MeanEstimationMethod`: The method to estimate the mean (default: `DefaultMean()`)
+
+If one of `nk` and `kmax` is specified, `dk` will be set to a default based on the region.
+Otherwise, you only need to specify two of the three parameters `nk`, `kmax`, and `dk`. They
+can either be scalars (applied uniformly across all dimensions) or tuples specifying each
+dimension. You can mix the two styles, e.g. `nk=100` and `kmax=(0.5, 1.0)` for 2D data.
+`nk` must be an `Int` or tuple of `Int`s and should be positive, `kmax` and `dk` must be
+`Real` or tuples of `Real`s and also positive.
 
 # Returns
 A `Spectra` object with `wavenumber` and `power` fields:
@@ -42,22 +50,18 @@ A `Spectra` object with `wavenumber` and `power` fields:
 
 # Examples
 ```julia
-# Single process
-spec = spectra(data, region, nk=(64, 64), kmax=(0.5, 0.5), tapers=tapers)
-
-# Multiple processes with known mean
-spec = spectra(data, region, nk=(32, 32), kmax=(1.0, 1.0),
-               tapers=tapers, mean_method=KnownMean([0.0, 0.0]))
+spec = spectra(data, region, kmax=(0.5, 0.5), tapers=tapers)
 ```
 """
 function spectra(data, region::Meshes.Geometry; kwargs...)::Spectra
     return spectra(spatial_data(data, region); kwargs...)
 end
 
-function spectra(data::SpatialData; nk, kmax, tapers,
-        mean_method::MeanEstimationMethod = DefaultMean())::Spectra
-    wavenumber = _make_wavenumber_grid(nk, kmax, embeddim(data))
-    J_n = tapered_dft(data, tapers, nk, kmax, mean_method)
+function spectra(data::SpatialData; nk = nothing, kmax, dk = default_dk(data, nk, kmax),
+        tapers, mean_method::MeanEstimationMethod = DefaultMean())::Spectra
+    _nk, _kmax = _validate_wavenumber_params(nk, kmax, dk, embeddim(data))
+    wavenumber = _make_wavenumber_grid(_nk, _kmax, embeddim(data))
+    J_n = tapered_dft(data, tapers, _nk, _kmax, mean_method)
     power = _dft_to_spectral_matrix(J_n, process_trait(data))
 
     process_info = ProcessInformation(data; mean_method = mean_method)

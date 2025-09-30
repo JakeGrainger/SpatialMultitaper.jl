@@ -6,11 +6,11 @@ abstract type EstimateTrait end
 struct MarginalTrait <: EstimateTrait end
 struct PartialTrait <: EstimateTrait end
 
-abstract type AbstractEstimate{E <: EstimateTrait, D, P, Q, N} end
-abstract type AnisotropicEstimate{E, D, P, Q} <: AbstractEstimate{E, D, P, Q, D} end
-abstract type IsotropicEstimate{E, D, P, Q} <: AbstractEstimate{E, D, P, Q, 1} end
-const MarginalAbstractEstimate{D, P, Q, N} = AbstractEstimate{MarginalTrait, D, P, Q, N}
-const PartialAbstractEstimate{D, P, Q, N} = AbstractEstimate{PartialTrait, D, P, Q, N}
+abstract type AbstractEstimate{E <: EstimateTrait, D, N} end
+abstract type AnisotropicEstimate{E, D} <: AbstractEstimate{E, D, D} end
+abstract type IsotropicEstimate{E, D} <: AbstractEstimate{E, D, 1} end
+const MarginalAbstractEstimate{D, N} = AbstractEstimate{MarginalTrait, D, N}
+const PartialAbstractEstimate{D, N} = AbstractEstimate{PartialTrait, D, N}
 
 is_partial(::MarginalAbstractEstimate) = false
 is_partial(::PartialAbstractEstimate) = true
@@ -41,7 +41,7 @@ getestimatename(T::Type{<:PartialAbstractEstimate}) = "partial " * getbaseestima
 getestimatename(est::AbstractEstimate) = getestimatename(typeof(est))
 
 Meshes.embeddim(::AbstractEstimate{E, D}) where {E, D} = D
-Base.size(::AbstractEstimate{E, D, P, Q}) where {E, D, P, Q} = (P, Q)
+Base.size(est::AbstractEstimate) = length.(processnames(est))
 function processnames(estimate::AbstractEstimate)
     processinfo = getprocessinformation(estimate)
     (processinfo.process_indices_1, processinfo.process_indices_2)
@@ -123,11 +123,11 @@ _argument2tuple(x) = (x,)
 
 ## bounds checking
 function Base.checkbounds(
-        estimate::AbstractEstimate{E, D, P, Q, N},
+        estimate::AbstractEstimate{E, D, N},
         p,
         q,
         i::Vararg{Any, N}
-) where {E, D, P, Q, N}
+) where {E, D, N}
     checkprocessbounds(estimate, p, q)
     checkindexbounds(estimate, i...)
     # TODO should have option to disable
@@ -194,7 +194,7 @@ end
 
 ## checking index bounds
 function checkindexbounds(
-        estimate::AbstractEstimate{E, D, P, Q, N}, i::Vararg{Any, N}) where {E, D, P, Q, N}
+        estimate::AbstractEstimate{E, D, N}, i::Vararg{Any, N}) where {E, D, N}
     _checkindexbounds(getestimate(estimate), i...)
 end
 
@@ -262,11 +262,11 @@ If they are `Array{SMatrix}` then the size of the array is the same, but each el
 `SMatrix{1, Q}` or `SMatrix{P, 1}` as appropriate.
 """
 function Base.getindex(
-        estimate::AbstractEstimate{E, D, P, Q, N},
+        estimate::AbstractEstimate{E, D, N},
         p,
         q,
         i::Vararg{Any, N}
-) where {E, D, Q, P, N}
+) where {E, D, N}
     checkbounds(estimate, p, q, i...)
     return _construct_estimate_subset(
         typeof(estimate),
@@ -302,7 +302,7 @@ end
 
 ## get argument index
 function getargumentindex(
-        estimate::AbstractEstimate{E, D, P, Q, N}, i::Vararg{Any, N}) where {E, D, P, Q, N}
+        estimate::AbstractEstimate{E, D, N}, i::Vararg{Any, N}) where {E, D, N}
     _getargumentindex(getargument(estimate), i...)
 end
 function _getargumentindex(argument::NTuple{N}, i::Vararg{Any, N}) where {N}
@@ -314,22 +314,17 @@ end
 
 ## get estimate index
 function getestimateindex(
-        estimate::AbstractEstimate{E, D, P, Q, N},
+        estimate::AbstractEstimate{E, D, N},
         p,
         q,
         i::Vararg{Any, N}
-) where {E, D, P, Q, N}
+) where {E, D, N}
     _getestimateindex(getestimate(estimate), p, q, i...)
 end
 
 function getestimateindex(
-        estimate::AbstractEstimate{E, D, P, Q, N}, p, q) where {E, D, P, Q, N}
+        estimate::AbstractEstimate{E, D, N}, p, q) where {E, D, N}
     _getestimateindex(getestimate(estimate), p, q)
-end
-
-function getestimateindex(
-        estimate::AbstractEstimate{E, D, 1, 1, N}, p, q) where {E, D, N}
-    getestimate(estimate)
 end
 
 function _getestimateindex(
@@ -398,5 +393,5 @@ end
 
 function checkinputs(argument::Union{NTuple{N, <:Number}, Number}, estimate::Number,
         processinformation::ProcessInformation) where {N}
-    return 1, 1 # TODO: currently not checking process information
+    return nothing
 end

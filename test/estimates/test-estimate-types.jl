@@ -15,10 +15,8 @@ import SpatialMultitaper: EstimateTrait, MarginalTrait, PartialTrait,
     end
 
     @testset "Abstract type hierarchy" begin
-        @test AnisotropicEstimate{MarginalTrait, 2, 1, 1} <:
-              AbstractEstimate{MarginalTrait, 2, 1, 1, 2}
-        @test IsotropicEstimate{MarginalTrait, 2, 1, 1} <:
-              AbstractEstimate{MarginalTrait, 2, 1, 1, 1}
+        @test AnisotropicEstimate{MarginalTrait, 2} <: AbstractEstimate{MarginalTrait, 2, 2}
+        @test IsotropicEstimate{MarginalTrait, 2} <: AbstractEstimate{MarginalTrait, 2, 1}
     end
 end
 
@@ -42,7 +40,7 @@ end
         # Valid cases
         processinfo = ProcessInformation{2, MultipleVectorTrait}(
             [1, 2], [1, 2], ones(2, 2), ones(2, 2))
-        @test checkprocessinformation(processinfo, randn(2, 2, 10, 10)) == (2, 2)
+        @test isnothing(checkprocessinformation(processinfo, randn(2, 2, 10, 10)))
 
         # Invalid cases
         @test_throws ArgumentError checkprocessinformation(
@@ -62,7 +60,7 @@ end
 
 @testset "Bounds Checking" begin
     # Create mock estimate type for testing
-    struct MockEstimate{E, D, P, Q, N} <: AbstractEstimate{E, D, P, Q, N}
+    struct MockEstimate{E, D, N} <: AbstractEstimate{E, D, N}
         argument::NTuple{N}
         estimate::AbstractArray
         processinformation::ProcessInformation
@@ -70,8 +68,8 @@ end
         function MockEstimate{E}(
                 argument::NTuple{N}, estimate, processinfo::ProcessInformation{D},
                 estimationinfo) where {E, D, N}
-            P, Q = checkinputs(argument, estimate, processinfo)
-            new{E, D, P, Q, N}(argument, estimate, processinfo, estimationinfo)
+            checkinputs(argument, estimate, processinfo)
+            new{E, D, N}(argument, estimate, processinfo, estimationinfo)
         end
     end
     SpatialMultitaper.getargument(est::MockEstimate) = est.argument
@@ -104,12 +102,12 @@ end
         # Valid 1D case
         processinfo = ProcessInformation{1, MultipleVectorTrait}(
             [1], [1], ones(1, 1), ones(1, 1))
-        @test checkinputs((1:10,), rand(1, 1, 10), processinfo) == (1, 1)
+        @test isnothing(checkinputs((1:10,), rand(1, 1, 10), processinfo))
 
         # Valid 2D case with matrices
         pi_2d = ProcessInformation{2, MultipleVectorTrait}(
             [1, 2], [1, 2], ones(2, 2), ones(2, 2))
-        @test checkinputs((1:10, 1:10), rand(2, 2, 10, 10), pi_2d) == (2, 2)
+        @test isnothing(checkinputs((1:10, 1:10), rand(2, 2, 10, 10), pi_2d))
 
         # Invalid dimension mismatch
         @test_throws ArgumentError checkinputs((1:10,), rand(2, 2, 10, 10), pi_2d)  # Wrong dimensions

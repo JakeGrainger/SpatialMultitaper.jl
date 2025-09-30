@@ -1,4 +1,4 @@
-struct PairCorrelationFunction{E, D, P, Q, A, T, IP, IE} <: IsotropicEstimate{E, D, P, Q}
+struct PairCorrelationFunction{E, D, A, T, IP, IE} <: IsotropicEstimate{E, D}
     radii::A
     value::T
     processinformation::IP
@@ -6,9 +6,9 @@ struct PairCorrelationFunction{E, D, P, Q, A, T, IP, IE} <: IsotropicEstimate{E,
     function PairCorrelationFunction{E}(
             radii::A, value::T, processinfo::ProcessInformation{D},
             estimationinfo::IE) where {E, A, T, IE, D}
-        P, Q = checkinputs(radii, value, processinfo)
+        checkinputs(radii, value, processinfo)
         IP = typeof(processinfo)
-        new{E, D, P, Q, A, T, IP, IE}(radii, value, processinfo, estimationinfo)
+        new{E, D, A, T, IP, IE}(radii, value, processinfo, estimationinfo)
     end
 end
 getargument(f::PairCorrelationFunction) = f.radii
@@ -100,22 +100,22 @@ end
     penalty::T = 0.0
 end
 
-function k2paircorrelation(est::KFunction{E, D, P, Q}, method) where {E, D, P, Q}
+function k2paircorrelation(est::KFunction{E, D}, method) where {E, D}
     radii = getargument(est)
     stacked_pcf = stack(_k2paircorrelation(radii, getestimate(est[i, j]), Val{D}(), method)
-    for i in 1:P, j in 1:Q)
+    for i in 1:size(est)[1], j in 2:size(est)[2])
     return _post_process_pcf(stacked_pcf, est)
 end
 
 function _post_process_pcf(stacked_pcf, template_est::KFunction)
-    return _reshape_pcf_output(stacked_pcf, getestimate(template_est), P, Q)
+    return _reshape_pcf_output(stacked_pcf, getestimate(template_est))
 end
 
 function _reshape_pcf_output(data, ::AbstractVector{<:SMatrix{P, Q}}) where {P, Q}
     [SMatrix{P, Q, T, L}(data[:, :, k]) for k in axes(data, 3)]
 end
 
-_reshape_pcf_output(data, ::AbstractArray{<:Number, 3}, P, Q) = permutedims(data, (2, 3, 1))
+_reshape_pcf_output(data, ::AbstractArray{<:Number, 3}) = permutedims(data, (2, 3, 1))
 
 function _k2paircorrelation(radii, k, ::Val{D}, method::PCFMethodA) where {D}
     penalty = method.penalty

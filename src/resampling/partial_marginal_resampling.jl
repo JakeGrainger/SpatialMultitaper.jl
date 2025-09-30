@@ -124,16 +124,20 @@ end
 
 Computes the Fourier transform of the prediction kernel given estimates of the spectral density function.
 """
-function prediction_kernel_ft(spec::Spectra{MarginalTrait, D, P, P}) where {D, P}
+function prediction_kernel_ft(spec::Spectra{MarginalTrait})
+    _prediction_kernel_ft(
+        getargument(spec), getestimate(spec), process_trait(spec), getestimationinformation(spec).ntapers)
+end
+function _prediction_kernel_ft(
+        wavenumber, est::AbstractArray{<:SMatrix{P, P}}, trait::MultipleTupleTrait, ntapers) where {P}
     kernels = ntuple(
-        idx -> apply_transform(
-            single_prediction_kernel_ft, spec.power, process_trait(spec),
-            idx, getestimationinformation(spec).ntapers),
+        idx -> apply_transform(single_prediction_kernel_ft, est, trait, idx, ntapers),
         Val{P}()
     )
-    return (wavenumber = spec.wavenumber, kernels = kernels)
+    return (wavenumber = wavenumber, kernels = kernels)
 end
 
+# TODO: should bve made available for other internal storage systems
 function single_prediction_kernel_ft(S_mat::AbstractMatrix, idx::Int, ntapers::Int)
     scaling = ntapers / (ntapers - size(S_mat, 1) + 1)
     return single_prediction_kernel_ft(S_mat, idx, nothing) .* scaling

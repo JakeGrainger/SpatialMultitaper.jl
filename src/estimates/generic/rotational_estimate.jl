@@ -1,5 +1,5 @@
 """
-    RotationalEstimate{E, D, P, Q, S, A, T, IP, IE} <: IsotropicEstimate{E, D, P, Q}
+    RotationalEstimate{E, D, S, A, T, IP, IE} <: IsotropicEstimate{E, D}
 
 An estimate that has undergone rotational averaging to produce isotropic results.
 
@@ -11,7 +11,6 @@ independent of orientation.
 # Type Parameters
 - `E`: Estimate trait (e.g., `MarginalTrait`, `PartialTrait`)
 - `D`: Spatial dimension
-- `P`, `Q`: Process dimensions
 - `S`: Type of the original anisotropic estimate
 - `A`: Type of radii array
 - `T`: Type of the rotationally averaged estimate values
@@ -35,7 +34,7 @@ kernel = GaussKernel(0.05)
 rot_spec = rotational_estimate(spectrum, radii=radii, kernel=kernel)
 ```
 """
-struct RotationalEstimate{E, D, P, Q, S, A, T, IP, IE} <: IsotropicEstimate{E, D, P, Q}
+struct RotationalEstimate{E, D, S, A, T, IP, IE} <: IsotropicEstimate{E, D}
     radii::A
     estimate::T
     processinformation::IP
@@ -43,9 +42,9 @@ struct RotationalEstimate{E, D, P, Q, S, A, T, IP, IE} <: IsotropicEstimate{E, D
     function RotationalEstimate{E, S}(
             radii::A, estimate::T, processinfo::ProcessInformation{D},
             estimationinfo::IE) where {E, S, A, T, D, IE}
-        P, Q = checkinputs(radii, estimate, processinfo)
+        checkinputs(radii, estimate, processinfo)
         IP = typeof(processinfo)
-        return new{E, D, P, Q, S, A, T, IP, IE}(
+        return new{E, D, S, A, T, IP, IE}(
             radii, estimate, processinfo, estimationinfo)
     end
 end
@@ -65,11 +64,11 @@ Get the rotationally averaged estimate values.
 getestimate(f::RotationalEstimate) = f.estimate
 
 """
-    getoriginaltype(::Type{<:RotationalEstimate{E, D, P, Q, S}}) where {E, D, P, Q, S}
+    getoriginaltype(::Type{<:RotationalEstimate{E, D, S}}) where {E, D, S}
 
 Extract the original estimate type before rotational averaging.
 """
-getoriginaltype(::Type{<:RotationalEstimate{E, D, P, Q, S}}) where {E, D, P, Q, S} = S
+getoriginaltype(::Type{<:RotationalEstimate{E, D, S}}) where {E, D, S} = S
 
 """
     rotational_estimate(est::AnisotropicEstimate{E}; radii, kernel) where {E}
@@ -108,13 +107,13 @@ function rotational_estimate(
 end
 
 """
-    getestimatename(::Type{<:RotationalEstimate{E, D, P, Q, S}}) where {E, D, P, Q, S}
+    getestimatename(::Type{<:RotationalEstimate{E, D, S}}) where {E, D, S}
 
 Get the name of the estimate, reflecting its rotational and original traits.
 
 The name indicates the order of application of rotational and partial traits.
 """
-function getestimatename(::Type{<:RotationalEstimate{E, D, P, Q, S}}) where {E, D, P, Q, S}
+function getestimatename(::Type{<:RotationalEstimate{E, D, S}}) where {E, D, S}
     original_name = getbaseestimatename(S)
 
     if E === MarginalTrait
@@ -134,20 +133,20 @@ _extract_estimate_trait(::Type{<:AbstractEstimate{T}}) where {T} = T
 
 """
     _construct_estimate_subset(
-        ::Type{<:RotationalEstimate{E, D, P, Q, S}},
+        ::Type{<:RotationalEstimate{E, D, S}},
         trait::Type{<:EstimateTrait},
         argument, estimate, processinfo, estimationinfo
-    ) where {E, D, P, Q, S}
+    ) where {E, D, S}
 
 Construct a subset estimate with a different trait from an existing RotationalEstimate.
 
 This is used to create partial or marginal estimates from a rotational estimate.
 """
 function _construct_estimate_subset(
-        ::Type{<:RotationalEstimate{E, D, P, Q, S}},
+        ::Type{<:RotationalEstimate{E, D, S}},
         trait::Type{<:EstimateTrait},
         argument, estimate, processinfo, estimationinfo
-) where {E, D, P, Q, S}
+) where {E, D, S}
     # For RotationalEstimate, we need {E, S} constructor
     return RotationalEstimate{trait, S}(
         argument, estimate, processinfo, estimationinfo

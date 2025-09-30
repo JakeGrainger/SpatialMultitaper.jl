@@ -39,10 +39,6 @@ end
 
 Validate that the ProcessInformation is consistent with the estimate array dimensions.
 
-Returns `(P, Q)` where:
-- `P` is the number of processes in the first set
-- `Q` is the number of processes in the second set
-
 # Logic
 1. Determines process counts from the structure of process_indices_1 and process_indices_2
 2. Validates estimate array dimensions against expected structure
@@ -61,7 +57,7 @@ function checkprocessinformation(processinformation::ProcessInformation, est)
     _validate_estimate_dimensions(
         processinformation, est, P, Q, _process_trait_from_info(processinformation))
 
-    return P, Q
+    return nothing
 end
 
 """

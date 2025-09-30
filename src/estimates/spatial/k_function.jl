@@ -1,5 +1,5 @@
 """
-    KFunction{E, D, P, Q, A, T, IP, IE} <: IsotropicEstimate{E, D, P, Q}
+    KFunction{E, D, A, T, IP, IE} <: IsotropicEstimate{E, D}
 
 Ripley's K function estimate for spatial point pattern analysis.
 
@@ -10,7 +10,6 @@ statistics for detecting clustering or regularity in point patterns.
 # Type Parameters
 - `E`: Estimate trait (e.g., `MarginalTrait`, `PartialTrait`)
 - `D`: Spatial dimension
-- `P`, `Q`: Process dimensions
 - `A`: Type of radii array
 - `T`: Type of K function values
 - `IP`: Type of process information
@@ -38,16 +37,16 @@ kf = k_function(spectrum, radii=0.1:0.1:2.0)
 kf = k_function(data, region, radii=0.1:0.1:2.0, nk=(32,32), kmax=(0.5,0.5), tapers=tapers)
 ```
 """
-struct KFunction{E, D, P, Q, A, T, IP, IE} <: IsotropicEstimate{E, D, P, Q}
+struct KFunction{E, D, A, T, IP, IE} <: IsotropicEstimate{E, D}
     radii::A
     value::T
     processinformation::IP
     estimationinformation::IE
     function KFunction{E}(radii::A, value::T, processinfo::ProcessInformation{D},
             estimationinfo::IE) where {E, A, T, IE, D}
-        P, Q = checkinputs(radii, value, processinfo)
+        checkinputs(radii, value, processinfo)
         IP = typeof(processinfo)
-        return new{E, D, P, Q, A, T, IP, IE}(radii, value, processinfo, estimationinfo)
+        return new{E, D, A, T, IP, IE}(radii, value, processinfo, estimationinfo)
     end
 end
 

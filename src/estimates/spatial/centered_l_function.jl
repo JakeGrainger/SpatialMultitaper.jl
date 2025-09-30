@@ -1,5 +1,5 @@
 """
-    CenteredLFunction{E, D, P, Q, A, T, IP, IE} <: IsotropicEstimate{E, D, P, Q}
+    CenteredLFunction{E, D, A, T, IP, IE} <: IsotropicEstimate{E, D}
 
 Centered L function estimate for spatial pattern analysis.
 
@@ -14,7 +14,6 @@ deviations from complete spatial randomness:
 # Type Parameters
 - `E`: Estimate trait (e.g., `MarginalTrait`, `PartialTrait`)
 - `D`: Spatial dimension
-- `P`, `Q`: Process dimensions
 - `A`: Type of radii array
 - `T`: Type of centered L function values
 - `IP`: Type of process information
@@ -33,16 +32,16 @@ clf = centered_l_function(l_func)
 clf = centered_l_function(data, region, radii=0.1:0.1:2.0, nk=(32,32), kmax=(0.5,0.5), tapers=tapers)
 ```
 """
-struct CenteredLFunction{E, D, P, Q, A, T, IP, IE} <: IsotropicEstimate{E, D, P, Q}
+struct CenteredLFunction{E, D, A, T, IP, IE} <: IsotropicEstimate{E, D}
     radii::A
     value::T
     processinformation::IP
     estimationinformation::IE
     function CenteredLFunction{E}(radii::A, value::T, processinfo::ProcessInformation{D},
             estimationinfo::IE) where {E, A, T, IE, D}
-        P, Q = checkinputs(radii, value, processinfo)
+        checkinputs(radii, value, processinfo)
         IP = typeof(processinfo)
-        return new{E, D, P, Q, A, T, IP, IE}(radii, value, processinfo, estimationinfo)
+        return new{E, D, A, T, IP, IE}(radii, value, processinfo, estimationinfo)
     end
 end
 

@@ -1,5 +1,5 @@
 """
-    CFunction{E, D, P, Q, A, T, IP, IE} <: IsotropicEstimate{E, D, P, Q}
+    CFunction{E, D, A, T, IP, IE} <: IsotropicEstimate{E, D}
 
 Spatial C function estimate derived from spectral estimates.
 
@@ -10,7 +10,6 @@ the reduced covariance measure.
 # Type Parameters
 - `E`: Estimate trait (e.g., `MarginalTrait`, `PartialTrait`)
 - `D`: Spatial dimension
-- `P`, `Q`: Process dimensions
 - `A`: Type of radii array
 - `T`: Type of C function values
 - `IP`: Type of process information
@@ -36,16 +35,16 @@ cf = c_function(spectrum, radii=0.1:0.1:2.0)
 cf = c_function(data, region, radii=0.1:0.1:2.0, nk=(32,32), kmax=(0.5,0.5), tapers=tapers)
 ```
 """
-struct CFunction{E, D, P, Q, A, T, IP, IE} <: IsotropicEstimate{E, D, P, Q}
+struct CFunction{E, D, A, T, IP, IE} <: IsotropicEstimate{E, D}
     radii::A
     value::T
     processinformation::IP
     estimationinformation::IE
     function CFunction{E}(radii::A, value::T, processinfo::ProcessInformation{D},
             estimationinfo::IE) where {E, A, T, IE, D}
-        P, Q = checkinputs(radii, value, processinfo)
+        checkinputs(radii, value, processinfo)
         IP = typeof(processinfo)
-        return new{E, D, P, Q, A, T, IP, IE}(radii, value, processinfo, estimationinfo)
+        return new{E, D, A, T, IP, IE}(radii, value, processinfo, estimationinfo)
     end
 end
 
@@ -218,14 +217,14 @@ function _sdf2C(f::Spectra, radii)
 end
 
 """
-    _sdf2C(f::IsotropicEstimate{E, D, P}, radius) where {E, D, P}
+    _sdf2C(f::IsotropicEstimate{E, D}, radius) where {E, D}
 
 Convert isotropic spectral density to C function at some radii.
 
 For isotropic estimates, weights are integrated over each interval in the integral being
 approximated.
 """
-function _sdf2C(f::IsotropicEstimate{E, D, P}, radii) where {E, D, P}
+function _sdf2C(f::IsotropicEstimate{E, D}, radii) where {E, D}
     wavenumber = getargument(f)
     spectra = getestimate(f)
     zero_atom = getprocessinformation(f).atoms

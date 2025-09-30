@@ -8,105 +8,108 @@ import SpatialMultitaper: _validate_nk, _validate_dk, _validate_kmax, _validate_
 @testset "Parameter Input Tests" begin
     @testset "_validate_dims tests" begin
         @testset "Tuple input" begin
-            @test _validate_dims((1, 2, 3), 3) == (1, 2, 3)
-            @test _validate_dims((0.1, 0.2), 2) == (0.1, 0.2)
+            @test _validate_dims((1, 2, 3), Val{3}()) == (1, 2, 3)
+            @test _validate_dims((0.1, 0.2), Val{2}()) == (0.1, 0.2)
 
             # Wrong dimension
-            @test_throws ArgumentError _validate_dims((1, 2), 3)
-            @test_throws ArgumentError _validate_dims((1, 2, 3, 4), 2)
+            @test_throws ArgumentError _validate_dims((1, 2), Val{3}())
+            @test_throws ArgumentError _validate_dims((1, 2, 3, 4), Val{2}())
         end
 
         @testset "Number input" begin
-            @test _validate_dims(5, 3) == (5, 5, 5)
-            @test _validate_dims(0.1, 2) == (0.1, 0.1)
-            @test _validate_dims(42, 1) == (42,)
+            @test _validate_dims(5, Val{3}()) == (5, 5, 5)
+            @test _validate_dims(0.1, Val{2}()) == (0.1, 0.1)
+            @test _validate_dims(42, Val{1}()) == (42,)
         end
     end
 
     @testset "_validate_nk tests" begin
         @testset "Valid inputs" begin
-            @test _validate_nk((32, 64), 2) == (32, 64)
-            @test _validate_nk(128, 3) == (128, 128, 128)
-            @test _validate_nk((16, 32, 64), 3) == (16, 32, 64)
+            @test _validate_nk((32, 64), Val{2}()) == (32, 64)
+            @test _validate_nk(128, Val{3}()) == (128, 128, 128)
+            @test _validate_nk((16, 32, 64), Val{3}()) == (16, 32, 64)
         end
 
         @testset "Invalid inputs" begin
             # Non-integer
-            @test_throws ArgumentError _validate_nk((32.5, 64), 2)
-            @test_throws ArgumentError _validate_nk(32.0, 2)
+            @test_throws ArgumentError _validate_nk((32.5, 64), Val{2}())
+            @test_throws ArgumentError _validate_nk(32.0, Val{2}())
 
             # Non-positive
-            @test_throws ArgumentError _validate_nk((0, 64), 2)
-            @test_throws ArgumentError _validate_nk((-5, 32), 2)
-            @test_throws ArgumentError _validate_nk(-10, 2)
+            @test_throws ArgumentError _validate_nk((0, 64), Val{2}())
+            @test_throws ArgumentError _validate_nk((-5, 32), Val{2}())
+            @test_throws ArgumentError _validate_nk(-10, Val{2}())
 
             # Wrong dimension
-            @test_throws ArgumentError _validate_nk((32, 64), 3)
+            @test_throws ArgumentError _validate_nk((32, 64), Val{3}())
         end
     end
 
     @testset "_validate_dk tests" begin
         @testset "Valid inputs" begin
-            @test _validate_dk((0.1, 0.2), 2) == (0.1, 0.2)
-            @test _validate_dk(0.05, 3) == (0.05, 0.05, 0.05)
-            @test _validate_dk((0.01, 0.02, 0.03), 3) == (0.01, 0.02, 0.03)
+            @test _validate_dk((0.1, 0.2), Val{2}()) == (0.1, 0.2)
+            @test _validate_dk(0.05, Val{3}()) == (0.05, 0.05, 0.05)
+            @test _validate_dk((0.01, 0.02, 0.03), Val{3}()) == (0.01, 0.02, 0.03)
         end
 
         @testset "Invalid inputs" begin
             # Non-positive
-            @test_throws ArgumentError _validate_dk((0.0, 0.1), 2)
-            @test_throws ArgumentError _validate_dk((-0.1, 0.2), 2)
-            @test_throws ArgumentError _validate_dk(-0.05, 2)
+            @test_throws ArgumentError _validate_dk((0.0, 0.1), Val{2}())
+            @test_throws ArgumentError _validate_dk((-0.1, 0.2), Val{2}())
+            @test_throws ArgumentError _validate_dk(-0.05, Val{2}())
 
             # Wrong dimension
-            @test_throws ArgumentError _validate_dk((0.1, 0.2), 3)
+            @test_throws ArgumentError _validate_dk((0.1, 0.2), Val{3}())
         end
     end
 
     @testset "_validate_kmax tests" begin
         @testset "Valid inputs" begin
-            @test _validate_kmax((1.0, 2.0), 2) == (1.0, 2.0)
-            @test _validate_kmax(0.5, 3) == (0.5, 0.5, 0.5)
-            @test _validate_kmax((0.1, 0.2, 0.3), 3) == (0.1, 0.2, 0.3)
+            @test _validate_kmax((1.0, 2.0), Val{2}()) == (1.0, 2.0)
+            @test _validate_kmax(0.5, Val{3}()) == (0.5, 0.5, 0.5)
+            @test _validate_kmax((0.1, 0.2, 0.3), Val{3}()) == (0.1, 0.2, 0.3)
         end
 
         @testset "Invalid inputs" begin
             # Non-positive
-            @test_throws ArgumentError _validate_kmax((0.0, 1.0), 2)
-            @test_throws ArgumentError _validate_kmax((-0.5, 1.0), 2)
-            @test_throws ArgumentError _validate_kmax(-1.0, 2)
+            @test_throws ArgumentError _validate_kmax((0.0, 1.0), Val{2}())
+            @test_throws ArgumentError _validate_kmax((-0.5, 1.0), Val{2}())
+            @test_throws ArgumentError _validate_kmax(-1.0, Val{2}())
 
             # Wrong dimension
-            @test_throws ArgumentError _validate_kmax((1.0, 2.0), 3)
+            @test_throws ArgumentError _validate_kmax((1.0, 2.0), Val{3}())
         end
     end
 
     @testset "_validate_wavenumber_params tests" begin
+        test_data = make_points_example(StableRNG(123), n_processes = 1, dim = 2,
+            return_type = :single, point_number = 100)
         @testset "nk and kmax provided" begin
-            nk, kmax = _validate_wavenumber_params((32, 64), (1.0, 2.0), nothing, 2)
+            nk, kmax = _validate_wavenumber_params((32, 64), (1.0, 2.0), nothing, test_data)
             @test nk == (32, 64)
             @test kmax == (1.0, 2.0)
 
             # Single values
-            nk, kmax = _validate_wavenumber_params(128, 0.5, nothing, 2)
+            nk, kmax = _validate_wavenumber_params(128, 0.5, nothing, test_data)
             @test nk == (128, 128)
             @test kmax == (0.5, 0.5)
         end
 
         @testset "nk and dk provided" begin
-            nk, kmax = _validate_wavenumber_params((32, 64), nothing, (0.1, 0.2), 2)
+            nk, kmax = _validate_wavenumber_params((32, 64), nothing, (0.1, 0.2), test_data)
             @test nk == (32, 64)
             @test kmax == (32 * 0.1 / 2, 64 * 0.2 / 2)
             @test kmax == (1.6, 6.4)
 
             # Single values
-            nk, kmax = _validate_wavenumber_params(100, nothing, 0.02, 2)
+            nk, kmax = _validate_wavenumber_params(100, nothing, 0.02, test_data)
             @test nk == (100, 100)
             @test kmax == (1.0, 1.0)
         end
 
         @testset "kmax and dk provided" begin
-            nk, kmax = _validate_wavenumber_params(nothing, (1.0, 2.0), (0.1, 0.2), 2)
+            nk, kmax = _validate_wavenumber_params(
+                nothing, (1.0, 2.0), (0.1, 0.2), test_data)
             @test kmax == (1.0, 2.0)
             # nk = ceil(2 * kmax / dk)
             @test nk == (ceil(2 * 1.0 / 0.1), ceil(2 * 2.0 / 0.2))
@@ -114,7 +117,7 @@ import SpatialMultitaper: _validate_nk, _validate_dk, _validate_kmax, _validate_
             @test eltype(nk) == Int
 
             # Single values
-            nk, kmax = _validate_wavenumber_params(nothing, 0.5, 0.05, 2)
+            nk, kmax = _validate_wavenumber_params(nothing, 0.5, 0.05, test_data)
             @test kmax == (0.5, 0.5)
             @test nk == (ceil(2 * 0.5 / 0.05), ceil(2 * 0.5 / 0.05))
             @test nk == (20, 20)
@@ -136,14 +139,15 @@ import SpatialMultitaper: _validate_nk, _validate_dk, _validate_kmax, _validate_
 
         @testset "Consistency checks" begin
             # When all three are mathematically consistent
-            nk, kmax = _validate_wavenumber_params((40, 80), (1.0, 2.0), nothing, 2)
+            nk, kmax = _validate_wavenumber_params((40, 80), (1.0, 2.0), nothing, test_data)
             dk_calc = 2 .* kmax ./ nk
             @test all(dk_calc .≈ (0.05, 0.05))
 
             # Verify relationship: kmax = nk * dk / 2
             nk_test = (50, 100)
             dk_test = (0.04, 0.02)
-            nk_out, kmax_out = _validate_wavenumber_params(nk_test, nothing, dk_test, 2)
+            nk_out, kmax_out = _validate_wavenumber_params(
+                nk_test, nothing, dk_test, test_data)
             @test nk_out == nk_test
             @test all(kmax_out .≈ nk_test .* dk_test ./ 2)
         end
@@ -195,27 +199,27 @@ import SpatialMultitaper: _validate_nk, _validate_dk, _validate_kmax, _validate_
 
     @testset "Edge cases and type stability" begin
         @testset "Large numbers" begin
-            @test _validate_nk(1000000, 1) == (1000000,)
-            @test _validate_kmax(1e6, 1) == (1e6,)
-            @test _validate_dk(1e-10, 1) == (1e-10,)
+            @test _validate_nk(1000000, Val{1}()) == (1000000,)
+            @test _validate_kmax(1e6, Val{1}()) == (1e6,)
+            @test _validate_dk(1e-10, Val{1}()) == (1e-10,)
         end
 
         @testset "Type preservation" begin
             # Integer types
-            @test typeof(_validate_nk(Int32(64), 1)[1]) == Int32
-            @test typeof(_validate_nk(Int64(64), 1)[1]) == Int64
+            @test typeof(_validate_nk(Int32(64), Val{1}())[1]) == Int32
+            @test typeof(_validate_nk(Int64(64), Val{1}())[1]) == Int64
 
             # Float types
-            @test typeof(_validate_dk(Float32(0.1), 1)[1]) == Float32
-            @test typeof(_validate_kmax(Float64(1.0), 1)[1]) == Float64
+            @test typeof(_validate_dk(Float32(0.1), Val{1}())[1]) == Float32
+            @test typeof(_validate_kmax(Float64(1.0), Val{1}())[1]) == Float64
         end
 
         @testset "Mixed dimension validation" begin
             # Test that all validation functions handle dimensions correctly
             for dim in 1:5
-                @test length(_validate_nk(64, dim)) == dim
-                @test length(_validate_dk(0.1, dim)) == dim
-                @test length(_validate_kmax(1.0, dim)) == dim
+                @test length(_validate_nk(64, Val{dim}())) == dim
+                @test length(_validate_dk(0.1, Val{dim}())) == dim
+                @test length(_validate_kmax(1.0, Val{dim}())) == dim
             end
         end
     end

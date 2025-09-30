@@ -16,7 +16,7 @@ You should not use this constructor directly.
 You should specify data and region using the `spatial_data` function, which will
 automatically unpack, validate, and mask the input data to the specified region.
 """
-struct SpatialData{T, R <: Meshes.Geometry, N}
+struct SpatialData{T, D, R <: Meshes.Geometry{Meshes.𝔼{D}}, N}
     data::T
     region::R
     names::N

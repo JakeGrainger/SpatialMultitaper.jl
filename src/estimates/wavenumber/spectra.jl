@@ -59,7 +59,7 @@ end
 
 function spectra(data::SpatialData; nk = nothing, kmax, dk = default_dk(data, nk, kmax),
         tapers, mean_method::MeanEstimationMethod = DefaultMean())::Spectra
-    _nk, _kmax = _validate_wavenumber_params(nk, kmax, dk, embeddim(data))
+    _nk, _kmax = _validate_wavenumber_params(nk, kmax, dk, data)
     wavenumber = _make_wavenumber_grid(_nk, _kmax)
     J_n = tapered_dft(data, tapers, _nk, _kmax, mean_method)
     power = _dft_to_spectral_matrix(J_n, process_trait(data))
@@ -81,7 +81,11 @@ Compute the spectral matrix from DFTs for multiple vector processes.
 The DFTs are expected to be stored as a P × M × n_1 × ... × n_D array.
 """
 function _dft_to_spectral_matrix(J_n::AbstractArray, ::MultipleVectorTrait)
-    return mapslices(x -> _compute_spectral_matrix(x), J_n, dims = (1, 2))
+    power = zeros(eltype(J_n), (size(J_n, 1), size(J_n, 1), size(J_n)[3:end]...))
+    for i in CartesianIndices(size(J_n)[3:end])
+        power[:, :, i] = @views _compute_spectral_matrix(J_n[:, :, i])
+    end
+    return power
 end
 
 """
@@ -92,8 +96,11 @@ Compute the spectral matrix from DFTs for a single process.
 The DFT is expected to be stored as an n_1 × ... × n_D × M array.
 """
 function _dft_to_spectral_matrix(J_n::AbstractArray, ::SingleProcessTrait)
-    power = mapslices(x -> mean(abs2, x), J_n, dims = ndims(J_n))
-    return reshape(power, size(J_n)[1:(end - 1)])
+    power = zeros(real(eltype(J_n)), size(J_n)[1:(end - 1)])
+    for i in CartesianIndices(power)
+        power[i] = mean(abs2, @view J_n[i, :])
+    end
+    return power
 end
 
 """

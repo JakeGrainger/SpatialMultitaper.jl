@@ -10,46 +10,48 @@ function _default_dk(region::Geometry)
 end
 
 # validation
-function _validate_dims(x::NTuple, dim)
-    @argcheck length(x) == dim
+function _validate_dims(x::NTuple{D}, ::Val{D}) where {D}
     return x
 end
-function _validate_dims(x::Number, dim)
-    return ntuple(Returns(x), dim)
+function _validate_dims(x::NTuple{L}, ::Val{D}) where {D, L}
+    throw(ArgumentError("Expected a tuple of length $D, got length $L."))
+end
+function _validate_dims(x::Number, ::Val{D}) where {D}
+    return ntuple(Returns(x), Val{D}())
 end
 
-function _validate_nk(nk, dim)
+function _validate_nk(nk, ::Val{D}) where {D}
     @argcheck all(@. nk isa Integer)
     @argcheck all(@. nk > 0)
-    return _validate_dims(nk, dim)
+    return _validate_dims(nk, Val{D}())
 end
 
-function _validate_dk(dk, dim)
+function _validate_dk(dk, ::Val{D}) where {D}
     @argcheck all(@. dk isa Number)
     @argcheck all(@. dk > 0)
-    return _validate_dims(dk, dim)
+    return _validate_dims(dk, Val{D}())
 end
 
-function _validate_kmax(kmax, dim)
+function _validate_kmax(kmax, ::Val{D}) where {D}
     @argcheck all(@. kmax isa Number)
     @argcheck all(@. kmax > 0)
-    return _validate_dims(kmax, dim)
+    return _validate_dims(kmax, Val{D}())
 end
 
-function _validate_wavenumber_params(nk, kmax, dk::Nothing, dim)
-    _nk = _validate_nk(nk, dim)
-    _kmax = _validate_kmax(kmax, dim)
+function _validate_wavenumber_params(nk, kmax, ::Nothing, ::SpatialData{T, D}) where {T, D}
+    _nk = _validate_nk(nk, Val{D}())
+    _kmax = _validate_kmax(kmax, Val{D}())
     return _nk, _kmax
 end
-function _validate_wavenumber_params(nk, kmax::Nothing, dk, dim)
-    _nk = _validate_nk(nk, dim)
-    _dk = _validate_dk(dk, dim)
+function _validate_wavenumber_params(nk, ::Nothing, dk, ::SpatialData{T, D}) where {T, D}
+    _nk = _validate_nk(nk, Val{D}())
+    _dk = _validate_dk(dk, Val{D}())
     _kmax = _nk .* _dk ./ 2
     return _nk, _kmax
 end
-function _validate_wavenumber_params(nk::Nothing, kmax, dk, dim)
-    _kmax = _validate_kmax(kmax, dim)
-    _dk = _validate_dk(dk, dim)
+function _validate_wavenumber_params(::Nothing, kmax, dk, ::SpatialData{T, D}) where {T, D}
+    _kmax = _validate_kmax(kmax, Val{D}())
+    _dk = _validate_dk(dk, Val{D}())
     _nk = ceil.(Int, 2 .* _kmax ./ _dk)
     return _nk, _kmax
 end

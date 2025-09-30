@@ -11,6 +11,12 @@ import SpatialMultitaper: getestimate, getargument, CFunction, default_rotationa
 
 rng = StableRNG(123)
 
+@testset "basic pipeline tests" begin
+    data = make_points_example(rng, n_processes = 1, dim = 2, point_number = 50)
+    tapers = sin_taper_family((3, 3), getregion(data))
+    l_function(data; radii = 0:0.1:1, kmax = 2.0, tapers = tapers)
+end
+
 # loop over 1d, 2d, 3d
 @testset "Dimension $dim tests" for dim in 1:3
 

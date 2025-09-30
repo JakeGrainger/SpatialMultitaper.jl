@@ -97,20 +97,20 @@ function c_function(data::SpatialData; radii, rotational_wavenumber_radii = noth
         rotational_method = nothing, kwargs...)::CFunction
     spectrum = spectra(data; kwargs...)
     wavenumber_radii_processed = process_c_rotational_radii(
-        rotational_wavenumber_radii; kwargs...)
-    rotational_method_processed = process_c_rotational_kernel(rotational_method; kwargs...)
+        spectrum, rotational_wavenumber_radii)
+    rotational_method_processed = process_c_rotational_kernel(spectrum, rotational_method)
     return c_function(
         spectrum; radii = radii, wavenumber_radii = wavenumber_radii_processed,
         rotational_method = rotational_method_processed)
 end
-process_c_rotational_kernel(::Nothing; kwargs...) = default_c_rotational_kernel(; kwargs...)
-process_c_rotational_kernel(kernel; kwargs...) = kernel
-process_c_rotational_radii(::Nothing; kwargs...) = default_c_rotational_radii(; kwargs...)
-process_c_rotational_radii(radii; kwargs...) = radii
+process_c_rotational_kernel(spectrum, ::Nothing) = default_c_rotational_kernel(spectrum)
+process_c_rotational_kernel(spectrum, kernel) = kernel
 
-default_c_rotational_kernel(args...; kwargs...) = NoRotational()
+process_c_rotational_radii(spectrum, ::Nothing) = default_c_rotational_radii(spectrum)
+process_c_rotational_radii(spectrum, radii) = radii
+
+default_c_rotational_kernel(spectrum) = NoRotational()
 default_c_rotational_radii(spectrum) = default_rotational_radii(spectrum)
-default_c_rotational_radii(; nk, kmax, kwargs...) = default_rotational_radii(nk, kmax)
 
 """
     c_function(spectrum::Spectra; radii, wavenumber_radii, rotational_method)
@@ -128,8 +128,8 @@ A `CFunction` object with the C function values.
 """
 function c_function(
         spectrum::Spectra; radii,
-        wavenumber_radii = default_c_rotational_radii(spectrum),
-        rotational_method = default_c_rotational_kernel(spectrum)
+        wavenumber_radii = process_c_rotational_kernel(spectrum, nothing),
+        rotational_method = process_c_rotational_kernel(spectrum, nothing)
 )::CFunction
     return _c_function(spectrum, radii, wavenumber_radii, rotational_method)
 end

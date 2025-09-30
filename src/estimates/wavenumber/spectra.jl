@@ -60,7 +60,7 @@ end
 function spectra(data::SpatialData; nk = nothing, kmax, dk = default_dk(data, nk, kmax),
         tapers, mean_method::MeanEstimationMethod = DefaultMean())::Spectra
     _nk, _kmax = _validate_wavenumber_params(nk, kmax, dk, embeddim(data))
-    wavenumber = _make_wavenumber_grid(_nk, _kmax, embeddim(data))
+    wavenumber = _make_wavenumber_grid(_nk, _kmax)
     J_n = tapered_dft(data, tapers, _nk, _kmax, mean_method)
     power = _dft_to_spectral_matrix(J_n, process_trait(data))
 
@@ -171,23 +171,11 @@ Compute the averaged spectral matrix for a matrix.
 _compute_spectral_matrix(x::AbstractMatrix) = (x * x') ./ size(x, 2)
 
 """
-    _make_wavenumber_grid(nk::Int, kmax::Number, dim::Int)
-
-Create a wavenumber grid with uniform parameters across all dimensions.
-"""
-function _make_wavenumber_grid(nk::Int, kmax::Number, dim::Int)
-    return ntuple(d -> _choose_wavenumbers_1d(nk, kmax), dim)
-end
-
-"""
-    _make_wavenumber_grid(nk, kmax, dim::Int)
+    _make_wavenumber_grid(nk, kmax)
 
 Create a wavenumber grid with dimension-specific parameters.
 """
-function _make_wavenumber_grid(nk, kmax, dim::Int)
+function _make_wavenumber_grid(nk, kmax)
     wavenumber = _choose_wavenumbers_1d.(nk, kmax)
-    if length(wavenumber) != dim
-        throw(ArgumentError("Dimension mismatch: expected $dim wavenumber dimensions, got $(length(wavenumber))"))
-    end
     return wavenumber
 end

@@ -191,7 +191,7 @@ end
                 Iterators.product(
                 start[1]:0.5:(start[1] + 1.75), start[2]:0.5:(start[2] + 3.75)),
             )
-            wavenumber = Iterators.ProductIterator(_make_wavenumber_grid(nk, kmax, 2))
+            wavenumber = Iterators.ProductIterator(_make_wavenumber_grid(nk, kmax))
             @test fft_anydomain(y, grid, nk, kmax) ≈ slow_dft(x, y, wavenumber, -1)
             Y_1_extra = fft_anydomain(y_1_extra, grid, nk, kmax)
             for i in axes(Y_1_extra, 3)

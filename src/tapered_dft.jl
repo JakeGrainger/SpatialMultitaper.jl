@@ -67,8 +67,7 @@ function _single_tapered_dft(
     marks = values(observations(data))[1]
     points = domain(observations(data))
     region = getregion(data)
-    wavenumber = Iterators.ProductIterator(_make_wavenumber_grid(
-        nk, kmax, embeddim(points)))
+    wavenumber = Iterators.ProductIterator(_make_wavenumber_grid(nk, kmax))
     tapered_marks = _apply_taper(points, marks, tapers)
 
     # perform transform

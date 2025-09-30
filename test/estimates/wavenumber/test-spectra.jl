@@ -145,7 +145,7 @@ end
 
 @testset "_make_wavenumber_grid function" begin
     @testset "Single wavenumber per dimension" begin
-        wavenumber = _make_wavenumber_grid(10, 0.5, 1)
+        wavenumber = _make_wavenumber_grid((10,), (0.5,))
         @test length(wavenumber) == 1
         @test length(wavenumber[1]) == 10
         @test maximum(abs, wavenumber[1]) ≤ 0.5
@@ -154,7 +154,7 @@ end
     @testset "Different wavenumbers per dimension" begin
         nk = (8, 12)
         kmax = (0.4, 0.6)
-        wavenumber = _make_wavenumber_grid(nk, kmax, 2)
+        wavenumber = _make_wavenumber_grid(nk, kmax)
 
         @test length(wavenumber) == 2
         @test length(wavenumber[1]) == 8
@@ -204,15 +204,6 @@ end
         # Should not crash but might have limited meaningful results
         spec = spectra(data, nk = nk, kmax = kmax, tapers = tapers)
         @test size(spec) == (1, 1)
-    end
-
-    @testset "Dimension mismatch errors" begin
-        # Test error handling in _make_wavenumber_grid
-        @test_throws ArgumentError _make_wavenumber_grid((8, 12), (0.4, 0.6), 3)  # Wrong number of dimensions
-
-        # Test valid case doesn't throw
-        wavenumber = _make_wavenumber_grid((8, 12), (0.4, 0.6), 2)
-        @test length(wavenumber) == 2
     end
 end
 

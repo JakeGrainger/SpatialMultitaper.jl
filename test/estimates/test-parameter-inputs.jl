@@ -110,13 +110,15 @@ import SpatialMultitaper: _validate_nk, _validate_dk, _validate_kmax, _validate_
             @test kmax == (1.0, 2.0)
             # nk = ceil(2 * kmax / dk)
             @test nk == (ceil(2 * 1.0 / 0.1), ceil(2 * 2.0 / 0.2))
-            @test nk == (20.0, 20.0)
+            @test nk == (20, 20)
+            @test eltype(nk) == Int
 
             # Single values
             nk, kmax = _validate_wavenumber_params(nothing, 0.5, 0.05, 2)
             @test kmax == (0.5, 0.5)
             @test nk == (ceil(2 * 0.5 / 0.05), ceil(2 * 0.5 / 0.05))
-            @test nk == (20.0, 20.0)
+            @test nk == (20, 20)
+            @test eltype(nk) == Int
         end
 
         @testset "Error cases - insufficient parameters" begin

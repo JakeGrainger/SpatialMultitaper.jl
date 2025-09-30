@@ -79,7 +79,7 @@ end
 
 function create_resampler_precompute(
         data::MultipleSpatialDataTuple; nk, kmax, tapers, mean_method = DefaultMean())
-    _nk, _kmax = _validate_wavenumber_params(nk, kmax, nothing, embeddim(data))
+    _nk, _kmax = _validate_wavenumber_params(nk, kmax, nothing, data)
     wavenumber = _make_wavenumber_grid(_nk, _kmax)
     J_n = tapered_dft(data, tapers, _nk, _kmax, mean_method)
     power = _dft_to_spectral_matrix(J_n, process_trait(data))

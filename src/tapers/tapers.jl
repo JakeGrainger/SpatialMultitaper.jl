@@ -39,7 +39,7 @@ const DiscreteTaper = Taper{<:DiscreteTaperSeq, <:DiscreteTaperFT}
 const InterpolatedTaper = Taper{<:InterpolatedTaperFunc, <:InterpolatedTaperFT}
 const ContinuousTaper = Union{InterpolatedTaper, Taper{<:Function, <:Function}}
 
-struct TaperFamily{M, T <: NTuple{M, Taper}}
+struct TaperFamily{T}
     tapers::T
 end
 Base.eachindex(taper::TaperFamily) = eachindex(taper.tapers)
@@ -125,7 +125,7 @@ end
 (f::InterpolatedTaperFunc)(x::NTuple{2, Real}) = f.taper(x[1], x[2])
 (f::InterpolatedTaperFunc)(x::NTuple{3, Real}) = f.taper(x[1], x[2], x[3])
 
-function (f::InterpolatedTaperFT)(k::NTuple{D, T}) where {D, T <: Real}
+function (f::InterpolatedTaperFT)(k::NTuple{D, Real}) where {D}
     f.taper_ft(k) * prod(sinc(unitless_spacing(f.grid)[d] * k[d])^2 for d in 1:D)
 end
 
@@ -168,15 +168,10 @@ This is used for checking if the tapers are suitable for the combination of grid
 function tapers_on_grid(tapers::TaperFamily, ::NoGrid; wavenumber_res = 500) # currently ignore wavenumber_res
     return tapers
 end
-function tapers_on_grid(
-        tapers::TaperFamily{M},
-        grid::CartesianGrid;
-        wavenumber_res = 500
-) where {M}
-    return TaperFamily(
-        ntuple(i -> single_taper_on_grid(tapers[i], grid; wavenumber_res = wavenumber_res),
-        Val{M}()),
-    )
+function tapers_on_grid(tapers::TaperFamily, grid::CartesianGrid; wavenumber_res = 500)
+    return TaperFamily([single_taper_on_grid(
+                            tapers[i], grid; wavenumber_res = wavenumber_res)
+                        for i in eachindex(tapers)])
 end
 function single_taper_on_grid(
         taper::ContinuousTaper, grid::CartesianGrid; wavenumber_res = 500)
@@ -188,14 +183,13 @@ end
 
 function tapers_normalisations(taper_families)
     [[single_taper_normalisations(taper_families[j][i])
-      for
-      i in eachindex(taper_families[j])] for j in eachindex(taper_families)]
+      for i in eachindex(taper_families[j])] for j in eachindex(taper_families)]
 end
 function single_taper_normalisations(::ContinuousTaper)
-    1.0 # assumed normalised in this case
+    return 1.0 # assumed normalised in this case
 end
 function single_taper_normalisations(taper::DiscreteTaper)
-    prod(unitless_spacing(taper.taper.grid)) * sum(abs2, taper.taper.taper)
+    return prod(unitless_spacing(taper.taper.grid)) * sum(abs2, taper.taper.taper)
 end
 
 function taper_concentrations(taper_families, bandwidth; resolution = 100)
@@ -259,7 +253,7 @@ function choose_concentration_resolution(tapers_on_grids, concentration_region)
 end
 
 """
-    _wavenumber_in_box
+    _nk_in_box
 
 Internal function to compute the number of wavenumbers at which the Fourier transform of a taper was evaluated in given box.
 """
@@ -415,7 +409,7 @@ h_m(x) = \\sqrt{2} * \\sin(πxm)
 function sin_taper_family(ntapers, region::Box)
     tapers = [make_sin_taper(d, region)
               for d in Iterators.ProductIterator(range.(1, ntapers))]
-    TaperFamily(ntuple(d -> tapers[d], length(tapers)))
+    TaperFamily(tapers[:])
 end
 
 function make_sin_taper(m, region)

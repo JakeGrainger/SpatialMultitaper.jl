@@ -103,7 +103,7 @@ end
 function k2paircorrelation(est::KFunction{E, D}, method) where {E, D}
     radii = getargument(est)
     stacked_pcf = stack(_k2paircorrelation(radii, getestimate(est[i, j]), Val{D}(), method)
-    for i in 1:size(est)[1], j in 2:size(est)[2])
+    for i in 1:size(est)[1], j in 1:size(est)[2])
     return _post_process_pcf(stacked_pcf, est)
 end
 

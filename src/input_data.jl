@@ -25,6 +25,23 @@ Base.getindex(sd::SpatialData, idx) = SpatialData(sd.data[idx], sd.region, sd.na
 Meshes.embeddim(sd::SpatialData) = embeddim(sd.region)
 getregion(sd::SpatialData) = sd.region
 
+# Compact show method for use in arrays and other contexts
+function Base.show(io::IO, estimate::SpatialData)
+    D = embeddim(estimate)
+    proc_names = propertynames(estimate)
+    print(io, "spatial data", proc_names, "in " * D * "D")
+end
+
+# Detailed show method for standalone display
+function Base.show(io::IO, ::MIME"text/plain", estimate::SpatialData)
+    D = embeddim(estimate)
+    proc_names = propertynames(estimate)
+    println(io, "Spatial data in ", D, " dimensions")
+    println(io, "  processes: ", proc_names)
+    println(io, "  region: ", estimate.region)
+    println(io, "  with values of type ", typeof(observations(estimate)))
+end
+
 """
     spatial_data(data, region::R)
 
@@ -49,6 +66,13 @@ ncol(sd::SpatialData) = 1
 Return the spatial observations from a SpatialData object.
 """
 observations(sd::SpatialData) = sd.data
+
+"""
+    observations(sd::SpatialData, i)
+
+Return the `i`th spatial observations from a SpatialData object.
+"""
+observations(sd::SpatialData, i) = sd.data[i]
 
 Base.propertynames(sd::SpatialData) = sd.names
 

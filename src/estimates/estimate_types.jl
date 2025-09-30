@@ -7,8 +7,8 @@ struct MarginalTrait <: EstimateTrait end
 struct PartialTrait <: EstimateTrait end
 
 abstract type AbstractEstimate{E <: EstimateTrait, D, N} end
-abstract type AnisotropicEstimate{E, D} <: AbstractEstimate{E, D, D} end
-abstract type IsotropicEstimate{E, D} <: AbstractEstimate{E, D, 1} end
+const AnisotropicEstimate{E, D} = AbstractEstimate{E, D, D}
+const IsotropicEstimate{E, D} = AbstractEstimate{E, D, 1}
 const MarginalAbstractEstimate{D, N} = AbstractEstimate{MarginalTrait, D, N}
 const PartialAbstractEstimate{D, N} = AbstractEstimate{PartialTrait, D, N}
 

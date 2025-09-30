@@ -87,13 +87,13 @@ function nufft1d1_anydomain!(output_storage, input_data, nk, kmax, iflag, eps; k
     output_storage.out, output_storage.phase_correction
 
     # compute wavenumbers and downsampling
-    freq_x = _choose_wavenumbers_1d(nk, kmax)
-    downsample_x = freq_downsample_index(nk, oversample_x)
+    wavenumber_x = _choose_wavenumbers_1d(nk, kmax)
+    downsample_x = wavenumber_downsample_index(nk, oversample_x)
 
     # compute
     nufft1d1!(xj_rescaled, cj, iflag, eps, oversampled_out; kwargs...)
     exp_scaling = iflag < 0 ? -2π * 1im : 2π * 1im
-    phase_correction .= exp.(exp_scaling .* shift_x .* freq_x)
+    phase_correction .= exp.(exp_scaling .* shift_x .* wavenumber_x)
 
     # rescaling
     out .= oversampled_out[downsample_x, :] .* phase_correction
@@ -168,18 +168,20 @@ function nufft2d1_anydomain!(output_storage, input_data, nk, kmax, iflag, eps; k
     output_storage.out, output_storage.phase_correction
 
     # compute wavenumbers and downsampling
-    freq_x = _choose_wavenumbers_1d(nk[1], kmax[1])
-    downsample_x = freq_downsample_index(nk[1], oversample_x)
-    freq_y = _choose_wavenumbers_1d(nk[2], kmax[2])
-    downsample_y = freq_downsample_index(nk[2], oversample_y)
+    wavenumber_x = _choose_wavenumbers_1d(nk[1], kmax[1])
+    downsample_x = wavenumber_downsample_index(nk[1], oversample_x)
+    wavenumber_y = _choose_wavenumbers_1d(nk[2], kmax[2])
+    downsample_y = wavenumber_downsample_index(nk[2], oversample_y)
 
     # compute
     nufft2d1!(xj_rescaled, yj_rescaled, cj, iflag, eps, oversampled_out; kwargs...)
     exp_scaling = iflag < 0 ? -2π * 1im : 2π * 1im
-    phase_correction .= exp.(exp_scaling .* (shift_x .* freq_x .+ shift_y .* freq_y'))
+    phase_correction .= exp.(exp_scaling .*
+                             (shift_x .* wavenumber_x .+ shift_y .* wavenumber_y'))
     for i in axes(phase_correction, 2)
         phase_correction[:, i] .= exp.(exp_scaling .*
-                                       (shift_x .* freq_x .+ (shift_y * freq_y[i])))
+                                       (shift_x .* wavenumber_x .+
+                                        (shift_y * wavenumber_y[i])))
     end
 
     # rescaling
@@ -272,12 +274,12 @@ function nufft3d1_anydomain!(output_storage, input_data, nk, kmax, iflag, eps; k
     output_storage.out, output_storage.phase_correction
 
     # compute wavenumbers and downsampling
-    freq_x = _choose_wavenumbers_1d(nk[1], kmax[1])
-    downsample_x = freq_downsample_index(nk[1], oversample_x)
-    freq_y = _choose_wavenumbers_1d(nk[2], kmax[2])
-    downsample_y = freq_downsample_index(nk[2], oversample_y)
-    freq_z = _choose_wavenumbers_1d(nk[3], kmax[3])
-    downsample_z = freq_downsample_index(nk[3], oversample_z)
+    wavenumber_x = _choose_wavenumbers_1d(nk[1], kmax[1])
+    downsample_x = wavenumber_downsample_index(nk[1], oversample_x)
+    wavenumber_y = _choose_wavenumbers_1d(nk[2], kmax[2])
+    downsample_y = wavenumber_downsample_index(nk[2], oversample_y)
+    wavenumber_z = _choose_wavenumbers_1d(nk[3], kmax[3])
+    downsample_z = wavenumber_downsample_index(nk[3], oversample_z)
 
     # compute
     nufft3d1!(
@@ -294,7 +296,8 @@ function nufft3d1_anydomain!(output_storage, input_data, nk, kmax, iflag, eps; k
     for i in axes(phase_correction, 3), j in axes(phase_correction, 2)
         phase_correction[:, j, i] .= exp.(
             exp_scaling .*
-            (shift_x .* freq_x .+ (shift_y * freq_y[j] + shift_z * freq_z[i]))
+            (shift_x .* wavenumber_x .+
+             (shift_y * wavenumber_y[j] + shift_z * wavenumber_z[i]))
         )
     end
 

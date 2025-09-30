@@ -27,7 +27,7 @@ import SpatialMultitaper: apply_transform, is_partial, Spectra, Coherence,
     end
 
     @testset "Regular array input" begin
-        data = rand(ComplexF64, 3, 3, 6, 6)  # P x Q x freq1 x freq2
+        data = rand(ComplexF64, 3, 3, 6, 6)  # P x Q x k1 x k2
 
         @testset "Transform along matrix dimensions" begin
             # Test with function that operates on matrices

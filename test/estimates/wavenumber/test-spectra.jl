@@ -182,11 +182,11 @@ end
     end
 
     @testset "Wavenumber indexing" begin
-        spec_freq = spec[1, 1, 3, 4]  # specific wavenumber bin
-        @test size(spec_freq) == (1, 1)
-        freq_arg = getargument(spec_freq)
-        @test length(freq_arg[1]) == 1  # Single wavenumber
-        @test length(freq_arg[2]) == 1
+        spec_wavenumber = spec[1, 1, 3, 4]  # specific wavenumber bin
+        @test size(spec_wavenumber) == (1, 1)
+        wavenumber_arg = getargument(spec_wavenumber)
+        @test length(wavenumber_arg[1]) == 1  # Single wavenumber
+        @test length(wavenumber_arg[2]) == 1
     end
 end
 

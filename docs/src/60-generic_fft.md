@@ -6,8 +6,8 @@ The wavenumbers will then be given back in the format used by `FFTW`, but shifte
 ```@example
 using FFTW
 n = 10
-highest_freq = 2.5
-wavenumber = fftshift(fftfreq(n, 2highest_freq))
+highest_wavenumber = 2.5
+wavenumber = fftshift(fftfreq(n, 2highest_wavenumber))
 ```
 Let `n` be the number of wavenumbers and `N` be the highest wavenumber. 
 We construct wavenumbers of the form

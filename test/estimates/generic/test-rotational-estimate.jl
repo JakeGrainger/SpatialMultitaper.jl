@@ -49,9 +49,9 @@ end
 
 @testset "Default Radii and Kernel Generation" begin
     @testset "From wavenumber vectors" begin
-        freq1 = range(0, 0.5, length = 11)
-        freq2 = range(0, 0.3, length = 8)
-        wavenumber = (freq1, freq2)
+        k1 = range(0, 0.5, length = 11)
+        k2 = range(0, 0.3, length = 8)
+        wavenumber = (k1, k2)
 
         radii = default_rotational_radii(wavenumber)
 

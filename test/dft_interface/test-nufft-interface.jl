@@ -1,6 +1,7 @@
 using SpatialMultitaper, Test
 import SpatialMultitaper: _choose_wavenumbers_1d, nufft1d1_anydomain, nufft2d1_anydomain,
-                          nufft3d1_anydomain, rescale_points, freq_downsample_startindex,
+                          nufft3d1_anydomain, rescale_points,
+                          wavenumber_downsample_startindex,
                           box2sides, points2coords, nufft_anydomain
 include("../test_utilities/TestUtils.jl")
 using .TestUtils: slow_dft
@@ -17,9 +18,9 @@ function test_nufft1d1_anydomain(interval, nk, kmax, xj, cj)
 end
 
 function test_nufft2d1_anydomain(box, nk, kmax, xj, yj, cj)
-    freq_x = _choose_wavenumbers_1d(nk[1], kmax[1])
-    freq_y = _choose_wavenumbers_1d(nk[2], kmax[2])
-    wavenumber = Iterators.product(freq_x, freq_y)
+    wavenumber_x = _choose_wavenumbers_1d(nk[1], kmax[1])
+    wavenumber_y = _choose_wavenumbers_1d(nk[2], kmax[2])
+    wavenumber = Iterators.product(wavenumber_x, wavenumber_y)
     uj = [(xj[i], yj[i]) for i in eachindex(xj, yj)]
 
     fast_out = nufft2d1_anydomain(box, nk, kmax, xj, yj, cj, -1, 1e-14)[:, :, 1]
@@ -32,10 +33,10 @@ function test_nufft2d1_anydomain(box, nk, kmax, xj, yj, cj)
 end
 
 function test_nufft3d1_anydomain(box, nk, kmax, xj, yj, zj, cj)
-    freq_x = _choose_wavenumbers_1d(nk[1], kmax[1])
-    freq_y = _choose_wavenumbers_1d(nk[2], kmax[2])
-    freq_z = _choose_wavenumbers_1d(nk[3], kmax[3])
-    wavenumber = Iterators.product(freq_x, freq_y, freq_z)
+    wavenumber_x = _choose_wavenumbers_1d(nk[1], kmax[1])
+    wavenumber_y = _choose_wavenumbers_1d(nk[2], kmax[2])
+    wavenumber_z = _choose_wavenumbers_1d(nk[3], kmax[3])
+    wavenumber = Iterators.product(wavenumber_x, wavenumber_y, wavenumber_z)
     uj = [(xj[i], yj[i], zj[i]) for i in eachindex(xj, yj, zj)]
 
     fast_out = nufft3d1_anydomain(box, nk, kmax, xj, yj, zj, cj, -1, 1e-14)[:, :, :, 1]
@@ -67,7 +68,7 @@ end
     kmax = 0.5
     oversample = [1, 2, 3, 7, 21, 22]
     @testset "nk=$nk, ovesample=$c" for nk in nks, c in oversample
-        @test _choose_wavenumbers_1d(nk * c, kmax)[freq_downsample_startindex(
+        @test _choose_wavenumbers_1d(nk * c, kmax)[wavenumber_downsample_startindex(
             nk,
             c
         ):c:end] ≈ _choose_wavenumbers_1d(nk, kmax)

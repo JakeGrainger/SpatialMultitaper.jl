@@ -233,9 +233,9 @@ end
         @test is_partial(partial_sub) == true
 
         # Test wavenumber indexing
-        partial_freq = partial_spec[1, 1, 2, 3]
-        @test size(partial_freq) == (1, 1)
-        @test is_partial(partial_freq) == true
+        partial_wavenumber = partial_spec[1, 1, 2, 3]
+        @test size(partial_wavenumber) == (1, 1)
+        @test is_partial(partial_wavenumber) == true
     end
 
     @testset "Compatibility with other transforms" begin

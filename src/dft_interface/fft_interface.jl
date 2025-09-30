@@ -33,9 +33,9 @@ function fft_anydomain(
         throw(ArgumentError("kmax must be a multiple of nyquist"))
 
     # padding
-    # getting `oversample` from `choose_freq_oversample` ensures that we pad to at least size(grid)
+    # getting `oversample` from `choose_wavenumber_oversample` ensures that we pad to at least size(grid)
     # also ensures that the desired wavenumbers can be recovered at the end
-    oversample = choose_freq_oversample.(size(grid), nk)
+    oversample = choose_wavenumber_oversample.(size(grid), nk)
     padded_x_size = if ndims(x) === embeddim(grid)
         nk .* oversample
     else
@@ -48,10 +48,10 @@ function fft_anydomain(
 
     # downsample to desired output wavenumbers
     down_ind = if ndims(x) === embeddim(grid)
-        CartesianIndices(freq_downsample_index.(nk, oversample))
+        CartesianIndices(wavenumber_downsample_index.(nk, oversample))
     else
         CartesianIndices((
-            freq_downsample_index.(nk, oversample)...,
+            wavenumber_downsample_index.(nk, oversample)...,
             axes(x)[(embeddim(grid) + 1):ndims(x)]...
         ))
     end
@@ -87,7 +87,7 @@ function fft_anydomain(
 end
 
 """
-	choose_freq_oversample(n, nk; maxoversample=100)
+	choose_wavenumber_oversample(n, nk; maxoversample=100)
 
 Find the smallest integer `oversample` such that `nk*oversample ≥ n`.
 
@@ -95,7 +95,7 @@ This function is needed because if `nk ≥ n`, we can simply pad the data to siz
 However, if `nk < n`, we need to pad to a larger size to be able to recover the desired
 wavenumbers.
 """
-function choose_freq_oversample(n::Int, nk::Int; maxoversample = 100)
+function choose_wavenumber_oversample(n::Int, nk::Int; maxoversample = 100)
     if nk < 1
         err = ArgumentError("nk must be a positive integer, but got nk=$(nk)")
         throw(err)

@@ -1,14 +1,14 @@
 """
-	optimaltapers(region::Meshes.GeometryOrDomain, grid::CartesianGrid; freq_region::Meshes.GeometryOrDomain, ntapers::Int, freq_res, freq_downsample=nothing, real_tapers=true, tol=0.0)
+	optimaltapers(region::Meshes.GeometryOrDomain, grid::CartesianGrid; wavenumber_region::Meshes.GeometryOrDomain, ntapers::Int, wavenumber_res, wavenumber_downsample=nothing, real_tapers=true, tol=0.0)
 
 Function to compute the optimal tapers for a given `region`, `grid` and region in wavenumber.
 
 # Arguments:
 - `region`: The spatial observation region. Should be of type `Geometry`.
 - `grid`: A `CartesianGrid` containing the region on which we wish to have a taper.
-- `freq_region`: The region in wavenumber we want to concentrate the taper on. Typically a `Ball` centered at zero.
+- `wavenumber_region`: The region in wavenumber we want to concentrate the taper on. Typically a `Ball` centered at zero.
 - `ntapers`: The number of desired tapers.
-- `freq_res`: The oversampling to be used in wavenumber.
+- `wavenumber_res`: The oversampling to be used in wavenumber.
 - `real_tapers`: Optional argument to decided if real or complex tapers should be provided. Default is `true` which provides real tapers.
 - `tol`: Optional argument passed to the `eigs` function of `Arpack`. You likely need to play with this.
 - `check_grid`: Optional argument to decide if the grid should be checked for compatibility with the region. Default is `true`. Sometimes due to float error this can fail, so you may want to set this to `false` if you are sure the grid and region are compatible.
@@ -19,10 +19,10 @@ If you have an error, it is likely a convergence problem. Try setting a larger v
 function optimaltapers(
         region::Meshes.Geometry,
         grid::CartesianGrid;
-        freq_region::Meshes.Geometry,
+        wavenumber_region::Meshes.Geometry,
         ntapers::Int,
-        freq_res,
-        freq_downsample = nothing,
+        wavenumber_res,
+        wavenumber_downsample = nothing,
         real_tapers = true,
         tol = 0.0,
         check_grid = true
@@ -31,65 +31,71 @@ function optimaltapers(
     if check_grid
         @assert boundingbox(region)⊆boundingbox(grid) "The region of interest is not covered by the grid, please provide a bigger grid or smaller region. Note this could be due to floating point error."
     end
-    @assert embeddim(freq_region)==embeddim(region) "The region and freq_region must have the same number of dimensions."
-    freq_res = checkfreqres(grid, freq_res)
+    @assert embeddim(wavenumber_region)==embeddim(region) "The region and wavenumber_region must have the same number of dimensions."
+    wavenumber_res = checkwavenumberres(grid, wavenumber_res)
 
-    R = padto(downsample(pixelate_region(grid, region), freq_downsample), freq_res)
+    R = padto(
+        downsample(pixelate_region(grid, region), wavenumber_downsample), wavenumber_res)
     K = pixelate_region(
-        fftfreq.(freq_res, 1 ./ downsample_spacing(grid, freq_downsample)),
-        freq_region
+        fftfreq.(wavenumber_res, 1 ./ downsample_spacing(grid, wavenumber_downsample)),
+        wavenumber_region
     )
     h_oversize, λ = compute_eigenfunctions(
         R, K, ntapers; real_tapers = real_tapers, tol = tol)
     h = [prod(sqrt, unitless_spacing(grid)) .*
-         reprocess(h_oversize[i], grid, freq_downsample) for i in eachindex(h_oversize)]
+         reprocess(h_oversize[i], grid, wavenumber_downsample)
+         for i in eachindex(h_oversize)]
     return h, λ
 end
 
-function checkfreqres(grid::CartesianGrid, freq_res)
-    if !(freq_res isa Int)
-        @assert length(freq_res)==embeddim(grid) "freq_res must be an integer or a tuple of integers with the same length as the dimension of grid."
+function checkwavenumberres(grid::CartesianGrid, wavenumber_res)
+    if !(wavenumber_res isa Int)
+        @assert length(wavenumber_res)==embeddim(grid) "wavenumber_res must be an integer or a tuple of integers with the same length as the dimension of grid."
     end
-    if all(size(grid) .≤ freq_res)
-        return freq_res
+    if all(size(grid) .≤ wavenumber_res)
+        return wavenumber_res
     else
-        @warn "freq_res is smaller than grid size, will set to the grid size but you may wish to increase this."
-        return max.(size(grid), freq_res)
+        @warn "wavenumber_res is smaller than grid size, will set to the grid size but you may wish to increase this."
+        return max.(size(grid), wavenumber_res)
     end
 end
 
 """
-	reprocess(h_large, grid, freq_downsample)
+	reprocess(h_large, grid, wavenumber_downsample)
 
 Undoes the downsampling and padding.
 """
-function reprocess(h_large::AbstractArray{T, D}, grid, freq_downsample) where {D, T}
-    return newweight(h_large, freq_downsample) .* upsample(
-        h_large[ntuple(d -> 1:downsample_size(grid, freq_downsample)[d], Val{D}())...],
+function reprocess(h_large::AbstractArray{T, D}, grid, wavenumber_downsample) where {D, T}
+    return newweight(h_large, wavenumber_downsample) .* upsample(
+        h_large[ntuple(
+            d -> 1:downsample_size(grid, wavenumber_downsample)[d], Val{D}())...],
         grid,
-        freq_downsample
+        wavenumber_downsample
     )
 end
 
 """
-	newweight(h, freq_downsampling)
+	newweight(h, wavenumber_downsampling)
 
 Necessary because eigs gives normalised vector under the downsampling.
 """
 newweight(::AbstractArray, ::Nothing) = 1.0
-function newweight(::AbstractArray{T, D}, freq_downsample::Real) where {T, D}
-    sqrt(1 / freq_downsample)^D
+function newweight(::AbstractArray{T, D}, wavenumber_downsample::Real) where {T, D}
+    sqrt(1 / wavenumber_downsample)^D
 end
-function newweight(::AbstractArray{T, D}, freq_downsample::NTuple{D, Real}) where {T, D}
-    prod(sqrt, inv.(freq_downsample))
+function newweight(
+        ::AbstractArray{T, D}, wavenumber_downsample::NTuple{D, Real}) where {T, D}
+    prod(sqrt, inv.(wavenumber_downsample))
 end
 
 downsample_size(grid::CartesianGrid, ::Nothing) = size(grid)
-downsample_size(grid::CartesianGrid, freq_downsample) = size(grid) .÷ freq_downsample
+function downsample_size(grid::CartesianGrid, wavenumber_downsample)
+    size(grid) .÷ wavenumber_downsample
+end
 
 downsample_spacing(grid::CartesianGrid, ::Nothing) = unitless_spacing(grid)
-function downsample_spacing(grid::CartesianGrid, freq_downsample)
-    unitless_spacing(grid) .* freq_downsample
+function downsample_spacing(grid::CartesianGrid, wavenumber_downsample)
+    unitless_spacing(grid) .* wavenumber_downsample
 end
 
 function pixelate_region(grid::CartesianGrid, shp::Meshes.Geometry)

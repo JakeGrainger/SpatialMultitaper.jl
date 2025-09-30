@@ -160,7 +160,7 @@ end
 
         result = tapered_dft(mixed_data, tapers, nk, kmax, mean_method)
 
-        @test size(result) == (3, 1, 4, 4)  # 3 processes (point, grid, marked) x 1 taper x 4 x 4 freqs
+        @test size(result) == (3, 1, 4, 4)  # 3 processes (point, grid, marked) x 1 taper x 4 x 4 ks
         @test eltype(result) == ComplexF64
         @test all(isfinite, result)
     end

@@ -77,7 +77,7 @@ function c_function(data, region; kwargs...)::CFunction
 end
 
 """
-    c_function(data::SpatialData; radii, nk, kmax, freq_radii, rotational_method, spectra_kwargs...)
+    c_function(data::SpatialData; radii, nk, kmax, wavenumber_radii, rotational_method, spectra_kwargs...)
 
 Compute spatial C function from spatial data.
 
@@ -89,19 +89,21 @@ via inverse Fourier transform with appropriate spatial weighting.
 - `radii`: Distances at which to evaluate the C function
 - `nk`: Number of wavenumbers per dimension for spectral estimation
 - `kmax`: Maximum wavenumber per dimension for spectral estimation
-- `freq_radii`: Radial wavenumbers for rotational averaging (default: from nk, kmax)
+- `wavenumber_radii`: Radial wavenumbers for rotational averaging (default: from nk, kmax)
 - `rotational_method`: Kernel for rotational averaging (default: from nk, kmax)
 - `spectra_kwargs...`: Additional arguments passed to spectral estimation
 
 # Returns
 A `CFunction` object containing the spatial C function.
 """
-function c_function(data::SpatialData; radii, rotational_freq_radii = nothing,
+function c_function(data::SpatialData; radii, rotational_wavenumber_radii = nothing,
         rotational_method = nothing, kwargs...)::CFunction
     spectrum = spectra(data; kwargs...)
-    freq_radii_processed = process_c_rotational_radii(rotational_freq_radii; kwargs...)
+    wavenumber_radii_processed = process_c_rotational_radii(
+        rotational_wavenumber_radii; kwargs...)
     rotational_method_processed = process_c_rotational_kernel(rotational_method; kwargs...)
-    return c_function(spectrum; radii = radii, freq_radii = freq_radii_processed,
+    return c_function(
+        spectrum; radii = radii, wavenumber_radii = wavenumber_radii_processed,
         rotational_method = rotational_method_processed)
 end
 process_c_rotational_kernel(::Nothing; kwargs...) = default_c_rotational_kernel(; kwargs...)
@@ -114,14 +116,14 @@ default_c_rotational_radii(spectrum) = default_rotational_radii(spectrum)
 default_c_rotational_radii(; nk, kmax, kwargs...) = default_rotational_radii(nk, kmax)
 
 """
-    c_function(spectrum::Spectra; radii, freq_radii, rotational_method)
+    c_function(spectrum::Spectra; radii, wavenumber_radii, rotational_method)
 
 Compute spatial C function from a spectral estimate.
 
 # Arguments
 - `spectrum::Spectra`: Input power spectral density estimate
 - `radii`: Distances for C function evaluation
-- `freq_radii`: Radial wavenumbers for rotational averaging (default: from spectrum)
+- `wavenumber_radii`: Radial wavenumbers for rotational averaging (default: from spectrum)
 - `rotational_method`: Smoothing kernel for rotational averaging (default: from spectrum)
 
 # Returns
@@ -129,10 +131,10 @@ A `CFunction` object with the C function values.
 """
 function c_function(
         spectrum::Spectra; radii,
-        freq_radii = default_c_rotational_radii(spectrum),
+        wavenumber_radii = default_c_rotational_radii(spectrum),
         rotational_method = default_c_rotational_kernel(spectrum)
 )::CFunction
-    return _c_function(spectrum, radii, freq_radii, rotational_method)
+    return _c_function(spectrum, radii, wavenumber_radii, rotational_method)
 end
 
 """
@@ -186,13 +188,15 @@ end
 # Internal implementation
 
 """
-    _c_function(spectrum::Spectra{E}, radii, freq_radii, rotational_method) where {E}
+    _c_function(spectrum::Spectra{E}, radii, wavenumber_radii, rotational_method) where {E}
 
 Internal function to compute C function with rotational averaging.
 """
-function _c_function(spectrum::Spectra{E}, radii, freq_radii, rotational_method) where {E}
+function _c_function(
+        spectrum::Spectra{E}, radii, wavenumber_radii, rotational_method) where {E}
     # Perform rotational averaging if needed
-    rot_spec = rotational_estimate(spectrum, radii = freq_radii, kernel = rotational_method)
+    rot_spec = rotational_estimate(
+        spectrum, radii = wavenumber_radii, kernel = rotational_method)
     value = _sdf2C(rot_spec, radii)
     return CFunction{E}(
         radii, value, getprocessinformation(spectrum), getestimationinformation(spectrum))

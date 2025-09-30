@@ -6,11 +6,11 @@ Returns the wavenumbers for our fft interfaces, with `nk` wavenumbers, and `kmax
 _choose_wavenumbers_1d(nk, kmax) = fftshift(fftfreq(nk, 2kmax))
 
 """
-	freq_downsample_startindex(nk,oversample)
+	wavenumber_downsample_startindex(nk,oversample)
 
 Returns the starting index for the oversampled wavenumbers to downsample.
 """
-function freq_downsample_startindex(nk, oversample)
+function wavenumber_downsample_startindex(nk, oversample)
     if iseven(nk) || oversample == 1
         return 1
     elseif iseven(oversample)
@@ -21,7 +21,7 @@ function freq_downsample_startindex(nk, oversample)
 end
 
 """
-	freq_downsample_index(nk, oversample)
+	wavenumber_downsample_index(nk, oversample)
 
 Returns the indices required to downsample the oversampled wavenumbers with a given oversampling.
 This assumes that the wavenumbers are fftshifted.
@@ -30,6 +30,6 @@ This assumes that the wavenumbers are fftshifted.
 - `nk::Int`: The number of wavenumbers for the desired output.
 - `oversample::Int`: The oversampling factor used.
 """
-function freq_downsample_index(nk, oversample)
-    freq_downsample_startindex(nk, oversample):oversample:(nk * oversample)
+function wavenumber_downsample_index(nk, oversample)
+    wavenumber_downsample_startindex(nk, oversample):oversample:(nk * oversample)
 end

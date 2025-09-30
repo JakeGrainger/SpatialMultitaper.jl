@@ -2,35 +2,36 @@ using SpatialMultitaper, Test
 include("../test_utilities/TestUtils.jl")
 using .TestUtils
 
-import SpatialMultitaper: choose_freq_oversample, unwrap_fft_output, _choose_wavenumbers_1d,
+import SpatialMultitaper: choose_wavenumber_oversample, unwrap_fft_output,
+                          _choose_wavenumbers_1d,
                           fft_anydomain,
                           _make_wavenumber_grid, unwrap_index, fftshift, fft
 
-@testset "choose_freq_oversample" begin
+@testset "choose_wavenumber_oversample" begin
     # n = 10, nk = 10
-    @test choose_freq_oversample(10, 10) == 1
+    @test choose_wavenumber_oversample(10, 10) == 1
     # n = 10, nk = 12
-    @test choose_freq_oversample(10, 12) == 1
+    @test choose_wavenumber_oversample(10, 12) == 1
     # n = 10, nk = 8
-    @test choose_freq_oversample(10, 8) == 2
+    @test choose_wavenumber_oversample(10, 8) == 2
     # n = 10, nk = 4
-    @test choose_freq_oversample(10, 4) == 3
+    @test choose_wavenumber_oversample(10, 4) == 3
     # nk = 0 (should throw)
-    @test_throws ArgumentError choose_freq_oversample(10, 0)
+    @test_throws ArgumentError choose_wavenumber_oversample(10, 0)
     # n = 0 (should throw)
-    @test_throws ArgumentError choose_freq_oversample(0, 10)
+    @test_throws ArgumentError choose_wavenumber_oversample(0, 10)
     # n = 1, nk = 1
-    @test choose_freq_oversample(1, 1) == 1
+    @test choose_wavenumber_oversample(1, 1) == 1
     # n = 1, nk = 2
-    @test choose_freq_oversample(1, 2) == 1
+    @test choose_wavenumber_oversample(1, 2) == 1
     # Large n, small nk
-    @test choose_freq_oversample(1000, 1; maxoversample = 1000) == 1000
+    @test choose_wavenumber_oversample(1000, 1; maxoversample = 1000) == 1000
     # Large n, large nk
-    @test choose_freq_oversample(1000, 1000) == 1
+    @test choose_wavenumber_oversample(1000, 1000) == 1
     # nk > n
-    @test choose_freq_oversample(10, 20) == 1
+    @test choose_wavenumber_oversample(10, 20) == 1
     # maxitr reached (should throw)
-    @test_throws ErrorException choose_freq_oversample(100, 1; maxoversample = 50)
+    @test_throws ErrorException choose_wavenumber_oversample(100, 1; maxoversample = 50)
 end
 
 @testset "unwrap_fft_output_1d" begin # nyquist set to n/2 for integer values

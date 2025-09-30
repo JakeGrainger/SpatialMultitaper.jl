@@ -281,7 +281,7 @@ the maximum wavenumber vector length.
 A range of radii suitable for rotational averaging.
 
 # Algorithm
-- Maximum radius = min(max_freq_per_dimension)
+- Maximum radius = min(max_wavenumber_per_dimension)
 - Number of radii = max(length_per_dimension)
 - Radii are offset by half a step to avoid the origin singularity
 """
@@ -294,11 +294,12 @@ function default_rotational_radii(s::AbstractEstimate)
 end
 
 function default_rotational_radii(wavenumber::NTuple{D, AbstractVector{<:Real}}) where {D}
-    max_freq = minimum(x -> maximum(abs, x), wavenumber)
-    n_freq = maximum(length, wavenumber)
-    zero_range = range(zero(eltype(max_freq)), stop = max_freq, length = n_freq)
+    max_wavenumber = minimum(x -> maximum(abs, x), wavenumber)
+    n_wavenumber = maximum(length, wavenumber)
+    zero_range = range(
+        zero(eltype(max_wavenumber)), stop = max_wavenumber, length = n_wavenumber)
     # Offset by half step to integrate with endpoints at zero range steps
-    used_range = range(step(zero_range) / 2, stop = max_freq, step = step(zero_range))
+    used_range = range(step(zero_range) / 2, stop = max_wavenumber, step = step(zero_range))
     return used_range
 end
 

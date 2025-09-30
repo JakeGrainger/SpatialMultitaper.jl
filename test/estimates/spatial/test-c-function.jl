@@ -353,8 +353,8 @@ end
 
 @testset "checking isotropic integrals" begin
     @testset "r=$r, ||u||=$u, dim=$dim, sl=$sl" for r in R, u in U, sl in SL, dim in 1:4
-        # value should be r^d/2 A_d integral of x^(d/2-1) J_(d/2)(2 pi r x) dx k-sl/2 to k+sl/2
-        # where A_d = 2 * pi^(d/2) / Gamma(d/2)
+        # Value should be r^{d/2} * A_d * ∫_{k - sl/2}^{k + sl/2} x^{d/2 - 1} * J_{d/2}(2π r x) dx,
+        # where A_d = 2π^{d/2} / Γ(d/2)
         theoretical = _isotropic_c_weight_generic(r, norm(u), sl, Val{dim}())
         int_approx = quadgk(
             x -> (x^(dim / 2 - 1) * besselj(dim / 2, 2π * r * x)), u - sl / 2, u + sl / 2)[1]

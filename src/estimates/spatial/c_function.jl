@@ -248,7 +248,7 @@ end
 function _sdf2C_anisotropic(
         wavenumber, power, trait::Union{SingleProcessTrait, MultipleTupleTrait},
         zero_atom, radii::AbstractVector)
-    out = zeros(eltype(power), length(radii))
+    out = zeros(real(eltype(power)), length(radii))
     for (i, radius) in enumerate(radii)
         out[i] = _sdf2C_anisotropic(wavenumber, power, trait, zero_atom, radius)
     end

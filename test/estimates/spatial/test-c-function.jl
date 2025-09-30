@@ -13,13 +13,33 @@ import SpatialMultitaper: getestimate, getargument, CFunction, default_rotationa
 rng = StableRNG(123)
 
 @testset "basic pipeline tests" begin
-    data = make_points_example(
-        rng, n_processes = 1, dim = 2, point_number = 50, return_type = :single)
-    tapers = sin_taper_family((3, 3), getregion(data))
-    c = c_function(data; radii = 0:0.1:1, kmax = 2.0, tapers = tapers)
-    @test getestimate(c) isa AbstractVector{<:Real}
-    @test c isa IsotropicEstimate
-    @test abs(c) isa IsotropicEstimate
+    @testset "single" begin
+        data = make_points_example(
+            rng, n_processes = 1, dim = 2, point_number = 50, return_type = :single)
+        tapers = sin_taper_family((3, 3), getregion(data))
+        c = c_function(data; radii = 0:0.1:1, kmax = 2.0, tapers = tapers)
+        @test getestimate(c) isa AbstractVector{<:Real}
+        @test c isa IsotropicEstimate
+        @test abs(c) isa IsotropicEstimate
+    end
+    @testset "vector" begin
+        data = make_points_example(
+            rng, n_processes = 1, dim = 2, point_number = 50, return_type = :vector)
+        tapers = sin_taper_family((3, 3), getregion(data))
+        c = c_function(data; radii = 0:0.1:1, kmax = 2.0, tapers = tapers)
+        @test getestimate(c) isa AbstractArray{<:Real, 3}
+        @test c isa IsotropicEstimate
+        @test abs(c) isa IsotropicEstimate
+    end
+    @testset "tuple" begin
+        data = make_points_example(
+            rng, n_processes = 1, dim = 2, point_number = 50, return_type = :tuple)
+        tapers = sin_taper_family((3, 3), getregion(data))
+        c = c_function(data; radii = 0:0.1:1, kmax = 2.0, tapers = tapers)
+        @test getestimate(c) isa AbstractVector{<:SMatrix{1, 1, <:Real, 1}}
+        @test c isa IsotropicEstimate
+        @test abs(c) isa IsotropicEstimate
+    end
 end
 
 # loop over 1d, 2d, 3d

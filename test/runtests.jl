@@ -2,6 +2,7 @@ using SpatialMultitaper, Test, SafeTestsets, Aqua
 
 # Aqua.test_all(SpatialMultitaper)
 run_all = true
+
 # Core functionality tests
 if run_all
     @safetestset "Covariance zero atom" begin

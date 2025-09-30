@@ -1,14 +1,14 @@
 """
 	optimaltapers(region::Meshes.GeometryOrDomain, grid::CartesianGrid; freq_region::Meshes.GeometryOrDomain, ntapers::Int, freq_res, freq_downsample=nothing, real_tapers=true, tol=0.0)
 
-Function to compute the optimal tapers for a given `region`, `grid` and region in frequency.
+Function to compute the optimal tapers for a given `region`, `grid` and region in wavenumber.
 
 # Arguments:
 - `region`: The spatial observation region. Should be of type `Geometry`.
 - `grid`: A `CartesianGrid` containing the region on which we wish to have a taper.
-- `freq_region`: The region in frequency we want to concentrate the taper on. Typically a `Ball` centered at zero.
+- `freq_region`: The region in wavenumber we want to concentrate the taper on. Typically a `Ball` centered at zero.
 - `ntapers`: The number of desired tapers.
-- `freq_res`: The oversampling to be used in frequency.
+- `freq_res`: The oversampling to be used in wavenumber.
 - `real_tapers`: Optional argument to decided if real or complex tapers should be provided. Default is `true` which provides real tapers.
 - `tol`: Optional argument passed to the `eigs` function of `Arpack`. You likely need to play with this.
 - `check_grid`: Optional argument to decide if the grid should be checked for compatibility with the region. Default is `true`. Sometimes due to float error this can fail, so you may want to set this to `false` if you are sure the grid and region are compatible.

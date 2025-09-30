@@ -52,7 +52,7 @@ end
         coh = coherence(spec)
 
         @test coh isa Coherence
-        @test getargument(coh) == getargument(spec)  # Same frequencies
+        @test getargument(coh) == getargument(spec)  # Same wavenumbers
         @test size(coh) == size(spec)
         @test embeddim(coh) == embeddim(spec)
         @test getprocessinformation(coh) == getprocessinformation(spec)

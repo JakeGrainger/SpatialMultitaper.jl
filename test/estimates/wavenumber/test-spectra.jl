@@ -3,7 +3,7 @@ include("../../test_utilities/TestData.jl")
 using .TestData
 
 import SpatialMultitaper: Spectra, getargument, getestimate, _dft_to_spectral_matrix,
-                          _compute_spectral_matrix, _make_frequency_grid,
+                          _compute_spectral_matrix, _make_wavenumber_grid,
                           getestimationinformation,
                           ProcessInformation, EstimationInformation, MarginalTrait,
                           MultipleVectorTrait, SingleProcessTrait, MultipleTupleTrait
@@ -64,7 +64,7 @@ end
         grids = make_grids_example(rng, n_processes = 1, return_type = :single,
             grid_dims = (10, 10), region_min = (0.0, 0.0), region_max = (10.0, 10.0))
         nk = (8, 8)
-        kmax = (0.5, 0.5)  # Nyquist frequency for grid data
+        kmax = (0.5, 0.5)  # Nyquist wavenumber for grid data
         region = getregion(grids)
         tapers = sin_taper_family((2, 2), region)
 
@@ -90,7 +90,7 @@ end
 
     @testset "MultipleVectorTrait" begin
         # P x M x n1 x n2 array
-        J_n = rand(rng, ComplexF64, 3, 10, 8, 8)  # 3 processes, 10 tapers, 8x8 frequencies
+        J_n = rand(rng, ComplexF64, 3, 10, 8, 8)  # 3 processes, 10 tapers, 8x8 wavenumbers
         S_mat = _dft_to_spectral_matrix(J_n, MultipleVectorTrait())
 
         @test size(S_mat) == (3, 3, 8, 8)  # Should be spatial dimensions only
@@ -99,7 +99,7 @@ end
 
     @testset "SingleProcessTrait" begin
         # n1 x n2 x M array
-        J_n = rand(rng, ComplexF64, 8, 8, 10)  # 8x8 frequencies, 10 tapers
+        J_n = rand(rng, ComplexF64, 8, 8, 10)  # 8x8 wavenumbers, 10 tapers
         S_mat = _dft_to_spectral_matrix(J_n, SingleProcessTrait())
 
         @test size(S_mat) == (8, 8)
@@ -143,18 +143,18 @@ end
     end
 end
 
-@testset "_make_frequency_grid function" begin
-    @testset "Single frequency per dimension" begin
-        freq = _make_frequency_grid(10, 0.5, 1)
+@testset "_make_wavenumber_grid function" begin
+    @testset "Single wavenumber per dimension" begin
+        freq = _make_wavenumber_grid(10, 0.5, 1)
         @test length(freq) == 1
         @test length(freq[1]) == 10
         @test maximum(abs, freq[1]) ≤ 0.5
     end
 
-    @testset "Different frequencies per dimension" begin
+    @testset "Different wavenumbers per dimension" begin
         nk = (8, 12)
         kmax = (0.4, 0.6)
-        freq = _make_frequency_grid(nk, kmax, 2)
+        freq = _make_wavenumber_grid(nk, kmax, 2)
 
         @test length(freq) == 2
         @test length(freq[1]) == 8
@@ -178,14 +178,14 @@ end
     @testset "Process indexing" begin
         spec_sub = spec[1, 2]
         @test size(spec_sub) == (1, 1)  # Single process pair
-        @test getargument(spec_sub) == getargument(spec)  # Same frequencies
+        @test getargument(spec_sub) == getargument(spec)  # Same wavenumbers
     end
 
-    @testset "Frequency indexing" begin
-        spec_freq = spec[1, 1, 3, 4]  # specific frequency bin
+    @testset "Wavenumber indexing" begin
+        spec_freq = spec[1, 1, 3, 4]  # specific wavenumber bin
         @test size(spec_freq) == (1, 1)
         freq_arg = getargument(spec_freq)
-        @test length(freq_arg[1]) == 1  # Single frequency
+        @test length(freq_arg[1]) == 1  # Single wavenumber
         @test length(freq_arg[2]) == 1
     end
 end
@@ -207,11 +207,11 @@ end
     end
 
     @testset "Dimension mismatch errors" begin
-        # Test error handling in _make_frequency_grid
-        @test_throws ArgumentError _make_frequency_grid((8, 12), (0.4, 0.6), 3)  # Wrong number of dimensions
+        # Test error handling in _make_wavenumber_grid
+        @test_throws ArgumentError _make_wavenumber_grid((8, 12), (0.4, 0.6), 3)  # Wrong number of dimensions
 
         # Test valid case doesn't throw
-        freq = _make_frequency_grid((8, 12), (0.4, 0.6), 2)
+        freq = _make_wavenumber_grid((8, 12), (0.4, 0.6), 2)
         @test length(freq) == 2
     end
 end

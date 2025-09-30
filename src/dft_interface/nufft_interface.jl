@@ -2,7 +2,7 @@
 	nufft_anydomain(region, nk, kmax, points::PointSet, c, iflag, eps; kwargs...)
 
 Computes the approximate dft of a function using the nufft algorithm, with points in any
-region, at frequencies defined by `kmax` and `nk`.
+region, at wavenumbers defined by `kmax` and `nk`.
 
 Currently only 1d, 2d and 3d are supported.
 """
@@ -56,7 +56,7 @@ end
 	nufft1d1_anydomain(interval, nk, kmax, xj, cj, iflag, eps; kwargs...)
 
 Computes the approximate dft of a 1d function using the nufft algorithm, with points in any
-interval, at frequencies defined by `kmax` and `nk`.
+interval, at wavenumbers defined by `kmax` and `nk`.
 `xj` are the points coordinates and `cj` are the function values.
 Set `iflag<0` for -i in exponent.
 """
@@ -86,8 +86,8 @@ function nufft1d1_anydomain!(output_storage, input_data, nk, kmax, iflag, eps; k
     oversampled_out, out, phase_correction = output_storage.oversampled_out,
     output_storage.out, output_storage.phase_correction
 
-    # compute frequencies and downsampling
-    freq_x = _choose_frequencies_1d(nk, kmax)
+    # compute wavenumbers and downsampling
+    freq_x = _choose_wavenumbers_1d(nk, kmax)
     downsample_x = freq_downsample_index(nk, oversample_x)
 
     # compute
@@ -130,7 +130,7 @@ end
 	nufft2d1_anydomain(box, nk, kmax, xj, yj, cj, iflag, eps; kwargs...)
 
 Computes the approximate dft of a 2d function using the nufft algorithm, with points in any
-box, at frequencies defined by `kmax` and `nk`.
+box, at wavenumbers defined by `kmax` and `nk`.
 `box` here should be a tuple of intervals, one for each dimension.
 Similarly for `kmax` and `nk`.
 `xj`, `yj` are the points coordinates and `cj` are the function values.
@@ -167,10 +167,10 @@ function nufft2d1_anydomain!(output_storage, input_data, nk, kmax, iflag, eps; k
     oversampled_out, out, phase_correction = output_storage.oversampled_out,
     output_storage.out, output_storage.phase_correction
 
-    # compute frequencies and downsampling
-    freq_x = _choose_frequencies_1d(nk[1], kmax[1])
+    # compute wavenumbers and downsampling
+    freq_x = _choose_wavenumbers_1d(nk[1], kmax[1])
     downsample_x = freq_downsample_index(nk[1], oversample_x)
-    freq_y = _choose_frequencies_1d(nk[2], kmax[2])
+    freq_y = _choose_wavenumbers_1d(nk[2], kmax[2])
     downsample_y = freq_downsample_index(nk[2], oversample_y)
 
     # compute
@@ -228,7 +228,7 @@ end
 	nufft3d1_anydomain(cube, nk, kmax, xj, yj, zj, cj, iflag, eps; kwargs...)
 
 Computes the approximate dft of a 3d function using the nufft algorithm, with points in any
-cube, at frequencies defined by `kmax` and `nk`.
+cube, at wavenumbers defined by `kmax` and `nk`.
 `cube` here should be a tuple of intervals, one for each dimension.
 Similarly for `kmax` and `nk`.
 `xj`, `yj`, `zj` are the points coordinates and `cj` are the function values.
@@ -271,12 +271,12 @@ function nufft3d1_anydomain!(output_storage, input_data, nk, kmax, iflag, eps; k
     oversampled_out, out, phase_correction = output_storage.oversampled_out,
     output_storage.out, output_storage.phase_correction
 
-    # compute frequencies and downsampling
-    freq_x = _choose_frequencies_1d(nk[1], kmax[1])
+    # compute wavenumbers and downsampling
+    freq_x = _choose_wavenumbers_1d(nk[1], kmax[1])
     downsample_x = freq_downsample_index(nk[1], oversample_x)
-    freq_y = _choose_frequencies_1d(nk[2], kmax[2])
+    freq_y = _choose_wavenumbers_1d(nk[2], kmax[2])
     downsample_y = freq_downsample_index(nk[2], oversample_y)
-    freq_z = _choose_frequencies_1d(nk[3], kmax[3])
+    freq_z = _choose_wavenumbers_1d(nk[3], kmax[3])
     downsample_z = freq_downsample_index(nk[3], oversample_z)
 
     # compute
@@ -350,7 +350,7 @@ end
 
 Rescales points to be in the interval [-π, π] and returns the oversampling factor.
 Oversampling factor is the smallest integer so that the interval is rescaled to fit in [-π, π],
-and the corresponding kmax frequency is a multiple of `kmax`.
+and the corresponding kmax wavenumber is a multiple of `kmax`.
 Interval just needs to have `minimum` and `maximum` defined.
 """
 function rescale_points(x, nk, kmax, interval; max_oversample = 100)

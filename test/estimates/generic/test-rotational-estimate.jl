@@ -48,14 +48,14 @@ import SpatialMultitaper: RotationalEstimate, MarginallyTransformedEstimate, Coh
 end
 
 @testset "Default Radii and Kernel Generation" begin
-    @testset "From frequency vectors" begin
+    @testset "From wavenumber vectors" begin
         freq1 = range(0, 0.5, length = 11)
         freq2 = range(0, 0.3, length = 8)
         freq = (freq1, freq2)
 
         radii = default_rotational_radii(freq)
 
-        # Should use minimum of maximum frequencies
+        # Should use minimum of maximum wavenumbers
         max_radius = minimum([0.5, 0.3]) - step(radii) / 2
         @test maximum(radii) ≈ max_radius
 
@@ -86,7 +86,7 @@ end
 
 @testset "_smoothed_rotational function" begin
     @testset "1D case" begin
-        x = (range(-1, 1, length = 21),)  # 1D frequencies
+        x = (range(-1, 1, length = 21),)  # 1D wavenumbers
         y = ones(21)  # Constant function
         radii = [0.0, 0.5, 1.0]
         kernel = RectKernel(0.2)

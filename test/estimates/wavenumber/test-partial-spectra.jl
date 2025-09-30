@@ -84,7 +84,7 @@ end
         @test is_partial(partial_spec) == true  # Should have PartialTrait
         @test size(partial_spec) == size(spec)
         @test embeddim(partial_spec) == embeddim(spec)
-        @test getargument(partial_spec) == getargument(spec)  # Same frequencies
+        @test getargument(partial_spec) == getargument(spec)  # Same wavenumbers
         @test getprocessinformation(partial_spec) == getprocessinformation(spec)
         @test getestimationinformation(partial_spec) == getestimationinformation(spec)
     end
@@ -232,7 +232,7 @@ end
         @test size(partial_sub) == (1, 1)
         @test is_partial(partial_sub) == true
 
-        # Test frequency indexing
+        # Test wavenumber indexing
         partial_freq = partial_spec[1, 1, 2, 3]
         @test size(partial_freq) == (1, 1)
         @test is_partial(partial_freq) == true

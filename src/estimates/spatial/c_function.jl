@@ -87,9 +87,9 @@ via inverse Fourier transform with appropriate spatial weighting.
 # Arguments
 - `data::SpatialData`: Input spatial data
 - `radii`: Distances at which to evaluate the C function
-- `nk`: Number of frequencies per dimension for spectral estimation
-- `kmax`: Maximum frequency per dimension for spectral estimation
-- `freq_radii`: Radial frequencies for rotational averaging (default: from nk, kmax)
+- `nk`: Number of wavenumbers per dimension for spectral estimation
+- `kmax`: Maximum wavenumber per dimension for spectral estimation
+- `freq_radii`: Radial wavenumbers for rotational averaging (default: from nk, kmax)
 - `rotational_method`: Kernel for rotational averaging (default: from nk, kmax)
 - `spectra_kwargs...`: Additional arguments passed to spectral estimation
 
@@ -121,7 +121,7 @@ Compute spatial C function from a spectral estimate.
 # Arguments
 - `spectrum::Spectra`: Input power spectral density estimate
 - `radii`: Distances for C function evaluation
-- `freq_radii`: Radial frequencies for rotational averaging (default: from spectrum)
+- `freq_radii`: Radial wavenumbers for rotational averaging (default: from spectrum)
 - `rotational_method`: Smoothing kernel for rotational averaging (default: from spectrum)
 
 # Returns
@@ -234,12 +234,12 @@ end
 
 function _sdf2C_anisotropic(freq, power, ::Union{SingleProcessTrait, MultipleTupleTrait},
         zero_atom, radius::Number)
-    frequency_spacing = prod(step, freq)
+    wavenumber_spacing = prod(step, freq)
 
     c = sum(_compute_c_term(s, zero_atom, radius, k)
     for (s, k) in zip(power, Iterators.product(freq...)))
 
-    return frequency_spacing * real(c)
+    return wavenumber_spacing * real(c)
 end
 
 function _sdf2C_anisotropic(
@@ -256,7 +256,7 @@ function _sdf2C_anisotropic(
         freq::NTuple{D}, power::AbstractArray{<:Number, N}, ::MultipleVectorTrait,
         zero_atom, radii::AbstractVector) where {D, N}
     if length(freq) > ndims(power)
-        throw(DimensionMismatch("Frequency dimensions ($(length(freq))) cannot exceed power array dimensions ($(ndims(power)))"))
+        throw(DimensionMismatch("Wavenumber dimensions ($(length(freq))) cannot exceed power array dimensions ($(ndims(power)))"))
     end
     if !isnothing(zero_atom)
         @argcheck ndims(zero_atom) + length(freq) == ndims(power)

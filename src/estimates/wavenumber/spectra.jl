@@ -23,14 +23,14 @@ Compute the multitaper spectral estimate from a tapered DFT.
 # Arguments
 - `data`: The data to estimate the spectrum from
 - `region`: The region to estimate the spectrum from
-- `nk::NTuple{D,Int}`: The number of frequencies in each dimension
-- `kmax::NTuple{D,Real}`: The maximum frequency in each dimension
+- `nk::NTuple{D,Int}`: The number of wavenumbers in each dimension
+- `kmax::NTuple{D,Real}`: The maximum wavenumber in each dimension
 - `tapers`: A tuple of taper functions
 - `mean_method::MeanEstimationMethod`: The method to estimate the mean (default: `DefaultMean()`)
 
 # Returns
 A `Spectra` object with `freq` and `power` fields:
-- `freq`: D-dimensional `NTuple` of frequency arrays for each dimension
+- `freq`: D-dimensional `NTuple` of wavenumber arrays for each dimension
 - `power`: Power spectral density in one of the following forms:
   - Single process: `n_1 × ... × n_D` array
   - `NTuple{P}` data: `n_1 × ... × n_D` array of `SMatrix{P, P}`
@@ -56,7 +56,7 @@ end
 
 function spectra(data::SpatialData; nk, kmax, tapers,
         mean_method::MeanEstimationMethod = DefaultMean())::Spectra
-    freq = _make_frequency_grid(nk, kmax, embeddim(data))
+    freq = _make_wavenumber_grid(nk, kmax, embeddim(data))
     J_n = tapered_dft(data, tapers, nk, kmax, mean_method)
     power = _dft_to_spectral_matrix(J_n, process_trait(data))
 
@@ -167,23 +167,23 @@ Compute the averaged spectral matrix for a matrix.
 _compute_spectral_matrix(x::AbstractMatrix) = (x * x') ./ size(x, 2)
 
 """
-    _make_frequency_grid(nk::Int, kmax::Number, dim::Int)
+    _make_wavenumber_grid(nk::Int, kmax::Number, dim::Int)
 
-Create a frequency grid with uniform parameters across all dimensions.
+Create a wavenumber grid with uniform parameters across all dimensions.
 """
-function _make_frequency_grid(nk::Int, kmax::Number, dim::Int)
-    return ntuple(d -> _choose_frequencies_1d(nk, kmax), dim)
+function _make_wavenumber_grid(nk::Int, kmax::Number, dim::Int)
+    return ntuple(d -> _choose_wavenumbers_1d(nk, kmax), dim)
 end
 
 """
-    _make_frequency_grid(nk, kmax, dim::Int)
+    _make_wavenumber_grid(nk, kmax, dim::Int)
 
-Create a frequency grid with dimension-specific parameters.
+Create a wavenumber grid with dimension-specific parameters.
 """
-function _make_frequency_grid(nk, kmax, dim::Int)
-    freq = _choose_frequencies_1d.(nk, kmax)
+function _make_wavenumber_grid(nk, kmax, dim::Int)
+    freq = _choose_wavenumbers_1d.(nk, kmax)
     if length(freq) != dim
-        throw(ArgumentError("Dimension mismatch: expected $dim frequency dimensions, got $(length(freq))"))
+        throw(ArgumentError("Dimension mismatch: expected $dim wavenumber dimensions, got $(length(freq))"))
     end
     return freq
 end

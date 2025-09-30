@@ -258,22 +258,22 @@ end
 """
     _freq_in_box
 
-Internal function to compute the number of frequencies at which the Fourier transform of a taper was evaluated in given box.
+Internal function to compute the number of wavenumbers at which the Fourier transform of a taper was evaluated in given box.
 """
 function _nk_in_box(taper::ContinuousTaper, box::Box)
     return ntuple(d -> 2^63 - 1, embeddim(box))
 end
 function _nk_in_box(taper::Taper, box::Box)
-    freq = _evaluation_frequencies(taper)
+    freq = _evaluation_wavenumbers(taper)
     sides = box2sides(box)
     return ntuple(d -> sum(x -> sides[d][1] ≤ x ≤ sides[d][2], freq[d]), embeddim(box))
 end
 
-function _evaluation_frequencies(taper::DiscreteTaper)
+function _evaluation_wavenumbers(taper::DiscreteTaper)
     taper.taper_ft.taper_ft.itp.ranges
 end
 
-function _evaluation_frequencies(taper::InterpolatedTaper)
+function _evaluation_wavenumbers(taper::InterpolatedTaper)
     taper.taper_ft.taper_ft.taper_ft.itp.ranges
 end
 
@@ -290,14 +290,14 @@ If you have a problem, you can use `taper_checks` to check the tapers directly.
 
 Importantly, these checks are very expensive to compute.
 In some cases failures in the checks may be due to the quality of the approximation of the Fourier transform of the tapers.
-Sometimes this can be mitigated by increasing the frequency resolution of the tapers here.
+Sometimes this can be mitigated by increasing the wavenumber resolution of the tapers here.
 However, when using interpolated tapers, you may also need to increase the resolution of the grid used to compute the Fourier transform of those tapers.
 
 # Arguments
 - `data`: The data to check the tapers for.
 - `tapers`: The tapers to check.
 - `bandwidth`: The bandwidth of the tapers.
-- `freq_res`: The frequency resolution to use for the tapers generated from the data grids.
+- `freq_res`: The wavenumber resolution to use for the tapers generated from the data grids.
 - `tol`: The tolerance for the L2 norm of the tapers.
 - `min_concentration`: The minimum concentration of the tapers before they are considered invalid and an error is thrown.
 """
@@ -351,8 +351,8 @@ Constructs a multitaper object from multiple taper discrete impulse responses on
 - `grid`: The grid corresponding to the tapers.
 - `freq_res`: Optional named argument specifying the upsampling for computing the transfer function.
 
-# Frequency sampling
-- The frequency grid on which the transfer function will be sampled has:
+# Wavenumber sampling
+- The wavenumber grid on which the transfer function will be sampled has:
 	- length `freq_res`.
 	- interval `unitless_spacing(grid)/freq_res`.
 """
@@ -456,8 +456,8 @@ A function to create tapers for a given region.
 - `bandwidth`: The bandwidth of the tapers
 - `threshold`: The threshold for the number of tapers to use.
 - `space_res`: The resolution of the grid to create the tapers on.
-- `freq_res`: The resolution of the frequency grid to compute the transfer function on.
-- `freq_generate_res`: The resolution of the frequency grid to generate the tapers on.
+- `freq_res`: The resolution of the wavenumber grid to compute the transfer function on.
+- `freq_generate_res`: The resolution of the wavenumber grid to generate the tapers on.
 - `ntapers_max`: The maximum number of tapers to generate.
 
 As a rough rule of thumb, setting the bandwidth to an integer multiple (say `x`) of a side length of the bounding square of a region will

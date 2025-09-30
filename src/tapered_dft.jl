@@ -11,7 +11,7 @@ For a single process, returns a single array of the transformed data.
 # MultipleSpatialDataVec
 For `P` processes stored as a vector, returns an array of size
 `P × M × n1 × ... × nD`, where `M` is the number of tapers and
-`n1, ..., nD` are the frequency dimensions.
+`n1, ..., nD` are the wavenumber dimensions.
 
 # MultipleSpatialDataTuple
 For `P` processes stored as a tuple, returns a tuple of length `P`, where each
@@ -20,8 +20,8 @@ entry is an array of size `n1 × ... × nD × M`.
 # Arguments
 - `data::SpatialData`: The spatial data to transform
 - `tapers`: Collection of taper functions to apply
-- `nk`: Number of frequencies in each dimension
-- `kmax`: Maximum frequency in each dimension
+- `nk`: Number of wavenumbers in each dimension
+- `kmax`: Maximum wavenumber in each dimension
 - `mean_method::MeanEstimationMethod = DefaultMean()`: Method for mean estimation
 
 # Notes
@@ -67,7 +67,7 @@ function _single_tapered_dft(
     marks = values(observations(data))[1]
     points = domain(observations(data))
     region = getregion(data)
-    freq = Iterators.ProductIterator(_make_frequency_grid(nk, kmax, embeddim(points)))
+    freq = Iterators.ProductIterator(_make_wavenumber_grid(nk, kmax, embeddim(points)))
     tapered_marks = _apply_taper(points, marks, tapers)
 
     # perform transform

@@ -266,7 +266,7 @@ end
         tapers = [taper_family[1]]
 
         result = _single_tapered_dft(points_data, tapers, nk, kmax, DefaultMean())
-        @test size(result) == (8, 1)  # 1D frequency space x 1 taper
+        @test size(result) == (8, 1)  # 1D wavenumber space x 1 taper
         @test all(isfinite, result)
     end
 

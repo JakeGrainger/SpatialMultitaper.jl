@@ -16,7 +16,7 @@ using .SlepianSolver
 
 include("tapers/general_tapers.jl")
 
-include("dft_interface/frequencies.jl")
+include("dft_interface/wavenumbers.jl")
 include("dft_interface/nufft_interface.jl")
 include("dft_interface/fft_interface.jl")
 

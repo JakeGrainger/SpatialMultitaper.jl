@@ -2,9 +2,9 @@ using SpatialMultitaper, Test
 include("../test_utilities/TestUtils.jl")
 using .TestUtils
 
-import SpatialMultitaper: choose_freq_oversample, unwrap_fft_output, _choose_frequencies_1d,
+import SpatialMultitaper: choose_freq_oversample, unwrap_fft_output, _choose_wavenumbers_1d,
                           fft_anydomain,
-                          _make_frequency_grid, unwrap_index, fftshift, fft
+                          _make_wavenumber_grid, unwrap_index, fftshift, fft
 
 @testset "choose_freq_oversample" begin
     # n = 10, nk = 10
@@ -41,15 +41,15 @@ end
         @test_throws ArgumentError unwrap_fft_output(ones(10), (1, 2))
         # Error: negative kmaxrel
         @test_throws ArgumentError unwrap_fft_output(ones(10), (-1,))
-        # correctness on frequencies
+        # correctness on wavenumbers
         nks = [10, 11, 30, 31, 100, 101]
         kmaxrels = 1:11
         @testset "nk=$nk, kmaxrel=$kmaxrel" for nk in nks, kmaxrel in kmaxrels
-            # obtained from applying unwrap_fft_output to the fft frequencies spaced by 1
+            # obtained from applying unwrap_fft_output to the fft wavenumbers spaced by 1
             x = Int.(unwrap_fft_output(
-                _choose_frequencies_1d(nk, nk / 2), (kmaxrel,)))
-            # the fft frequencies spaced by kmaxrel (which should be the output up to periodicity)
-            y = Int.(_choose_frequencies_1d(nk, kmaxrel * (nk / 2)))
+                _choose_wavenumbers_1d(nk, nk / 2), (kmaxrel,)))
+            # the fft wavenumbers spaced by kmaxrel (which should be the output up to periodicity)
+            y = Int.(_choose_wavenumbers_1d(nk, kmaxrel * (nk / 2)))
             @test mod.(x, nk)≈mod.(y, nk) atol=1e-4
         end
     end
@@ -98,7 +98,7 @@ end
             @test fft_anydomain(y, grid, (8,), (1 / 2,)) ≈
                   fftshift(fft([1, 2, 3, 4, 0, 0, 0, 0])) # 8 is the smallest oversampling
             @test fft_anydomain(y, grid, (8,), (1 / 2,)) ≈
-                  slow_dft(0:3, y, _choose_frequencies_1d(8, 1 / 2), -1)
+                  slow_dft(0:3, y, _choose_wavenumbers_1d(8, 1 / 2), -1)
 
             @test fft_anydomain(y_1_extra, grid, (4,), (1 / 2,)) ≈ hcat(
                 [-2.0, -2.0 - 2.0im, 10.0, -2.0 + 2.0im],
@@ -107,7 +107,7 @@ end
 
             grid2 = CartesianGrid((1 - 0.5,), (1 + 3.5,), dims = (4,))
             @test fft_anydomain(y, grid2, (8,), (1 / 2,)) ≈
-                  slow_dft(1:4, y, _choose_frequencies_1d(8, 1 / 2), -1)
+                  slow_dft(1:4, y, _choose_wavenumbers_1d(8, 1 / 2), -1)
         end
 
         starts = [0, 2.4]
@@ -143,17 +143,17 @@ end
             grid = CartesianGrid((start - 0.25,), (start + 4 - 0.25,), dims = (8,))
             x = start:0.5:(start + 3.75)
             @test fft_anydomain(y, grid, (nk,), (kmax,)) ≈
-                  slow_dft(x, y, _choose_frequencies_1d(nk, kmax), -1)
+                  slow_dft(x, y, _choose_wavenumbers_1d(nk, kmax), -1)
             Y_1_extra = fft_anydomain(y_1_extra, grid, (nk,), (kmax,))
             for i in axes(Y_1_extra, 2)
                 @test Y_1_extra[:, i] ≈
-                      slow_dft(x, y_1_extra[:, i], _choose_frequencies_1d(nk, kmax), -1)
+                      slow_dft(x, y_1_extra[:, i], _choose_wavenumbers_1d(nk, kmax), -1)
             end
             Y_2_extra = fft_anydomain(y_2_extra, grid, (nk,), (kmax,))
             for i in axes(Y_2_extra, 2), j in axes(Y_2_extra, 3)
                 @test Y_2_extra[:, i, j] ≈
                       slow_dft(
-                    x, y_2_extra[:, i, j], _choose_frequencies_1d(nk, kmax), -1)
+                    x, y_2_extra[:, i, j], _choose_wavenumbers_1d(nk, kmax), -1)
             end
         end
     end
@@ -190,7 +190,7 @@ end
                 Iterators.product(
                 start[1]:0.5:(start[1] + 1.75), start[2]:0.5:(start[2] + 3.75)),
             )
-            freq = Iterators.ProductIterator(_make_frequency_grid(nk, kmax, 2))
+            freq = Iterators.ProductIterator(_make_wavenumber_grid(nk, kmax, 2))
             @test fft_anydomain(y, grid, nk, kmax) ≈ slow_dft(x, y, freq, -1)
             Y_1_extra = fft_anydomain(y_1_extra, grid, nk, kmax)
             for i in axes(Y_1_extra, 3)

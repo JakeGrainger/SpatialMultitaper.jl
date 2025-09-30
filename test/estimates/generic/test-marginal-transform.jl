@@ -229,12 +229,12 @@ end
         @test getargument(real_sub) == getargument(real_spec)
     end
 
-    @testset "Frequency indexing" begin
+    @testset "Wavenumber indexing" begin
         real_freq = real_spec[1, 1, 2, 3]
         @test real_freq isa MarginallyTransformedEstimate
         @test size(real_freq) == (1, 1)
 
-        # Check frequency was correctly indexed
+        # Check wavenumber was correctly indexed
         freq_arg = getargument(real_freq)
         @test length(freq_arg[1]) == 1
         @test length(freq_arg[2]) == 1

@@ -79,7 +79,7 @@ end
 
 function create_resampler_precompute(
         data::MultipleSpatialDataTuple; nk, kmax, tapers, mean_method = DefaultMean())
-    freq = _make_frequency_grid(nk, kmax, embeddim(data))
+    freq = _make_wavenumber_grid(nk, kmax, embeddim(data))
     J_n = tapered_dft(data, tapers, nk, kmax, mean_method)
     power = _dft_to_spectral_matrix(J_n, process_trait(data))
     f_inv_cross = create_f_inv_cross(power)

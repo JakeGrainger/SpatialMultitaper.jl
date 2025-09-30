@@ -29,8 +29,8 @@ if run_all
     @safetestset "FFT Interface" begin
         include("dft_interface/test-fft-interface.jl")
     end
-    @safetestset "Frequencies" begin
-        include("dft_interface/test-frequencies.jl")
+    @safetestset "Wavenumbers" begin
+        include("dft_interface/test-wavenumbers.jl")
     end
     @safetestset "NUFFT Interface" begin
         include("dft_interface/test-nufft-interface.jl")

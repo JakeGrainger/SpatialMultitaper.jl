@@ -266,16 +266,16 @@ end
     default_rotational_radii(s::AbstractEstimate)
     default_rotational_radii(nk, kmax)
 
-Construct default radii for rotational averaging based on frequency vectors.
+Construct default radii for rotational averaging based on wavenumber vectors.
 
 The default radii are chosen to span from near zero to the minimum of the
-maximum frequencies across dimensions, with the number of points equal to
-the maximum frequency vector length.
+maximum wavenumbers across dimensions, with the number of points equal to
+the maximum wavenumber vector length.
 
 # Arguments
-- `freq`: Tuple of frequency vectors for each dimension
-- `s`: An estimate from which to extract frequency information
-- `nk`, `kmax`: Number of frequencies and maximum frequency per dimension
+- `freq`: Tuple of wavenumber vectors for each dimension
+- `s`: An estimate from which to extract wavenumber information
+- `nk`, `kmax`: Number of wavenumbers and maximum wavenumber per dimension
 
 # Returns
 A range of radii suitable for rotational averaging.
@@ -286,7 +286,7 @@ A range of radii suitable for rotational averaging.
 - Radii are offset by half a step to avoid the origin singularity
 """
 function default_rotational_radii(nk, kmax)
-    return default_rotational_radii(_choose_frequencies_1d.(nk, kmax))
+    return default_rotational_radii(_choose_wavenumbers_1d.(nk, kmax))
 end
 
 function default_rotational_radii(s::AbstractEstimate)
@@ -310,18 +310,18 @@ end
 Construct a default smoothing kernel for rotational averaging.
 
 The default kernel is a rectangular kernel with bandwidth twice the maximum
-frequency step size across dimensions. This provides reasonable smoothing
-while preserving frequency resolution.
+wavenumber step size across dimensions. This provides reasonable smoothing
+while preserving wavenumber resolution.
 
 # Returns
-A `RectKernel` with bandwidth = 2 * max(frequency_steps)
+A `RectKernel` with bandwidth = 2 * max(wavenumber_steps)
 """
 function default_rotational_kernel(est::AbstractEstimate)
     return default_rotational_kernel(getargument(est))
 end
 
 function default_rotational_kernel(nk, kmax)
-    return default_rotational_kernel(_choose_frequencies_1d.(nk, kmax))
+    return default_rotational_kernel(_choose_wavenumbers_1d.(nk, kmax))
 end
 
 function default_rotational_kernel(freq::NTuple{D, AbstractVector{<:Real}}) where {D}

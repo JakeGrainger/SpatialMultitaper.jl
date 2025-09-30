@@ -11,16 +11,16 @@ Common examples include taking the real part, magnitude, phase, or logarithm of 
 - `E`: Estimate trait (e.g., `MarginalTrait`, `PartialTrait`)
 - `D`: Spatial dimension
 - `P`, `Q`: Process dimensions
-- `N`: Number of frequency dimensions
+- `N`: Number of wavenumber dimensions
 - `S`: Type of the original estimate before transformation
-- `A`: Type of the argument (e.g., frequency grid)
+- `A`: Type of the argument (e.g., wavenumber grid)
 - `T`: Type of the transformed estimate values
 - `IP`: Type of process information
 - `IE`: Type of estimation information
 - `F`: Type of the transformation function
 
 # Fields
-- `argument`: The argument (typically frequency) of the estimate
+- `argument`: The argument (typically wavenumber) of the estimate
 - `estimate`: The transformed estimate values
 - `processinformation`: Information about the processes
 - `estimationinformation`: Information about the estimation procedure

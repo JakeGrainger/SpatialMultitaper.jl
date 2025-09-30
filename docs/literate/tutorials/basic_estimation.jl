@@ -45,8 +45,8 @@ Mke.current_figure()
 # ## Estimation
 # We can perform spectral estimation using the `spectra` function. This function
 # takes the `data` and a `region` on which it is oberved as inputs. In addition, we need to
-# specify the tapers to use, the number of frequencies we want to compute in each dimension
-# `nk`, and the maximum frequency in each dimension `kmax`.
+# specify the tapers to use, the number of wavenumbers we want to compute in each dimension
+# `nk`, and the maximum wavenumber in each dimension `kmax`.
 tapers = sin_taper_family((4, 4), region)
 nk = (100, 100)
 kmax = (0.1, 0.1)
@@ -55,7 +55,7 @@ spec = spectra(data; tapers = tapers, nk = nk, kmax = kmax)
 # ## Visualising the output
 # The spectral estimate is returned as a `Spectra` object. There are various
 # transformations we can apply to this object. But if we want to visualise the raw output,
-# we can get the frequencies and power from the fields `freq` and `power` respectively.
+# we can get the wavenumbers and power from the fields `freq` and `power` respectively.
 # The object is multidimensional, but we can index it to get the estimate between two
 # processes.
 spec11 = spec[1, 1]

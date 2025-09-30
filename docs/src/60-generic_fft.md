@@ -9,8 +9,8 @@ n = 10
 highest_freq = 2.5
 freq = fftshift(fftfreq(n, 2highest_freq))
 ```
-Let `n` be the number of frequencies and `N` be the highest frequency. 
-We construct frequencies of the form
+Let `n` be the number of wavenumbers and `N` be the highest wavenumber. 
+We construct wavenumbers of the form
 ```math
     \{-\lceil n/2\rceil, \ldots, \lfloor n/2\rfloor - 1\} \times \frac{2N}{n}
 ```
@@ -20,7 +20,7 @@ This can be recovered by using
     using SpatialMultitaper
     n = 10
     N = 2.5
-    SpatialMultitaper._choose_frequencies_1d(n, N)
+    SpatialMultitaper._choose_wavenumbers_1d(n, N)
 ```
 
 We utilise both standard Fast Fourier Transforms (FFTs) and Non-Uniform Fast Fourier Transforms (NUFFTs)

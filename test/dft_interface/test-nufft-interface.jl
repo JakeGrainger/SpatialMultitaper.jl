@@ -1,12 +1,12 @@
 using SpatialMultitaper, Test
-import SpatialMultitaper: _choose_frequencies_1d, nufft1d1_anydomain, nufft2d1_anydomain,
+import SpatialMultitaper: _choose_wavenumbers_1d, nufft1d1_anydomain, nufft2d1_anydomain,
                           nufft3d1_anydomain, rescale_points, freq_downsample_startindex,
                           box2sides, points2coords, nufft_anydomain
 include("../test_utilities/TestUtils.jl")
 using .TestUtils: slow_dft
 
 function test_nufft1d1_anydomain(interval, nk, kmax, xj, cj)
-    freq = _choose_frequencies_1d(nk, kmax)
+    freq = _choose_wavenumbers_1d(nk, kmax)
     fast_out = nufft1d1_anydomain(interval, nk, kmax, xj, cj, -1, 1e-14)[:, 1]
     slow_out = slow_dft(xj, cj, freq, -1)
     fast_out_pos = nufft1d1_anydomain(interval, nk, kmax, xj, cj, 1, 1e-14)[:, 1]
@@ -17,8 +17,8 @@ function test_nufft1d1_anydomain(interval, nk, kmax, xj, cj)
 end
 
 function test_nufft2d1_anydomain(box, nk, kmax, xj, yj, cj)
-    freq_x = _choose_frequencies_1d(nk[1], kmax[1])
-    freq_y = _choose_frequencies_1d(nk[2], kmax[2])
+    freq_x = _choose_wavenumbers_1d(nk[1], kmax[1])
+    freq_y = _choose_wavenumbers_1d(nk[2], kmax[2])
     freq = Iterators.product(freq_x, freq_y)
     uj = [(xj[i], yj[i]) for i in eachindex(xj, yj)]
 
@@ -32,9 +32,9 @@ function test_nufft2d1_anydomain(box, nk, kmax, xj, yj, cj)
 end
 
 function test_nufft3d1_anydomain(box, nk, kmax, xj, yj, zj, cj)
-    freq_x = _choose_frequencies_1d(nk[1], kmax[1])
-    freq_y = _choose_frequencies_1d(nk[2], kmax[2])
-    freq_z = _choose_frequencies_1d(nk[3], kmax[3])
+    freq_x = _choose_wavenumbers_1d(nk[1], kmax[1])
+    freq_y = _choose_wavenumbers_1d(nk[2], kmax[2])
+    freq_z = _choose_wavenumbers_1d(nk[3], kmax[3])
     freq = Iterators.product(freq_x, freq_y, freq_z)
     uj = [(xj[i], yj[i], zj[i]) for i in eachindex(xj, yj, zj)]
 
@@ -62,15 +62,15 @@ end
     end
 end
 
-@testset "_choose_frequencies_1d" begin
+@testset "_choose_wavenumbers_1d" begin
     nks = [9, 11, 20]
     kmax = 0.5
     oversample = [1, 2, 3, 7, 21, 22]
     @testset "nk=$nk, ovesample=$c" for nk in nks, c in oversample
-        @test _choose_frequencies_1d(nk * c, kmax)[freq_downsample_startindex(
+        @test _choose_wavenumbers_1d(nk * c, kmax)[freq_downsample_startindex(
             nk,
             c
-        ):c:end] ≈ _choose_frequencies_1d(nk, kmax)
+        ):c:end] ≈ _choose_wavenumbers_1d(nk, kmax)
     end
 end
 

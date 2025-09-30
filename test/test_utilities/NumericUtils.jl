@@ -11,11 +11,11 @@ of faster FFT-based implementations.
 # Arguments
 - `u`: Spatial locations
 - `f`: Function values at those locations
-- `freq`: Frequencies to evaluate the DFT at
+- `freq`: Wavenumbers to evaluate the DFT at
 - `iflag`: Direction flag (≥ 0 for forward transform, < 0 for inverse)
 
 # Returns
-Vector of DFT values at the specified frequencies
+Vector of DFT values at the specified wavenumbers
 """
 function slow_dft(u, f, freq, iflag)
     pm = iflag ≥ 0 ? 1 : -1

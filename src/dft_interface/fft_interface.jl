@@ -2,8 +2,8 @@
 	fft_anydomain(x::Array, grid::Grid, nk, kmax; kwargs...)
 
 Apply an fft to data stored in `x` given that `x` is recorded on a grid `grid`.
-The output is at frequencies determined by `nk` and `kmax`.
-The output is fftshifted so that the zero frequency is in the middle of the output array.
+The output is at wavenumbers determined by `nk` and `kmax`.
+The output is fftshifted so that the zero wavenumber is in the middle of the output array.
 `x` can have more dimensions than `grid` but the first dimensions (up to the `ndims(grid)`)
 must be the same as the grid.
 When `x` has more dimensions than `grid`, the fft is only applied over the dimensions
@@ -34,7 +34,7 @@ function fft_anydomain(
 
     # padding
     # getting `oversample` from `choose_freq_oversample` ensures that we pad to at least size(grid)
-    # also ensures that the desired frequencies can be recovered at the end
+    # also ensures that the desired wavenumbers can be recovered at the end
     oversample = choose_freq_oversample.(size(grid), nk)
     padded_x_size = if ndims(x) === embeddim(grid)
         nk .* oversample
@@ -46,7 +46,7 @@ function fft_anydomain(
     # compute fft over the dimensions corresponding to the grid (spatial variation)
     J = fftshift(fft(padded_x, 1:embeddim(grid); kwargs...), 1:embeddim(grid))
 
-    # downsample to desired output frequencies
+    # downsample to desired output wavenumbers
     down_ind = if ndims(x) === embeddim(grid)
         CartesianIndices(freq_downsample_index.(nk, oversample))
     else
@@ -57,7 +57,7 @@ function fft_anydomain(
     end
     J_downsample = J[down_ind] # this does not happen inside unwrap_fft_output as this first copies, and then downsamples, which would result in very large intermediate arrays
 
-    # unwrap fft output (if higher than the nyquist frequency was requested this copies out to that frequency, and then downsamples to the correct number of frequencies)
+    # unwrap fft output (if higher than the nyquist wavenumber was requested this copies out to that wavenumber, and then downsamples to the correct number of wavenumbers)
     J_unwrapped = unwrap_fft_output(J_downsample, kmaxrel)
 
     # rescale to account for shift in grid
@@ -74,7 +74,7 @@ function fft_anydomain(
         )
     end
 
-    freq = Iterators.ProductIterator(_choose_frequencies_1d.(nk, kmax))
+    freq = Iterators.ProductIterator(_choose_wavenumbers_1d.(nk, kmax))
     shift = unitless_minimum(grid) .+ unitless_spacing(grid) ./ 2
     for i in axes(J_unwrapped_reshaped, ndims(J_unwrapped_reshaped))
         J_unwrapped_slice = selectdim(J_unwrapped_reshaped, ndims(J_unwrapped_reshaped), i)
@@ -93,7 +93,7 @@ Find the smallest integer `oversample` such that `nk*oversample ≥ n`.
 
 This function is needed because if `nk ≥ n`, we can simply pad the data to size `nk`.
 However, if `nk < n`, we need to pad to a larger size to be able to recover the desired
-frequencies.
+wavenumbers.
 """
 function choose_freq_oversample(n::Int, nk::Int; maxoversample = 100)
     if nk < 1
@@ -109,7 +109,7 @@ function choose_freq_oversample(n::Int, nk::Int; maxoversample = 100)
     if oversample > maxoversample
         err = ErrorException("""
             Required oversampling is $(oversample) which is greater than maxoversample=$(maxoversample).
-            If you use this output frequency choice, you will have very poor performance
+            If you use this output wavenumber choice, you will have very poor performance
             computationally, probably something has been missspecified.
         """)
         throw(err)
@@ -121,10 +121,10 @@ end
 	unwrap_fft_output(J::AbstractArray, kmaxrel::NTuple{D, Int}) where {D}
 
 Copies the result of the fft to give something which goes up to some multiple of the nyquist
-frequency (whilst keeping the number of output frequencies).
+wavenumber (whilst keeping the number of output wavenumbers).
 
-This is needed because if we want frequencies higher than the nyquist frequency, we can use
-periodicity to recover frequencies up to `kmax = kmaxrel * nyquist`.
+This is needed because if we want wavenumbers higher than the nyquist wavenumber, we can use
+periodicity to recover wavenumbers up to `kmax = kmaxrel * nyquist`.
 This works because at this point we assume the fft input is centered at zero, so the output
 has this periodicity.
 The final output of the calling function is adjusted appropriately for shifts in the input.

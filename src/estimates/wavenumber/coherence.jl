@@ -1,20 +1,20 @@
 """
     Coherence{E, D, P, Q, N, A, T, IP, IE} <: AbstractEstimate{E, D, P, Q, N}
 
-A coherence estimate structure containing frequency information and coherence values.
+A coherence estimate structure containing wavenumber information and coherence values.
 
 # Type Parameters
 - `E`: Estimate trait (e.g., `MarginalTrait`, `PartialTrait`)
 - `D`: Spatial dimension
 - `P`, `Q`: Process dimensions
-- `N`: Number of frequency dimensions
-- `A`: Type of frequency argument
+- `N`: Number of wavenumber dimensions
+- `A`: Type of wavenumber argument
 - `T`: Type of coherence values
 - `IP`: Type of process information
 - `IE`: Type of estimation information
 
 # Fields
-- `freq`: Frequency grid or values
+- `freq`: Wavenumber grid or values
 - `coherence`: Coherence estimates
 - `processinformation`: Information about the processes
 - `estimationinformation`: Information about the estimation procedure

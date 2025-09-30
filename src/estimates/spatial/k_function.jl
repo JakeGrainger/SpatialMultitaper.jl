@@ -35,7 +35,7 @@ The relationship to the C function is:
 kf = k_function(spectrum, radii=0.1:0.1:2.0)
 
 # Direct computation from data
-kf = k_function(data, region, radii=0.1:0.1:2.0, nfreq=(32,32), fmax=(0.5,0.5), tapers=tapers)
+kf = k_function(data, region, radii=0.1:0.1:2.0, nk=(32,32), kmax=(0.5,0.5), tapers=tapers)
 ```
 """
 struct KFunction{E, D, P, Q, A, T, IP, IE} <: IsotropicEstimate{E, D, P, Q}

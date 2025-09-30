@@ -247,8 +247,8 @@ Will return the lowest resolution to mitigate some effects of interpolation that
 """
 function choose_concentration_resolution(tapers_on_grids, concentration_region)
     bbox = boundingbox(concentration_region)
-    nfreqs = [_nfreq_in_box(tapers[1], bbox) for tapers in tapers_on_grids]
-    concentration_res = ntuple(i -> minimum(x -> x[i], nfreqs), Val{embeddim(bbox)}())
+    nks = [_nk_in_box(tapers[1], bbox) for tapers in tapers_on_grids]
+    concentration_res = ntuple(i -> minimum(x -> x[i], nks), Val{embeddim(bbox)}())
     if any(x -> x < 30, concentration_res)
         @warn "The resolution for computing the concentration of the tapers is very low. You may want to increase the wavenumber domain resolution used when precomputing taper Fourier transforms."
     end
@@ -260,10 +260,10 @@ end
 
 Internal function to compute the number of frequencies at which the Fourier transform of a taper was evaluated in given box.
 """
-function _nfreq_in_box(taper::ContinuousTaper, box::Box)
+function _nk_in_box(taper::ContinuousTaper, box::Box)
     return ntuple(d -> 2^63 - 1, embeddim(box))
 end
-function _nfreq_in_box(taper::Taper, box::Box)
+function _nk_in_box(taper::Taper, box::Box)
     freq = _evaluation_frequencies(taper)
     sides = box2sides(box)
     return ntuple(d -> sum(x -> sides[d][1] ≤ x ≤ sides[d][2], freq[d]), embeddim(box))

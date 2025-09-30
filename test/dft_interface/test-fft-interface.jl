@@ -7,27 +7,27 @@ import SpatialMultitaper: choose_freq_oversample, unwrap_fft_output, _choose_fre
                           _make_frequency_grid, unwrap_index, fftshift, fft
 
 @testset "choose_freq_oversample" begin
-    # n = 10, nfreq = 10
+    # n = 10, nk = 10
     @test choose_freq_oversample(10, 10) == 1
-    # n = 10, nfreq = 12
+    # n = 10, nk = 12
     @test choose_freq_oversample(10, 12) == 1
-    # n = 10, nfreq = 8
+    # n = 10, nk = 8
     @test choose_freq_oversample(10, 8) == 2
-    # n = 10, nfreq = 4
+    # n = 10, nk = 4
     @test choose_freq_oversample(10, 4) == 3
-    # nfreq = 0 (should throw)
+    # nk = 0 (should throw)
     @test_throws ArgumentError choose_freq_oversample(10, 0)
     # n = 0 (should throw)
     @test_throws ArgumentError choose_freq_oversample(0, 10)
-    # n = 1, nfreq = 1
+    # n = 1, nk = 1
     @test choose_freq_oversample(1, 1) == 1
-    # n = 1, nfreq = 2
+    # n = 1, nk = 2
     @test choose_freq_oversample(1, 2) == 1
-    # Large n, small nfreq
+    # Large n, small nk
     @test choose_freq_oversample(1000, 1; maxoversample = 1000) == 1000
-    # Large n, large nfreq
+    # Large n, large nk
     @test choose_freq_oversample(1000, 1000) == 1
-    # nfreq > n
+    # nk > n
     @test choose_freq_oversample(10, 20) == 1
     # maxitr reached (should throw)
     @test_throws ErrorException choose_freq_oversample(100, 1; maxoversample = 50)
@@ -37,34 +37,34 @@ end
     @testset "1d" begin
         # Empty array
         @test_throws ArgumentError unwrap_fft_output(Float64[], (1,))
-        # Error: mismatched fmaxrel
+        # Error: mismatched kmaxrel
         @test_throws ArgumentError unwrap_fft_output(ones(10), (1, 2))
-        # Error: negative fmaxrel
+        # Error: negative kmaxrel
         @test_throws ArgumentError unwrap_fft_output(ones(10), (-1,))
         # correctness on frequencies
-        nfreqs = [10, 11, 30, 31, 100, 101]
-        fmaxrels = 1:11
-        @testset "nfreq=$nfreq, fmaxrel=$fmaxrel" for nfreq in nfreqs, fmaxrel in fmaxrels
+        nks = [10, 11, 30, 31, 100, 101]
+        kmaxrels = 1:11
+        @testset "nk=$nk, kmaxrel=$kmaxrel" for nk in nks, kmaxrel in kmaxrels
             # obtained from applying unwrap_fft_output to the fft frequencies spaced by 1
             x = Int.(unwrap_fft_output(
-                _choose_frequencies_1d(nfreq, nfreq / 2), (fmaxrel,)))
-            # the fft frequencies spaced by fmaxrel (which should be the output up to periodicity)
-            y = Int.(_choose_frequencies_1d(nfreq, fmaxrel * (nfreq / 2)))
-            @test mod.(x, nfreq)≈mod.(y, nfreq) atol=1e-4
+                _choose_frequencies_1d(nk, nk / 2), (kmaxrel,)))
+            # the fft frequencies spaced by kmaxrel (which should be the output up to periodicity)
+            y = Int.(_choose_frequencies_1d(nk, kmaxrel * (nk / 2)))
+            @test mod.(x, nk)≈mod.(y, nk) atol=1e-4
         end
     end
 
     @testset "2d" begin
-        # Error: mismatched fmaxrel
+        # Error: mismatched kmaxrel
         @test_throws ArgumentError unwrap_fft_output(ones(10, 10), (1, 1, 1))
-        # Error: negative fmaxrel
+        # Error: negative kmaxrel
         @test_throws ArgumentError unwrap_fft_output(ones(10, 10), (1, -1))
     end
 
     @testset "3d" begin
-        # Error: mismatched fmaxrel
+        # Error: mismatched kmaxrel
         @test_throws ArgumentError unwrap_fft_output(ones(10, 10, 10), (1, 1, 1, 1))
-        # Error: negative fmaxrel
+        # Error: negative kmaxrel
         @test_throws ArgumentError unwrap_fft_output(ones(10, 10, 10), (1, 1, -1))
     end
 end
@@ -134,26 +134,26 @@ end
             dims = 3
         )
 
-        nfreqs = [4, 8, 10, 161]
-        fmaxs = 1:8
-        @testset "start=$start, nfreq=$nfreq, fmax=$fmax" for start in starts,
-            nfreq in nfreqs,
-            fmax in fmaxs
+        nks = [4, 8, 10, 161]
+        kmaxs = 1:8
+        @testset "start=$start, nk=$nk, kmax=$kmax" for start in starts,
+            nk in nks,
+            kmax in kmaxs
 
             grid = CartesianGrid((start - 0.25,), (start + 4 - 0.25,), dims = (8,))
             x = start:0.5:(start + 3.75)
-            @test fft_anydomain(y, grid, (nfreq,), (fmax,)) ≈
-                  slow_dft(x, y, _choose_frequencies_1d(nfreq, fmax), -1)
-            Y_1_extra = fft_anydomain(y_1_extra, grid, (nfreq,), (fmax,))
+            @test fft_anydomain(y, grid, (nk,), (kmax,)) ≈
+                  slow_dft(x, y, _choose_frequencies_1d(nk, kmax), -1)
+            Y_1_extra = fft_anydomain(y_1_extra, grid, (nk,), (kmax,))
             for i in axes(Y_1_extra, 2)
                 @test Y_1_extra[:, i] ≈
-                      slow_dft(x, y_1_extra[:, i], _choose_frequencies_1d(nfreq, fmax), -1)
+                      slow_dft(x, y_1_extra[:, i], _choose_frequencies_1d(nk, kmax), -1)
             end
-            Y_2_extra = fft_anydomain(y_2_extra, grid, (nfreq,), (fmax,))
+            Y_2_extra = fft_anydomain(y_2_extra, grid, (nk,), (kmax,))
             for i in axes(Y_2_extra, 2), j in axes(Y_2_extra, 3)
                 @test Y_2_extra[:, i, j] ≈
                       slow_dft(
-                    x, y_2_extra[:, i, j], _choose_frequencies_1d(nfreq, fmax), -1)
+                    x, y_2_extra[:, i, j], _choose_frequencies_1d(nk, kmax), -1)
             end
         end
     end
@@ -175,11 +175,11 @@ end
             dims = 3
         )
         starts = [(0, 0), (2.2, 2.2), (1.0, -3.4)]
-        nfreqs = [(4, 4), (8, 8), (10, 4), (10, 15)]
-        fmaxs = [(1, 1), (1, 2), (1, 3), (2, 2), (2, 4), (4, 7)]
-        @testset "start=$start, nfreq=$nfreq, fmax=$fmax" for start in starts,
-            nfreq in nfreqs,
-            fmax in fmaxs
+        nks = [(4, 4), (8, 8), (10, 4), (10, 15)]
+        kmaxs = [(1, 1), (1, 2), (1, 3), (2, 2), (2, 4), (4, 7)]
+        @testset "start=$start, nk=$nk, kmax=$kmax" for start in starts,
+            nk in nks,
+            kmax in kmaxs
 
             grid = CartesianGrid(
                 (start[1] - 0.25, start[2] - 0.25),
@@ -190,9 +190,9 @@ end
                 Iterators.product(
                 start[1]:0.5:(start[1] + 1.75), start[2]:0.5:(start[2] + 3.75)),
             )
-            freq = Iterators.ProductIterator(_make_frequency_grid(nfreq, fmax, 2))
-            @test fft_anydomain(y, grid, nfreq, fmax) ≈ slow_dft(x, y, freq, -1)
-            Y_1_extra = fft_anydomain(y_1_extra, grid, nfreq, fmax)
+            freq = Iterators.ProductIterator(_make_frequency_grid(nk, kmax, 2))
+            @test fft_anydomain(y, grid, nk, kmax) ≈ slow_dft(x, y, freq, -1)
+            Y_1_extra = fft_anydomain(y_1_extra, grid, nk, kmax)
             for i in axes(Y_1_extra, 3)
                 @test Y_1_extra[:, :, i] ≈ slow_dft(x, y_1_extra[:, :, i], freq, -1)
             end

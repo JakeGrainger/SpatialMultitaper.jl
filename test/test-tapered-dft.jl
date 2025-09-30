@@ -32,8 +32,8 @@ end
         # Test with simple point configuration
         points = PointSet([Point(0.0, 0.0), Point(1.0, 0.0), Point(0.0, 1.0)])
         region = Box(Point(-1.0, -1.0), Point(2.0, 2.0))
-        nfreq = (4, 4)
-        fmax = (2.0, 2.0)
+        nk = (4, 4)
+        kmax = (2.0, 2.0)
 
         # Create sin taper family
         taper_family = sin_taper_family((2, 2), region)  # 2x2 = 4 tapers
@@ -41,9 +41,9 @@ end
 
         # Test _single_tapered_dft
         result = _single_tapered_dft(
-            spatial_data(points, region), tapers, nfreq, fmax, DefaultMean())
+            spatial_data(points, region), tapers, nk, kmax, DefaultMean())
 
-        @test size(result) == (4, 4, 2)  # nfreq[1] x nfreq[2] x n_tapers
+        @test size(result) == (4, 4, 2)  # nk[1] x nk[2] x n_tapers
         @test eltype(result) == ComplexF64
         @test all(isfinite, result)
     end
@@ -54,15 +54,15 @@ end
             rng, n_processes = 1, return_type = :single,
             region_min = (-1.0, -1.0), region_max = (2.0, 2.0), point_number = 20)
 
-        nfreq = (6, 6)
-        fmax = (3.0, 3.0)
+        nk = (6, 6)
+        kmax = (3.0, 3.0)
 
         # Create sin taper family
         region = getregion(marked_data)
         taper_family = sin_taper_family((2, 2), region)  # 2x2 = 4 tapers
         tapers = [taper_family[1], taper_family[2]]  # Use first two tapers
 
-        result = _single_tapered_dft(marked_data, tapers, nfreq, fmax, DefaultMean())
+        result = _single_tapered_dft(marked_data, tapers, nk, kmax, DefaultMean())
 
         @test size(result) == (6, 6, 2)
         @test eltype(result) == ComplexF64
@@ -74,19 +74,19 @@ end
         grid_data = make_grids_example(rng, n_processes = 1, return_type = :single,
             region_min = (-1.0, -1.0), region_max = (2.0, 2.0), grid_dims = (8, 6))
 
-        nfreq = (4, 4)
+        nk = (4, 4)
         # For grid (8,6) with region (-1,-1) to (2,2):
         # spacing = (3/8, 3/6) = (0.375, 0.5)
         # nyquist = (1/(2*0.375), 1/(2*0.5)) = (4/3, 1.0) ≈ (1.333, 1.0)
-        # Use multiples: fmax = (4/3, 2.0)
-        fmax = (4 / 3, 2.0)
+        # Use multiples: kmax = (4/3, 2.0)
+        kmax = (4 / 3, 2.0)
 
         # Create sin taper family
         region = getregion(grid_data)
         taper_family = sin_taper_family((2, 1), region)  # 2x1 = 2 tapers
         tapers = [taper_family[1], taper_family[2]]
 
-        result = _single_tapered_dft(grid_data, tapers, nfreq, fmax, DefaultMean())
+        result = _single_tapered_dft(grid_data, tapers, nk, kmax, DefaultMean())
 
         @test size(result) == (4, 4, 2)
         @test eltype(result) == ComplexF64
@@ -103,17 +103,17 @@ end
         points_data = make_points_example(rng, n_processes = 3, return_type = :vector,
             region_min = (-1.0, -1.0), region_max = (2.0, 2.0), point_number = 25)
 
-        nfreq = (4, 4)
-        fmax = (2.0, 2.0)
+        nk = (4, 4)
+        kmax = (2.0, 2.0)
         # Create sin taper family
         region = getregion(points_data)
         taper_family = sin_taper_family((1, 1), region)  # 1x1 = 1 taper
         tapers = [taper_family[1]]
         mean_method = DefaultMean()  # Single method for all processes
 
-        result = tapered_dft(points_data, tapers, nfreq, fmax, mean_method)
+        result = tapered_dft(points_data, tapers, nk, kmax, mean_method)
 
-        @test size(result) == (3, 1, 4, 4)  # n_processes x n_tapers x nfreq[1] x nfreq[2]
+        @test size(result) == (3, 1, 4, 4)  # n_processes x n_tapers x nk[1] x nk[2]
         @test eltype(result) == ComplexF64
         @test all(isfinite, result)
     end
@@ -123,17 +123,17 @@ end
         points_data = make_points_example(rng, n_processes = 2, return_type = :tuple,
             region_min = (-1.0, -1.0), region_max = (2.0, 2.0), point_number = 30)
 
-        nfreq = (5, 5)
-        fmax = (2.5, 2.5)
+        nk = (5, 5)
+        kmax = (2.5, 2.5)
         # Create sin taper family
         region = getregion(points_data)
         taper_family = sin_taper_family((2, 1), region)  # 2x1 = 2 tapers
         tapers = [taper_family[1], taper_family[2]]
         mean_method = DefaultMean()  # Single method for all processes
 
-        result = tapered_dft(points_data, tapers, nfreq, fmax, mean_method)
+        result = tapered_dft(points_data, tapers, nk, kmax, mean_method)
         @test isa(result, Tuple{Array{ComplexF64, 3}, Array{ComplexF64, 3}})
-        @test size(result[1]) == (5, 5, 2)  # nfreq[1] x nfreq[2] x n_tapers
+        @test size(result[1]) == (5, 5, 2)  # nk[1] x nk[2] x n_tapers
         @test size(result[2]) == (5, 5, 2)
         @test all(isfinite, result[1])
         @test all(isfinite, result[2])
@@ -146,19 +146,19 @@ end
             region_min = (-0.5, -0.5), region_max = (1.5, 1.5),
             grid_dims = (6, 6), point_number = 20)
 
-        nfreq = (4, 4)
+        nk = (4, 4)
         # For grid (6,6) with region (-0.5,-0.5) to (1.5,1.5):
         # spacing = (2/6, 2/6) = (1/3, 1/3) ≈ (0.333, 0.333)
         # nyquist = (1/(2*0.333), 1/(2*0.333)) = (1.5, 1.5)
-        # Use multiples: fmax = (1.5, 3.0) = (1, 2) * nyquist
-        fmax = (1.5, 3.0)
+        # Use multiples: kmax = (1.5, 3.0) = (1, 2) * nyquist
+        kmax = (1.5, 3.0)
         # Create sin taper family
         region = getregion(mixed_data)
         taper_family = sin_taper_family((1, 1), region)  # 1x1 = 1 taper
         tapers = [taper_family[1]]
         mean_method = DefaultMean()  # Single method for all processes
 
-        result = tapered_dft(mixed_data, tapers, nfreq, fmax, mean_method)
+        result = tapered_dft(mixed_data, tapers, nk, kmax, mean_method)
 
         @test size(result) == (3, 1, 4, 4)  # 3 processes (point, grid, marked) x 1 taper x 4 x 4 freqs
         @test eltype(result) == ComplexF64
@@ -174,8 +174,8 @@ end
     marked_data = make_marked_example(rng, n_processes = 1, return_type = :single,
         region_min = (-1.0, -1.0), region_max = (1.0, 1.0), point_number = 50)
 
-    nfreq = (6, 6)
-    fmax = (3.0, 3.0)
+    nk = (6, 6)
+    kmax = (3.0, 3.0)
     # Create sin taper family
     region = getregion(marked_data)
     taper_family = sin_taper_family((1, 1), region)  # 1x1 = 1 taper
@@ -183,9 +183,9 @@ end
 
     @testset "DefaultMean vs KnownMean" begin
         result_default_mean = _single_tapered_dft(
-            marked_data, tapers, nfreq, fmax, DefaultMean())
+            marked_data, tapers, nk, kmax, DefaultMean())
         result_known_mean = _single_tapered_dft(
-            marked_data, tapers, nfreq, fmax, KnownMean(0.5))
+            marked_data, tapers, nk, kmax, KnownMean(0.5))
 
         @test size(result_default_mean) == size(result_known_mean) == (6, 6, 1)
         @test eltype(result_default_mean) == eltype(result_known_mean) == ComplexF64
@@ -206,13 +206,13 @@ end
     # @testset "Empty data" begin # TODO: need to catch this
     #     points = PointSet(typeof(Point(1, 1))[])
     #     region = Box(Point(-1.0, -1.0), Point(1.0, 1.0))
-    #     nfreq = (4, 4)
-    #     fmax = (2.0, 2.0)
+    #     nk = (4, 4)
+    #     kmax = (2.0, 2.0)
     #     # Create sin taper family
     #     taper_family = sin_taper_family((1, 1), region)  # 1x1 = 1 taper
     #     tapers = [taper_family[1]]
 
-    #     result = _single_tapered_dft(points, tapers, nfreq, fmax, region, DefaultMean())
+    #     result = _single_tapered_dft(points, tapers, nk, kmax, region, DefaultMean())
     #     @test size(result) == (4, 4, 1)
     #     @test eltype(result) == ComplexF64
     # end
@@ -220,14 +220,14 @@ end
     @testset "Single point" begin
         points = PointSet([Point(0.0, 0.0)])
         region = Box(Point(-1.0, -1.0), Point(1.0, 1.0))
-        nfreq = (3, 3)
-        fmax = (1.5, 1.5)
+        nk = (3, 3)
+        kmax = (1.5, 1.5)
         # Create sin taper family
         taper_family = sin_taper_family((1, 1), region)  # 1x1 = 1 taper
         tapers = [taper_family[1]]
 
         result = _single_tapered_dft(
-            spatial_data(points, region), tapers, nfreq, fmax, DefaultMean())
+            spatial_data(points, region), tapers, nk, kmax, DefaultMean())
         @test size(result) == (3, 3, 1)
         @test all(isfinite, result)
     end
@@ -236,15 +236,15 @@ end
         points_data = make_points_example(rng, n_processes = 1, return_type = :single,
             region_min = (-1.0, -1.0), region_max = (1.0, 1.0))
 
-        nfreq = (4, 4)
-        fmax = (2.0, 2.0)
+        nk = (4, 4)
+        kmax = (2.0, 2.0)
 
         # Create sin taper family with multiple tapers
         region = getregion(points_data)
         taper_family = sin_taper_family((3, 1), region)  # 3x1 = 3 tapers
         tapers = [taper_family[1], taper_family[2], taper_family[3]]
 
-        result = _single_tapered_dft(points_data, tapers, nfreq, fmax, DefaultMean())
+        result = _single_tapered_dft(points_data, tapers, nk, kmax, DefaultMean())
         @test size(result) == (4, 4, 3)  # 3 tapers
         @test all(isfinite, result)
     end
@@ -258,14 +258,14 @@ end
         points_data = make_points_example(rng, n_processes = 1, return_type = :single,
             dim = 1, region_min = (-2.0,), region_max = (3.0,), point_number = 20)
 
-        nfreq = (8,)
-        fmax = (4.0,)
+        nk = (8,)
+        kmax = (4.0,)
         # Create sin taper family for 1D
         region = getregion(points_data)
         taper_family = sin_taper_family((2,), region)  # 2 tapers in 1D
         tapers = [taper_family[1]]
 
-        result = _single_tapered_dft(points_data, tapers, nfreq, fmax, DefaultMean())
+        result = _single_tapered_dft(points_data, tapers, nk, kmax, DefaultMean())
         @test size(result) == (8, 1)  # 1D frequency space x 1 taper
         @test all(isfinite, result)
     end
@@ -274,18 +274,18 @@ end
         grid_data = make_grids_example(rng, n_processes = 1, return_type = :single,
             dim = 1, region_min = (-1.0,), region_max = (2.0,), grid_dims = (12,))
 
-        nfreq = (6,)
+        nk = (6,)
         # For grid (12,) with region (-1,) to (2,):
         # spacing = 3/12 = 0.25
         # nyquist = 1/(2*0.25) = 2.0
-        # Use multiple: fmax = (4.0,) = 2 * nyquist
-        fmax = (4.0,)
+        # Use multiple: kmax = (4.0,) = 2 * nyquist
+        kmax = (4.0,)
         # Create sin taper family for 1D
         region = getregion(grid_data)
         taper_family = sin_taper_family((2,), region)  # 2 tapers in 1D
         tapers = [taper_family[1]]
 
-        result = _single_tapered_dft(grid_data, tapers, nfreq, fmax, DefaultMean())
+        result = _single_tapered_dft(grid_data, tapers, nk, kmax, DefaultMean())
         @test size(result) == (6, 1)
         @test all(isfinite, result)
     end

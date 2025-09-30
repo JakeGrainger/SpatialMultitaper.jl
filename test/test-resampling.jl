@@ -24,18 +24,18 @@ end
     pattern2 = rand(PoissonProcess(0.01), region)
     pattern3 = rand(PoissonProcess(0.01), region)
     tapers = sin_taper_family((4, 4), region)
-    nfreq = (100, 100)
-    fmax = (nfreq .- 1) ./ (2 .* 100)
+    nk = (100, 100)
+    kmax = (nk .- 1) ./ (2 .* 100)
     radii = 0.3:0.1:0.5
     for data in [(pattern, pattern2), (pattern, pattern2, pattern3)]
         resampler = PartialResampler(
             data,
             region;
             tapers = tapers,
-            nfreq = nfreq,
-            fmax = fmax,
-            nfreq_marginal_compute = (50, 50),
-            fmax_marginal_compute = (0.2, 0.2),
+            nk = nk,
+            kmax = kmax,
+            nk_marginal_compute = (50, 50),
+            kmax_marginal_compute = (0.2, 0.2),
             shift_method = ToroidalShift(region)
         )
 
@@ -50,10 +50,10 @@ end
             data,
             region;
             tapers = tapers,
-            nfreq = nfreq,
-            fmax = fmax,
-            nfreq_marginal_compute = (50, 50),
-            fmax_marginal_compute = (0.2, 0.2),
+            nk = nk,
+            kmax = kmax,
+            nk_marginal_compute = (50, 50),
+            kmax_marginal_compute = (0.2, 0.2),
             shift_method = StandardShift(UniformShift((-0.1, -0.1), (0.1, 0.1)))
         )
 
@@ -78,8 +78,8 @@ end
             ToroidalShift(region);
             radii = radii,
             tapers = tapers,
-            nfreq = nfreq,
-            fmax = fmax
+            nk = nk,
+            kmax = kmax
         )
 
         rng = Random.MersenneTwister(1234)
@@ -90,8 +90,8 @@ end
             ToroidalShift(region);
             radii = radii,
             tapers = tapers,
-            nfreq = nfreq,
-            fmax = fmax
+            nk = nk,
+            kmax = kmax
         )
         results3 = shift_resample(
             rng,
@@ -100,8 +100,8 @@ end
             ToroidalShift(region);
             radii = radii,
             tapers = tapers,
-            nfreq = nfreq,
-            fmax = fmax
+            nk = nk,
+            kmax = kmax
         )
         @test getestimate(results1) == getestimate(results2)
         @test getestimate(results2) !== getestimate(results3)

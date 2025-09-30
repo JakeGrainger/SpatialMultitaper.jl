@@ -16,15 +16,15 @@ getargument(est::Spectra) = est.freq
 getestimate(est::Spectra) = est.power
 
 """
-    spectra(data, region; nfreq, fmax, tapers, mean_method = DefaultMean())
+    spectra(data, region; nk, kmax, tapers, mean_method = DefaultMean())
 
 Compute the multitaper spectral estimate from a tapered DFT.
 
 # Arguments
 - `data`: The data to estimate the spectrum from
 - `region`: The region to estimate the spectrum from
-- `nfreq::NTuple{D,Int}`: The number of frequencies in each dimension
-- `fmax::NTuple{D,Real}`: The maximum frequency in each dimension
+- `nk::NTuple{D,Int}`: The number of frequencies in each dimension
+- `kmax::NTuple{D,Real}`: The maximum frequency in each dimension
 - `tapers`: A tuple of taper functions
 - `mean_method::MeanEstimationMethod`: The method to estimate the mean (default: `DefaultMean()`)
 
@@ -43,10 +43,10 @@ A `Spectra` object with `freq` and `power` fields:
 # Examples
 ```julia
 # Single process
-spec = spectra(data, region, nfreq=(64, 64), fmax=(0.5, 0.5), tapers=tapers)
+spec = spectra(data, region, nk=(64, 64), kmax=(0.5, 0.5), tapers=tapers)
 
 # Multiple processes with known mean
-spec = spectra(data, region, nfreq=(32, 32), fmax=(1.0, 1.0),
+spec = spectra(data, region, nk=(32, 32), kmax=(1.0, 1.0),
                tapers=tapers, mean_method=KnownMean([0.0, 0.0]))
 ```
 """
@@ -54,10 +54,10 @@ function spectra(data, region::Meshes.Geometry; kwargs...)::Spectra
     return spectra(spatial_data(data, region); kwargs...)
 end
 
-function spectra(data::SpatialData; nfreq, fmax, tapers,
+function spectra(data::SpatialData; nk, kmax, tapers,
         mean_method::MeanEstimationMethod = DefaultMean())::Spectra
-    freq = _make_frequency_grid(nfreq, fmax, embeddim(data))
-    J_n = tapered_dft(data, tapers, nfreq, fmax, mean_method)
+    freq = _make_frequency_grid(nk, kmax, embeddim(data))
+    J_n = tapered_dft(data, tapers, nk, kmax, mean_method)
     power = _dft_to_spectral_matrix(J_n, process_trait(data))
 
     process_info = ProcessInformation(data; mean_method = mean_method)
@@ -167,21 +167,21 @@ Compute the averaged spectral matrix for a matrix.
 _compute_spectral_matrix(x::AbstractMatrix) = (x * x') ./ size(x, 2)
 
 """
-    _make_frequency_grid(nfreq::Int, fmax::Number, dim::Int)
+    _make_frequency_grid(nk::Int, kmax::Number, dim::Int)
 
 Create a frequency grid with uniform parameters across all dimensions.
 """
-function _make_frequency_grid(nfreq::Int, fmax::Number, dim::Int)
-    return ntuple(d -> _choose_frequencies_1d(nfreq, fmax), dim)
+function _make_frequency_grid(nk::Int, kmax::Number, dim::Int)
+    return ntuple(d -> _choose_frequencies_1d(nk, kmax), dim)
 end
 
 """
-    _make_frequency_grid(nfreq, fmax, dim::Int)
+    _make_frequency_grid(nk, kmax, dim::Int)
 
 Create a frequency grid with dimension-specific parameters.
 """
-function _make_frequency_grid(nfreq, fmax, dim::Int)
-    freq = _choose_frequencies_1d.(nfreq, fmax)
+function _make_frequency_grid(nk, kmax, dim::Int)
+    freq = _choose_frequencies_1d.(nk, kmax)
     if length(freq) != dim
         throw(ArgumentError("Dimension mismatch: expected $dim frequency dimensions, got $(length(freq))"))
     end

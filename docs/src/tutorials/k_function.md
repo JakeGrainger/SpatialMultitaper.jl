@@ -20,10 +20,10 @@ region = Box(Point(0, 0), Point(100, 100))
 X = rand(PoissonProcess(0.01), region)
 data = spatial_data(X, region)
 tapers = sin_taper_family((4, 4), region)
-nfreq = (100, 100)
-fmax = (0.1, 0.1)
+nk = (100, 100)
+kmax = (0.1, 0.1)
 radii = 0:0.5:30
-kfun = k_function(data, radii = radii, nfreq = nfreq, fmax = fmax, tapers = tapers)
+kfun = k_function(data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 ````
 
 We can then visualise the K function using Makie
@@ -57,7 +57,7 @@ Mke.lines(collect(centered_l_function(lfun))...)
 these functions can be computed from each other or directly from the data
 
 ````@example k_function
-lfun2 = l_function(data, radii = radii, nfreq = nfreq, fmax = fmax, tapers = tapers)
+lfun2 = l_function(data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 lfun.value == lfun2.value
 ````
 

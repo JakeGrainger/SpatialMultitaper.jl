@@ -56,13 +56,13 @@ Mke.current_figure()
 We can perform spectral estimation using the `spectra` function. This function
 takes the `data` and a `region` on which it is oberved as inputs. In addition, we need to
 specify the tapers to use, the number of frequencies we want to compute in each dimension
-`nfreq`, and the maximum frequency in each dimension `fmax`.
+`nk`, and the maximum frequency in each dimension `kmax`.
 
 ````@example basic_estimation
 tapers = sin_taper_family((4, 4), region)
-nfreq = (100, 100)
-fmax = (0.1, 0.1)
-spec = spectra(data; tapers = tapers, nfreq = nfreq, fmax = fmax)
+nk = (100, 100)
+kmax = (0.1, 0.1)
+spec = spectra(data; tapers = tapers, nk = nk, kmax = kmax)
 ````
 
 ## Visualising the output
@@ -102,9 +102,9 @@ Y = Translate(shift, shift)(X)
 data = spatial_data((X, Y), region) # automatically restrict to region
 
 tapers = sin_taper_family((4, 4), region)
-nfreq = (100, 100)
-fmax = (0.1, 0.1)
-spec = spectra(data; tapers = tapers, nfreq = nfreq, fmax = fmax)
+nk = (100, 100)
+kmax = (0.1, 0.1)
+spec = spectra(data; tapers = tapers, nk = nk, kmax = kmax)
 
 Mke.heatmap(collect(real(spec[1, 2]))...)
 ````

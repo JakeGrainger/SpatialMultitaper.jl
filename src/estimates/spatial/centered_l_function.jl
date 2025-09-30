@@ -30,7 +30,7 @@ For a Poisson process, ``L(r) = r`` theoretically. The centering transformation:
 clf = centered_l_function(l_func)
 
 # Direct computation from data
-clf = centered_l_function(data, region, radii=0.1:0.1:2.0, nfreq=(32,32), fmax=(0.5,0.5), tapers=tapers)
+clf = centered_l_function(data, region, radii=0.1:0.1:2.0, nk=(32,32), kmax=(0.5,0.5), tapers=tapers)
 ```
 """
 struct CenteredLFunction{E, D, P, Q, A, T, IP, IE} <: IsotropicEstimate{E, D, P, Q}

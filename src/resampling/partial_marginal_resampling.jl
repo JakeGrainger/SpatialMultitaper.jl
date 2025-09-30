@@ -8,14 +8,14 @@ Base.getindex(m::PartialMarginalResampler, i) = PartialMarginalResampler(m.Λ[i]
 function PartialMarginalResampler(
         data::SpatialData;
         tapers,
-        nfreq,
-        fmax
+        nk,
+        kmax
 )
     Λ = create_intensities(
         data;
         tapers = tapers,
-        nfreq = nfreq,
-        fmax = fmax
+        nk = nk,
+        kmax = kmax
     )
     return PartialMarginalResampler(Λ, getregion(data))
 end
@@ -55,14 +55,14 @@ end
 function create_intensities(
         data::MultipleSpatialDataTuple{P};
         tapers,
-        nfreq,
-        fmax,
+        nk,
+        kmax,
         mean_method::MeanEstimationMethod = DefaultMean()
 ) where {P}
-    spec = spectra(data; tapers = tapers, nfreq = nfreq, fmax = fmax)
+    spec = spectra(data; tapers = tapers, nk = nk, kmax = kmax)
     intensity = mean_estimate(data, mean_method)
     data_ft_full = fft_only.(
-        observations(data), Ref(getregion(data)), nfreq = nfreq, fmax = fmax)
+        observations(data), Ref(getregion(data)), nk = nk, kmax = kmax)
     data_ft = zeros(SVector{P, eltype(first(data_ft_full))}, size(first(data_ft_full)))
     for i in eachindex(first(data_ft_full))
         data_ft[i] = SVector{P, eltype(first(data_ft_full))}(getindex.(
@@ -102,19 +102,19 @@ function create_single_intensity(
 end
 
 """
-    fft_only(points::PointSet, region; nfreq, fmax)
+    fft_only(points::PointSet, region; nk, kmax)
 
 Does a non-uniform FFT of points, but moves them so the origin of the bounding box of the region is at zero.
 Makes no adjustments for tapering etc.
 """
-function fft_only(points::PointSet, region; nfreq, fmax)
+function fft_only(points::PointSet, region; nk, kmax)
     # bbox = boundingbox(region)
     # translation = Translate(.-Meshes.to(minimum(bbox)).coords)
     # t_points = translation(points) # translate to origin
     # t_region = translation(region)
     # shifts will cancel out due to the other transforms also having the same shift
     out = nufft_anydomain(
-        region, nfreq, fmax, points, ones(ComplexF64, length(points)), -1, 1e-14) # TODO: make work for grid data
+        region, nk, kmax, points, ones(ComplexF64, length(points)), -1, 1e-14) # TODO: make work for grid data
     return reshape(out, size(out)[1:(end - 1)]) # last dimension is singletons
 end
 

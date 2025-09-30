@@ -11,12 +11,12 @@ end
         data::NTuple{P, PointSet},
         region;
         tapers,
-        nfreq,
-        fmax,
+        nk,
+        kmax,
         mean_method = DefaultMean(),
         shift_method,
-        nfreq_marginal_compute,
-        fmax_marginal_compute
+        nk_marginal_compute,
+        kmax_marginal_compute
 ) where {P}
 
 Creates a `PartialResampler` object that can be used to generate partial spectra.
@@ -26,24 +26,24 @@ PartialResampler(data, region; kwargs...) = PartialResampler(
 function PartialResampler(
         data::SpatialData;
         tapers,
-        nfreq,
-        fmax,
+        nk,
+        kmax,
         mean_method = DefaultMean(),
         shift_method,
-        nfreq_marginal_compute,
-        fmax_marginal_compute
+        nk_marginal_compute,
+        kmax_marginal_compute
 )
     precompute = create_resampler_precompute(
-        data; nfreq = nfreq, fmax = fmax, tapers = tapers, mean_method = mean_method
+        data; nk = nk, kmax = kmax, tapers = tapers, mean_method = mean_method
     )
     cross_resampler = PartialCrossResampler(
         data, shift_method
     )
     marginal_resampler = PartialMarginalResampler(
-        data; tapers = tapers, nfreq = nfreq_marginal_compute,
-        fmax = fmax_marginal_compute
+        data; tapers = tapers, nk = nk_marginal_compute,
+        kmax = kmax_marginal_compute
     )
-    mt_kwargs = (tapers = tapers, nfreq = nfreq, fmax = fmax, mean_method = mean_method)
+    mt_kwargs = (tapers = tapers, nk = nk, kmax = kmax, mean_method = mean_method)
     return PartialResampler(
         precompute, cross_resampler, marginal_resampler, mt_kwargs, getregion(data))
 end
@@ -51,16 +51,16 @@ end
 function Base.rand(rng::AbstractRNG, resampler::PartialResampler)
     region = resampler.region
     tapers = resampler.mt_kwargs.tapers
-    nfreq = resampler.mt_kwargs.nfreq
-    fmax = resampler.mt_kwargs.fmax
+    nk = resampler.mt_kwargs.nk
+    kmax = resampler.mt_kwargs.kmax
     mean_method = resampler.mt_kwargs.mean_method
 
     d_cross = rand(rng, resampler.cross_resampler)
     d_marginal = rand(rng, resampler.marginal_resampler)
 
-    J_cross = tapered_dft(d_cross, tapers, nfreq, fmax, mean_method[1:(end - 1)])
+    J_cross = tapered_dft(d_cross, tapers, nk, kmax, mean_method[1:(end - 1)])
     mean_cross = mean_estimate(d_cross, mean_method[1:(end - 1)])
-    J_marginal = tapered_dft(d_marginal, tapers, nfreq, fmax, mean_method)
+    J_marginal = tapered_dft(d_marginal, tapers, nk, kmax, mean_method)
     mean_marginal = mean_estimate(d_marginal, mean_method)
     atoms = covariance_zero_atom(d_marginal) # because cross doesn't have atoms
 
@@ -78,9 +78,9 @@ function Base.rand(rng::AbstractRNG, resampler::PartialResampler)
 end
 
 function create_resampler_precompute(
-        data::MultipleSpatialDataTuple; nfreq, fmax, tapers, mean_method = DefaultMean())
-    freq = _make_frequency_grid(nfreq, fmax, embeddim(data))
-    J_n = tapered_dft(data, tapers, nfreq, fmax, mean_method)
+        data::MultipleSpatialDataTuple; nk, kmax, tapers, mean_method = DefaultMean())
+    freq = _make_frequency_grid(nk, kmax, embeddim(data))
+    J_n = tapered_dft(data, tapers, nk, kmax, mean_method)
     power = _dft_to_spectral_matrix(J_n, process_trait(data))
     f_inv_cross = create_f_inv_cross(power)
     f_inv_marginal = create_f_inv_marginal(power)

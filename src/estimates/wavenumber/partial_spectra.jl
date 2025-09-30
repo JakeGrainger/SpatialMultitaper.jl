@@ -28,7 +28,7 @@ where G = S⁻¹ is the inverse spectral matrix.
 partial_spec = partial_spectra(marginal_spec)
 
 # Direct computation from data::SpatialData
-partial_spec = partial_spectra(data; nfreq=nfreq, fmax=fmax, tapers=tapers)
+partial_spec = partial_spectra(data; nk=nk, kmax=kmax, tapers=tapers)
 ```
 """
 function partial_spectra(spectrum::Spectra{MarginalTrait})::Spectra{PartialTrait}

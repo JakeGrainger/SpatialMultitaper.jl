@@ -92,7 +92,7 @@ A `Coherence` object containing the coherence estimates.
 coh = coherence(spec)
 
 # Direct computation from data
-coh = coherence(data, region, nfreq=(32, 32), fmax=(0.5, 0.5), tapers=tapers)
+coh = coherence(data, region, nk=(32, 32), kmax=(0.5, 0.5), tapers=tapers)
 ```
 """
 function coherence(spectrum::NormalOrRotationalSpectra{E})::Coherence{E} where {E}

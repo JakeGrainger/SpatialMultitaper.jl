@@ -1,20 +1,20 @@
 """
-	nufft_anydomain(region, nfreq, fmax, points::PointSet, c, iflag, eps; kwargs...)
+	nufft_anydomain(region, nk, kmax, points::PointSet, c, iflag, eps; kwargs...)
 
 Computes the approximate dft of a function using the nufft algorithm, with points in any
-region, at frequencies defined by `fmax` and `nfreq`.
+region, at frequencies defined by `kmax` and `nk`.
 
 Currently only 1d, 2d and 3d are supported.
 """
-function nufft_anydomain(region, nfreq, fmax, points::PointSet, c, iflag, eps; kwargs...)
-    @assert length(nfreq)==length(fmax)==embeddim(points) "nfreq and fmax should have the same length as the number of dimensions of the points"
+function nufft_anydomain(region, nk, kmax, points::PointSet, c, iflag, eps; kwargs...)
+    @assert length(nk)==length(kmax)==embeddim(points) "nk and kmax should have the same length as the number of dimensions of the points"
 
     points_coords = points2coords(points)
     if embeddim(points) === 1
         return nufft1d1_anydomain(
             box2sides(boundingbox(region))[1],
-            nfreq[1],
-            fmax[1],
+            nk[1],
+            kmax[1],
             points_coords[1],
             c,
             iflag,
@@ -24,8 +24,8 @@ function nufft_anydomain(region, nfreq, fmax, points::PointSet, c, iflag, eps; k
     elseif embeddim(points) === 2
         return nufft2d1_anydomain(
             box2sides(boundingbox(region)),
-            nfreq,
-            fmax,
+            nk,
+            kmax,
             points_coords[1],
             points_coords[2],
             c,
@@ -36,8 +36,8 @@ function nufft_anydomain(region, nfreq, fmax, points::PointSet, c, iflag, eps; k
     elseif embeddim(points) === 3
         return nufft3d1_anydomain(
             box2sides(boundingbox(region)),
-            nfreq,
-            fmax,
+            nk,
+            kmax,
             points_coords[1],
             points_coords[2],
             points_coords[3],
@@ -53,20 +53,20 @@ end
 
 ## one dimensional case
 """
-	nufft1d1_anydomain(interval, nfreq, fmax, xj, cj, iflag, eps; kwargs...)
+	nufft1d1_anydomain(interval, nk, kmax, xj, cj, iflag, eps; kwargs...)
 
 Computes the approximate dft of a 1d function using the nufft algorithm, with points in any
-interval, at frequencies defined by `fmax` and `nfreq`.
+interval, at frequencies defined by `kmax` and `nk`.
 `xj` are the points coordinates and `cj` are the function values.
 Set `iflag<0` for -i in exponent.
 """
-function nufft1d1_anydomain(interval, nfreq, fmax, xj, cj, iflag, eps; kwargs...)
-    output_storage, input_data = nufft1d1_anydomain_precomp(interval, nfreq, fmax, xj, cj)
+function nufft1d1_anydomain(interval, nk, kmax, xj, cj, iflag, eps; kwargs...)
+    output_storage, input_data = nufft1d1_anydomain_precomp(interval, nk, kmax, xj, cj)
     return nufft1d1_anydomain!(
         output_storage,
         input_data,
-        nfreq,
-        fmax,
+        nk,
+        kmax,
         iflag,
         eps;
         kwargs...
@@ -74,12 +74,12 @@ function nufft1d1_anydomain(interval, nfreq, fmax, xj, cj, iflag, eps; kwargs...
 end
 
 """
-	nufft1d1_anydomain!(output_storage, input_data, nfreq, fmax, iflag, eps; kwargs...)
+	nufft1d1_anydomain!(output_storage, input_data, nk, kmax, iflag, eps; kwargs...)
 
 In place version of `nufft1d1_anydomain`. Use `nufft1d1_anydomain_precomp` to precompute the
 input data and memory required.
 """
-function nufft1d1_anydomain!(output_storage, input_data, nfreq, fmax, iflag, eps; kwargs...)
+function nufft1d1_anydomain!(output_storage, input_data, nk, kmax, iflag, eps; kwargs...)
     # unpack
     xj_rescaled, oversample_x, shift_x, cj = input_data.xj_rescaled,
     input_data.oversample_x, input_data.shift_x, input_data.cj
@@ -87,8 +87,8 @@ function nufft1d1_anydomain!(output_storage, input_data, nfreq, fmax, iflag, eps
     output_storage.out, output_storage.phase_correction
 
     # compute frequencies and downsampling
-    freq_x = _choose_frequencies_1d(nfreq, fmax)
-    downsample_x = freq_downsample_index(nfreq, oversample_x)
+    freq_x = _choose_frequencies_1d(nk, kmax)
+    downsample_x = freq_downsample_index(nk, oversample_x)
 
     # compute
     nufft1d1!(xj_rescaled, cj, iflag, eps, oversampled_out; kwargs...)
@@ -101,21 +101,21 @@ function nufft1d1_anydomain!(output_storage, input_data, nfreq, fmax, iflag, eps
 end
 
 """
-	nufft1d1_anydomain_precomp(interval, nfreq, fmax, xj, cj)
+	nufft1d1_anydomain_precomp(interval, nk, kmax, xj, cj)
 
 Precomputes the input data and memory required for `nufft1d1_anydomain!`.
 """
-function nufft1d1_anydomain_precomp(interval, nfreq, fmax, xj, cj)
+function nufft1d1_anydomain_precomp(interval, nk, kmax, xj, cj)
     @assert length(cj) % length(xj)==0 "length(cj) must be a multiple of length(xj)"
     # rescale data
-    xj_rescaled, oversample_x, shift_x = rescale_points(xj, nfreq, fmax, interval)
+    xj_rescaled, oversample_x, shift_x = rescale_points(xj, nk, kmax, interval)
 
     # preallocate storage
     n_transforms = length(cj) ÷ length(xj)
     oversampled_out = Array{complex(eltype(cj)), 2}(
-        undef, nfreq * oversample_x, n_transforms)
-    out = Array{complex(eltype(cj)), 2}(undef, nfreq, n_transforms)
-    phase_correction = Vector{complex(eltype(cj))}(undef, nfreq)
+        undef, nk * oversample_x, n_transforms)
+    out = Array{complex(eltype(cj)), 2}(undef, nk, n_transforms)
+    phase_correction = Vector{complex(eltype(cj))}(undef, nk)
 
     # format return
     input_data = (
@@ -127,22 +127,22 @@ end
 
 ## two dimensional case
 """
-	nufft2d1_anydomain(box, nfreq, fmax, xj, yj, cj, iflag, eps; kwargs...)
+	nufft2d1_anydomain(box, nk, kmax, xj, yj, cj, iflag, eps; kwargs...)
 
 Computes the approximate dft of a 2d function using the nufft algorithm, with points in any
-box, at frequencies defined by `fmax` and `nfreq`.
+box, at frequencies defined by `kmax` and `nk`.
 `box` here should be a tuple of intervals, one for each dimension.
-Similarly for `fmax` and `nfreq`.
+Similarly for `kmax` and `nk`.
 `xj`, `yj` are the points coordinates and `cj` are the function values.
 Set `iflag<0` for -i in exponent.
 """
-function nufft2d1_anydomain(box, nfreq, fmax, xj, yj, cj, iflag, eps; kwargs...)
-    output_storage, input_data = nufft2d1_anydomain_precomp(box, nfreq, fmax, xj, yj, cj)
+function nufft2d1_anydomain(box, nk, kmax, xj, yj, cj, iflag, eps; kwargs...)
+    output_storage, input_data = nufft2d1_anydomain_precomp(box, nk, kmax, xj, yj, cj)
     return nufft2d1_anydomain!(
         output_storage,
         input_data,
-        nfreq,
-        fmax,
+        nk,
+        kmax,
         iflag,
         eps;
         kwargs...
@@ -150,12 +150,12 @@ function nufft2d1_anydomain(box, nfreq, fmax, xj, yj, cj, iflag, eps; kwargs...)
 end
 
 """
-	nufft2d1_anydomain!(output_storage, input_data, nfreq, fmax, iflag, eps; kwargs...)
+	nufft2d1_anydomain!(output_storage, input_data, nk, kmax, iflag, eps; kwargs...)
 
 In place version of `nufft2d1_anydomain`. Use `nufft2d1_anydomain_precomp` to precompute the
 input data and memory required.
 """
-function nufft2d1_anydomain!(output_storage, input_data, nfreq, fmax, iflag, eps; kwargs...)
+function nufft2d1_anydomain!(output_storage, input_data, nk, kmax, iflag, eps; kwargs...)
     # unpack
     xj_rescaled, oversample_x, shift_x, yj_rescaled, oversample_y, shift_y, cj = input_data.xj_rescaled,
     input_data.oversample_x,
@@ -168,10 +168,10 @@ function nufft2d1_anydomain!(output_storage, input_data, nfreq, fmax, iflag, eps
     output_storage.out, output_storage.phase_correction
 
     # compute frequencies and downsampling
-    freq_x = _choose_frequencies_1d(nfreq[1], fmax[1])
-    downsample_x = freq_downsample_index(nfreq[1], oversample_x)
-    freq_y = _choose_frequencies_1d(nfreq[2], fmax[2])
-    downsample_y = freq_downsample_index(nfreq[2], oversample_y)
+    freq_x = _choose_frequencies_1d(nk[1], kmax[1])
+    downsample_x = freq_downsample_index(nk[1], oversample_x)
+    freq_y = _choose_frequencies_1d(nk[2], kmax[2])
+    downsample_y = freq_downsample_index(nk[2], oversample_y)
 
     # compute
     nufft2d1!(xj_rescaled, yj_rescaled, cj, iflag, eps, oversampled_out; kwargs...)
@@ -188,26 +188,26 @@ function nufft2d1_anydomain!(output_storage, input_data, nfreq, fmax, iflag, eps
 end
 
 """
-	nufft2d1_anydomain_precomp(box, nfreq, fmax, xj, yj, cj)
+	nufft2d1_anydomain_precomp(box, nk, kmax, xj, yj, cj)
 
 Precomputes the input data and memory required for `nufft2d1_anydomain!`.
 """
-function nufft2d1_anydomain_precomp(box, nfreq, fmax, xj, yj, cj)
+function nufft2d1_anydomain_precomp(box, nk, kmax, xj, yj, cj)
     @assert length(cj) % length(xj)==0 "length(cj) must be a multiple of length(xj)"
     # rescale data
-    xj_rescaled, oversample_x, shift_x = rescale_points(xj, nfreq[1], fmax[1], box[1])
-    yj_rescaled, oversample_y, shift_y = rescale_points(yj, nfreq[2], fmax[2], box[2])
+    xj_rescaled, oversample_x, shift_x = rescale_points(xj, nk[1], kmax[1], box[1])
+    yj_rescaled, oversample_y, shift_y = rescale_points(yj, nk[2], kmax[2], box[2])
 
     # preallocate storage
     n_transforms = length(cj) ÷ length(xj)
     oversampled_out = Array{complex(eltype(cj)), 3}(
         undef,
-        nfreq[1] * oversample_x,
-        nfreq[2] * oversample_y,
+        nk[1] * oversample_x,
+        nk[2] * oversample_y,
         n_transforms
     )
-    out = Array{complex(eltype(cj)), 3}(undef, nfreq[1], nfreq[2], n_transforms)
-    phase_correction = Array{complex(eltype(cj)), 2}(undef, nfreq[1], nfreq[2])
+    out = Array{complex(eltype(cj)), 3}(undef, nk[1], nk[2], n_transforms)
+    phase_correction = Array{complex(eltype(cj)), 2}(undef, nk[1], nk[2])
 
     # format return
     input_data = (
@@ -225,29 +225,29 @@ function nufft2d1_anydomain_precomp(box, nfreq, fmax, xj, yj, cj)
 end
 
 """
-	nufft3d1_anydomain(cube, nfreq, fmax, xj, yj, zj, cj, iflag, eps; kwargs...)
+	nufft3d1_anydomain(cube, nk, kmax, xj, yj, zj, cj, iflag, eps; kwargs...)
 
 Computes the approximate dft of a 3d function using the nufft algorithm, with points in any
-cube, at frequencies defined by `fmax` and `nfreq`.
+cube, at frequencies defined by `kmax` and `nk`.
 `cube` here should be a tuple of intervals, one for each dimension.
-Similarly for `fmax` and `nfreq`.
+Similarly for `kmax` and `nk`.
 `xj`, `yj`, `zj` are the points coordinates and `cj` are the function values.
 Set `iflag<0` for -i in exponent.
 """
-function nufft3d1_anydomain(cube, nfreq, fmax, xj, yj, zj, cj, iflag, eps; kwargs...)
+function nufft3d1_anydomain(cube, nk, kmax, xj, yj, zj, cj, iflag, eps; kwargs...)
     output_storage, input_data = nufft3d1_anydomain_precomp(
-        cube, nfreq, fmax, xj, yj, zj, cj)
-    nufft3d1_anydomain!(output_storage, input_data, nfreq, fmax, iflag, eps; kwargs...)
+        cube, nk, kmax, xj, yj, zj, cj)
+    nufft3d1_anydomain!(output_storage, input_data, nk, kmax, iflag, eps; kwargs...)
     return output_storage.out
 end
 
 """
-	nufft3d1_anydomain!(output_storage, input_data, nfreq, fmax, iflag, eps; kwargs...)
+	nufft3d1_anydomain!(output_storage, input_data, nk, kmax, iflag, eps; kwargs...)
 
 In place version of `nufft3d1_anydomain`. Use `nufft3d1_anydomain_precomp` to precompute the
 input data and memory required.
 """
-function nufft3d1_anydomain!(output_storage, input_data, nfreq, fmax, iflag, eps; kwargs...)
+function nufft3d1_anydomain!(output_storage, input_data, nk, kmax, iflag, eps; kwargs...)
     # unpack
     xj_rescaled,
     oversample_x,
@@ -272,12 +272,12 @@ function nufft3d1_anydomain!(output_storage, input_data, nfreq, fmax, iflag, eps
     output_storage.out, output_storage.phase_correction
 
     # compute frequencies and downsampling
-    freq_x = _choose_frequencies_1d(nfreq[1], fmax[1])
-    downsample_x = freq_downsample_index(nfreq[1], oversample_x)
-    freq_y = _choose_frequencies_1d(nfreq[2], fmax[2])
-    downsample_y = freq_downsample_index(nfreq[2], oversample_y)
-    freq_z = _choose_frequencies_1d(nfreq[3], fmax[3])
-    downsample_z = freq_downsample_index(nfreq[3], oversample_z)
+    freq_x = _choose_frequencies_1d(nk[1], kmax[1])
+    downsample_x = freq_downsample_index(nk[1], oversample_x)
+    freq_y = _choose_frequencies_1d(nk[2], kmax[2])
+    downsample_y = freq_downsample_index(nk[2], oversample_y)
+    freq_z = _choose_frequencies_1d(nk[3], kmax[3])
+    downsample_z = freq_downsample_index(nk[3], oversample_z)
 
     # compute
     nufft3d1!(
@@ -304,28 +304,28 @@ function nufft3d1_anydomain!(output_storage, input_data, nfreq, fmax, iflag, eps
 end
 
 """
-	nufft3d1_anydomain_precomp(cube, nfreq, fmax, xj, yj, zj, cj)
+	nufft3d1_anydomain_precomp(cube, nk, kmax, xj, yj, zj, cj)
 
 Precomputes the input data and memory required for `nufft3d1_anydomain!`.
 """
-function nufft3d1_anydomain_precomp(cube, nfreq, fmax, xj, yj, zj, cj)
+function nufft3d1_anydomain_precomp(cube, nk, kmax, xj, yj, zj, cj)
     @assert length(cj) % length(xj)==0 "length(cj) must be a multiple of length(xj)"
     # rescale data
-    xj_rescaled, oversample_x, shift_x = rescale_points(xj, nfreq[1], fmax[1], cube[1])
-    yj_rescaled, oversample_y, shift_y = rescale_points(yj, nfreq[2], fmax[2], cube[2])
-    zj_rescaled, oversample_z, shift_z = rescale_points(zj, nfreq[3], fmax[3], cube[3])
+    xj_rescaled, oversample_x, shift_x = rescale_points(xj, nk[1], kmax[1], cube[1])
+    yj_rescaled, oversample_y, shift_y = rescale_points(yj, nk[2], kmax[2], cube[2])
+    zj_rescaled, oversample_z, shift_z = rescale_points(zj, nk[3], kmax[3], cube[3])
 
     # preallocate storage
     n_transforms = length(cj) ÷ length(xj)
     oversampled_out = Array{complex(eltype(cj)), 4}(
         undef,
-        nfreq[1] * oversample_x,
-        nfreq[2] * oversample_y,
-        nfreq[3] * oversample_z,
+        nk[1] * oversample_x,
+        nk[2] * oversample_y,
+        nk[3] * oversample_z,
         n_transforms
     )
-    out = Array{complex(eltype(cj)), 4}(undef, nfreq[1], nfreq[2], nfreq[3], n_transforms)
-    phase_correction = Array{complex(eltype(cj)), 3}(undef, nfreq[1], nfreq[2], nfreq[3])
+    out = Array{complex(eltype(cj)), 4}(undef, nk[1], nk[2], nk[3], n_transforms)
+    phase_correction = Array{complex(eltype(cj)), 3}(undef, nk[1], nk[2], nk[3])
 
     # format return
     input_data = (
@@ -346,16 +346,16 @@ function nufft3d1_anydomain_precomp(cube, nfreq, fmax, xj, yj, zj, cj)
 end
 
 """
-	rescale_points(x, nfreq, fmax, interval; max_oversample = 100)
+	rescale_points(x, nk, kmax, interval; max_oversample = 100)
 
 Rescales points to be in the interval [-π, π] and returns the oversampling factor.
 Oversampling factor is the smallest integer so that the interval is rescaled to fit in [-π, π],
-and the corresponding fmax frequency is a multiple of `fmax`.
+and the corresponding kmax frequency is a multiple of `kmax`.
 Interval just needs to have `minimum` and `maximum` defined.
 """
-function rescale_points(x, nfreq, fmax, interval; max_oversample = 100)
+function rescale_points(x, nk, kmax, interval; max_oversample = 100)
     side_length = maximum(interval) - minimum(interval)
-    l = (nfreq) / (2fmax)
+    l = (nk) / (2kmax)
     oversample = 1
     for c in 1:max_oversample
         oversample = c

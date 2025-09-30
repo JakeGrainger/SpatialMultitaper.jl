@@ -264,7 +264,7 @@ end
 """
     default_rotational_radii(freq::NTuple{D,AbstractVector{<:Real}}) where {D}
     default_rotational_radii(s::AbstractEstimate)
-    default_rotational_radii(nfreq, fmax)
+    default_rotational_radii(nk, kmax)
 
 Construct default radii for rotational averaging based on frequency vectors.
 
@@ -275,7 +275,7 @@ the maximum frequency vector length.
 # Arguments
 - `freq`: Tuple of frequency vectors for each dimension
 - `s`: An estimate from which to extract frequency information
-- `nfreq`, `fmax`: Number of frequencies and maximum frequency per dimension
+- `nk`, `kmax`: Number of frequencies and maximum frequency per dimension
 
 # Returns
 A range of radii suitable for rotational averaging.
@@ -285,8 +285,8 @@ A range of radii suitable for rotational averaging.
 - Number of radii = max(length_per_dimension)
 - Radii are offset by half a step to avoid the origin singularity
 """
-function default_rotational_radii(nfreq, fmax)
-    return default_rotational_radii(_choose_frequencies_1d.(nfreq, fmax))
+function default_rotational_radii(nk, kmax)
+    return default_rotational_radii(_choose_frequencies_1d.(nk, kmax))
 end
 
 function default_rotational_radii(s::AbstractEstimate)
@@ -304,7 +304,7 @@ end
 
 """
     default_rotational_kernel(est::AbstractEstimate)
-    default_rotational_kernel(nfreq, fmax)
+    default_rotational_kernel(nk, kmax)
     default_rotational_kernel(freq::NTuple{D, AbstractVector{<:Real}}) where {D}
 
 Construct a default smoothing kernel for rotational averaging.
@@ -320,8 +320,8 @@ function default_rotational_kernel(est::AbstractEstimate)
     return default_rotational_kernel(getargument(est))
 end
 
-function default_rotational_kernel(nfreq, fmax)
-    return default_rotational_kernel(_choose_frequencies_1d.(nfreq, fmax))
+function default_rotational_kernel(nk, kmax)
+    return default_rotational_kernel(_choose_frequencies_1d.(nk, kmax))
 end
 
 function default_rotational_kernel(freq::NTuple{D, AbstractVector{<:Real}}) where {D}

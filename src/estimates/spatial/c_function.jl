@@ -33,7 +33,7 @@ where W(r,k) is a spatial weighting function depending on the dimension.
 cf = c_function(spectrum, radii=0.1:0.1:2.0)
 
 # Direct computation from data
-cf = c_function(data, region, radii=0.1:0.1:2.0, nfreq=(32,32), fmax=(0.5,0.5), tapers=tapers)
+cf = c_function(data, region, radii=0.1:0.1:2.0, nk=(32,32), kmax=(0.5,0.5), tapers=tapers)
 ```
 """
 struct CFunction{E, D, P, Q, A, T, IP, IE} <: IsotropicEstimate{E, D, P, Q}
@@ -77,7 +77,7 @@ function c_function(data, region; kwargs...)::CFunction
 end
 
 """
-    c_function(data::SpatialData; radii, nfreq, fmax, freq_radii, rotational_method, spectra_kwargs...)
+    c_function(data::SpatialData; radii, nk, kmax, freq_radii, rotational_method, spectra_kwargs...)
 
 Compute spatial C function from spatial data.
 
@@ -87,10 +87,10 @@ via inverse Fourier transform with appropriate spatial weighting.
 # Arguments
 - `data::SpatialData`: Input spatial data
 - `radii`: Distances at which to evaluate the C function
-- `nfreq`: Number of frequencies per dimension for spectral estimation
-- `fmax`: Maximum frequency per dimension for spectral estimation
-- `freq_radii`: Radial frequencies for rotational averaging (default: from nfreq, fmax)
-- `rotational_method`: Kernel for rotational averaging (default: from nfreq, fmax)
+- `nk`: Number of frequencies per dimension for spectral estimation
+- `kmax`: Maximum frequency per dimension for spectral estimation
+- `freq_radii`: Radial frequencies for rotational averaging (default: from nk, kmax)
+- `rotational_method`: Kernel for rotational averaging (default: from nk, kmax)
 - `spectra_kwargs...`: Additional arguments passed to spectral estimation
 
 # Returns
@@ -111,7 +111,7 @@ process_c_rotational_radii(radii; kwargs...) = radii
 
 default_c_rotational_kernel(args...; kwargs...) = NoRotational()
 default_c_rotational_radii(spectrum) = default_rotational_radii(spectrum)
-default_c_rotational_radii(; nfreq, fmax, kwargs...) = default_rotational_radii(nfreq, fmax)
+default_c_rotational_radii(; nk, kmax, kwargs...) = default_rotational_radii(nk, kmax)
 
 """
     c_function(spectrum::Spectra; radii, freq_radii, rotational_method)
@@ -158,7 +158,7 @@ function partial_c_function(data, region; kwargs...)::CFunction{PartialTrait}
 end
 
 """
-    partial_c_function(data::SpatialData; radii, nfreq, fmax, spectra_kwargs...)
+    partial_c_function(data::SpatialData; radii, nk, kmax, spectra_kwargs...)
 
 Compute partial spatial C function from spatial data.
 

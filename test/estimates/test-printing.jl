@@ -9,7 +9,7 @@ using .TestData
 
     @testset "Spectra printing" begin
         region = getregion(data)
-        spec = spectra(data, nfreq = (4, 4), fmax = (0.2, 0.2),
+        spec = spectra(data, nk = (4, 4), kmax = (0.2, 0.2),
             tapers = sin_taper_family((2, 2), region))
 
         # Test compact show
@@ -34,7 +34,7 @@ using .TestData
 
     @testset "Coherence printing" begin
         region = getregion(data)
-        spec = spectra(data, nfreq = (4, 4), fmax = (0.2, 0.2),
+        spec = spectra(data, nk = (4, 4), kmax = (0.2, 0.2),
             tapers = sin_taper_family((2, 2), region))
         coh = coherence(spec)
 
@@ -48,7 +48,7 @@ using .TestData
 
     @testset "Partial estimates printing" begin
         region = getregion(data)
-        spec = spectra(data, nfreq = (4, 4), fmax = (0.2, 0.2),
+        spec = spectra(data, nk = (4, 4), kmax = (0.2, 0.2),
             tapers = sin_taper_family((2, 2), region))
         partial_spec = partial_spectra(spec)
 
@@ -62,7 +62,7 @@ using .TestData
 
     @testset "Transformed estimates printing" begin
         region = getregion(data)
-        spec = spectra(data, nfreq = (4, 4), fmax = (0.2, 0.2),
+        spec = spectra(data, nk = (4, 4), kmax = (0.2, 0.2),
             tapers = sin_taper_family((2, 2), region))
         abs_spec = abs(spec)
 
@@ -76,7 +76,7 @@ using .TestData
 
     @testset "Rotational estimates printing" begin
         region = getregion(data)
-        spec = spectra(data, nfreq = (6, 6), fmax = (0.3, 0.3),
+        spec = spectra(data, nk = (6, 6), kmax = (0.3, 0.3),
             tapers = sin_taper_family((2, 2), region))
         rot_spec = rotational_estimate(spec)
 
@@ -117,7 +117,7 @@ end
         data = make_points_example(
             rng, n_processes = 3, return_type = :tuple, point_number = 20)
         region = getregion(data)
-        spec = spectra(data, nfreq = (3, 3), fmax = (0.15, 0.15),
+        spec = spectra(data, nk = (3, 3), kmax = (0.15, 0.15),
             tapers = sin_taper_family((2, 2), region))
 
         io = IOBuffer()
@@ -132,7 +132,7 @@ end
         data = make_points_example(
             rng, n_processes = 1, return_type = :single, point_number = 20)
         region = getregion(data)
-        spec = spectra(data, nfreq = (3, 3), fmax = (0.15, 0.15),
+        spec = spectra(data, nk = (3, 3), kmax = (0.15, 0.15),
             tapers = sin_taper_family((2, 2), region))
 
         io = IOBuffer()
@@ -152,7 +152,7 @@ end
             point_number = 20, dim = 1, region_min = (0,), region_max = (1,))
 
         region = getregion(data)
-        spec = spectra(data, nfreq = (10,), fmax = (0.5,),
+        spec = spectra(data, nk = (10,), kmax = (0.5,),
             tapers = sin_taper_family((3,), region))
 
         io = IOBuffer()
@@ -171,7 +171,7 @@ end
             grid_dims = (5, 5), region_min = (0.0, 0.0), region_max = (1.0, 1.0))
 
         region = getregion(data)
-        spec = spectra(data, nfreq = (11, 11), fmax = (2.5, 2.5),
+        spec = spectra(data, nk = (11, 11), kmax = (2.5, 2.5),
             tapers = sin_taper_family((2, 2), region))
 
         io = IOBuffer()

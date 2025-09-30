@@ -67,7 +67,7 @@ end
 
     @testset "apply_transform through coherence calculations" begin
         region = getregion(data)
-        spec = spectra(data, nfreq = (4, 4), fmax = (0.2, 0.2),
+        spec = spectra(data, nk = (4, 4), kmax = (0.2, 0.2),
             tapers = sin_taper_family((2, 2), region))
 
         # Test that coherence uses apply_transform internally
@@ -78,7 +78,7 @@ end
 
     @testset "apply_transform through partial_spectra" begin
         region = getregion(data)
-        spec = spectra(data, nfreq = (4, 4), fmax = (0.2, 0.2),
+        spec = spectra(data, nk = (4, 4), kmax = (0.2, 0.2),
             tapers = sin_taper_family((2, 2), region))
 
         # Test that partial_spectra uses apply_transform internally

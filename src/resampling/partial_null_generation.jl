@@ -1,6 +1,6 @@
 
 # """
-#     create_intensities(data::NTuple{P,PointSet}, region; tapers, nfreq, fmax, radii, grid, smooth_width) where {P}
+#     create_intensities(data::NTuple{P,PointSet}, region; tapers, nk, kmax, radii, grid, smooth_width) where {P}
 
 # Constructs the internal intensities for each of the processes partial on all the others.
 
@@ -12,14 +12,14 @@
 #         data::NTuple{P, PointSet},
 #         region;
 #         tapers,
-#         nfreq,
-#         fmax,
+#         nk,
+#         kmax,
 #         radii,
 #         grid,
 #         mean_method::MeanEstimationMethod = DefaultMean(),
 #         smooth_width = nothing
 # ) where {P}
-#     spec = spectra(data, region; tapers = tapers, nfreq = nfreq, fmax = fmax)
+#     spec = spectra(data, region; tapers = tapers, nk = nk, kmax = kmax)
 #     intensity = mean_estimate(data, region, mean_method)
 #     kernels = prediction_kernel(spec, radii = radii, smooth_width = smooth_width)
 #     kernel_integral = integrate_prediction_kernel.(

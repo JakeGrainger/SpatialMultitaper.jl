@@ -45,12 +45,12 @@ end
     @testset "Points data" begin
         data = make_points_example(
             rng, n_processes = 2, return_type = :tuple, point_number = 50)
-        nfreq = (8, 8)
-        fmax = (0.5, 0.5)
+        nk = (8, 8)
+        kmax = (0.5, 0.5)
         region = getregion(data)
         tapers = sin_taper_family((2, 2), region)
 
-        spec = spectra(data, nfreq = nfreq, fmax = fmax, tapers = tapers)
+        spec = spectra(data, nk = nk, kmax = kmax, tapers = tapers)
 
         @test getargument(spec) isa Tuple{AbstractVector, AbstractVector}
         @test length(getargument(spec)[1]) == 8
@@ -63,24 +63,24 @@ end
     @testset "Grid data" begin
         grids = make_grids_example(rng, n_processes = 1, return_type = :single,
             grid_dims = (10, 10), region_min = (0.0, 0.0), region_max = (10.0, 10.0))
-        nfreq = (8, 8)
-        fmax = (0.5, 0.5)  # Nyquist frequency for grid data
+        nk = (8, 8)
+        kmax = (0.5, 0.5)  # Nyquist frequency for grid data
         region = getregion(grids)
         tapers = sin_taper_family((2, 2), region)
 
-        spec = spectra(grids, nfreq = nfreq, fmax = fmax, tapers = tapers)
+        spec = spectra(grids, nk = nk, kmax = kmax, tapers = tapers)
         @test size(spec) == (1, 1)
         @test embeddim(spec) == 2
     end
 
     @testset "Single process convenience" begin
         data = make_points_example(rng, n_processes = 1, return_type = :single)
-        nfreq = (6, 6)
-        fmax = (0.3, 0.3)
+        nk = (6, 6)
+        kmax = (0.3, 0.3)
         region = getregion(data)
         tapers = sin_taper_family((2, 2), region)
 
-        spec = spectra(data, nfreq = nfreq, fmax = fmax, tapers = tapers)
+        spec = spectra(data, nk = nk, kmax = kmax, tapers = tapers)
         @test size(spec) == (1, 1)
     end
 end
@@ -152,9 +152,9 @@ end
     end
 
     @testset "Different frequencies per dimension" begin
-        nfreq = (8, 12)
-        fmax = (0.4, 0.6)
-        freq = _make_frequency_grid(nfreq, fmax, 2)
+        nk = (8, 12)
+        kmax = (0.4, 0.6)
+        freq = _make_frequency_grid(nk, kmax, 2)
 
         @test length(freq) == 2
         @test length(freq[1]) == 8
@@ -168,12 +168,12 @@ end
     rng = StableRNG(123)
     data = make_points_example(
         rng, n_processes = 3, return_type = :tuple, point_number = 30)
-    nfreq = (6, 6)
-    fmax = (0.3, 0.3)
+    nk = (6, 6)
+    kmax = (0.3, 0.3)
     region = getregion(data)
     tapers = sin_taper_family((2, 2), region)
 
-    spec = spectra(data, nfreq = nfreq, fmax = fmax, tapers = tapers)
+    spec = spectra(data, nk = nk, kmax = kmax, tapers = tapers)
 
     @testset "Process indexing" begin
         spec_sub = spec[1, 2]
@@ -196,13 +196,13 @@ end
     @testset "Empty or minimal data" begin
         # Test with very small datasets
         data = spatial_data(PointSet([Point(0.0, 0.0)]), Box(Point(-1, -1), Point(1, 1)))
-        nfreq = (2, 2)
-        fmax = (0.1, 0.1)
+        nk = (2, 2)
+        kmax = (0.1, 0.1)
         region = getregion(data)
         tapers = sin_taper_family((1, 1), region)
 
         # Should not crash but might have limited meaningful results
-        spec = spectra(data, nfreq = nfreq, fmax = fmax, tapers = tapers)
+        spec = spectra(data, nk = nk, kmax = kmax, tapers = tapers)
         @test size(spec) == (1, 1)
     end
 

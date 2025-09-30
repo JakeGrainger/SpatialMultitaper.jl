@@ -1,16 +1,16 @@
-struct Spectra{E, D, P, Q, A, T, IP, IE} <: AnisotropicEstimate{E, D, P, Q}
+struct Spectra{E, D, A, T, IP, IE} <: AnisotropicEstimate{E, D}
     wavenumber::NTuple{D, A}
     power::T
     processinformation::IP
     estimationinformation::IE
     function Spectra{E}(wavenumber::NTuple{D, A}, power::T, processinfo::IP,
             estimationinfo::IE) where {E <: EstimateTrait, D, A, T, IP, IE}
-        P, Q = checkinputs(wavenumber, power, processinfo)
-        return new{E, D, P, Q, A, T, IP, IE}(wavenumber, power, processinfo, estimationinfo)
+        checkinputs(wavenumber, power, processinfo)
+        return new{E, D, A, T, IP, IE}(wavenumber, power, processinfo, estimationinfo)
     end
 end
 
-const RotationalSpectra{E, D, P, Q, S <: Spectra} = RotationalEstimate{E, D, P, Q, S}
+const RotationalSpectra{E, D, S <: Spectra} = RotationalEstimate{E, D, S}
 const NormalOrRotationalSpectra{E} = Union{Spectra{E}, RotationalSpectra{E}}
 getargument(est::Spectra) = est.wavenumber
 getestimate(est::Spectra) = est.power

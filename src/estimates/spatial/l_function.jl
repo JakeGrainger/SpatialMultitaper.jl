@@ -1,5 +1,5 @@
 """
-    LFunction{E, D, P, Q, A, T, IP, IE} <: IsotropicEstimate{E, D, P, Q}
+    LFunction{E, D, A, T, IP, IE} <: IsotropicEstimate{E, D}
 
 L function estimate derived from Ripley's K function for spatial analysis.
 
@@ -12,7 +12,6 @@ For a Poisson process, ``L(r) = r``, making deviations easier to interpret.
 # Type Parameters
 - `E`: Estimate trait (e.g., `MarginalTrait`, `PartialTrait`)
 - `D`: Spatial dimension
-- `P`, `Q`: Process dimensions
 - `A`: Type of radii array
 - `T`: Type of L function values
 - `IP`: Type of process information
@@ -33,16 +32,16 @@ lf = l_function(k_func)
 lf = l_function(data, region, radii=0.1:0.1:2.0, nk=(32,32), kmax=(0.5,0.5), tapers=tapers)
 ```
 """
-struct LFunction{E, D, P, Q, A, T, IP, IE} <: IsotropicEstimate{E, D, P, Q}
+struct LFunction{E, D, A, T, IP, IE} <: IsotropicEstimate{E, D}
     radii::A
     value::T
     processinformation::IP
     estimationinformation::IE
     function LFunction{E}(radii::A, value::T, processinfo::ProcessInformation{D},
             estimationinfo::IE) where {E, A, T, IE, D}
-        P, Q = checkinputs(radii, value, processinfo)
+        checkinputs(radii, value, processinfo)
         IP = typeof(processinfo)
-        return new{E, D, P, Q, A, T, IP, IE}(radii, value, processinfo, estimationinfo)
+        return new{E, D, A, T, IP, IE}(radii, value, processinfo, estimationinfo)
     end
 end
 

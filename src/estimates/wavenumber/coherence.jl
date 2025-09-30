@@ -1,12 +1,11 @@
 """
-    Coherence{E, D, P, Q, N, A, T, IP, IE} <: AbstractEstimate{E, D, P, Q, N}
+    Coherence{E, D, N, A, T, IP, IE} <: AbstractEstimate{E, D, N}
 
 A coherence estimate structure containing wavenumber information and coherence values.
 
 # Type Parameters
 - `E`: Estimate trait (e.g., `MarginalTrait`, `PartialTrait`)
 - `D`: Spatial dimension
-- `P`, `Q`: Process dimensions
 - `N`: Number of wavenumber dimensions
 - `A`: Type of wavenumber argument
 - `T`: Type of coherence values
@@ -19,7 +18,7 @@ A coherence estimate structure containing wavenumber information and coherence v
 - `processinformation`: Information about the processes
 - `estimationinformation`: Information about the estimation procedure
 """
-struct Coherence{E, D, P, Q, N, A, T, IP, IE} <: AbstractEstimate{E, D, P, Q, N}
+struct Coherence{E, D, N, A, T, IP, IE} <: AbstractEstimate{E, D, N}
     wavenumber::A
     coherence::T
     processinformation::IP
@@ -27,22 +26,22 @@ struct Coherence{E, D, P, Q, N, A, T, IP, IE} <: AbstractEstimate{E, D, P, Q, N}
     function Coherence{E}(
             wavenumber::NTuple{N}, coherence::T, processinfo::ProcessInformation{D},
             estimationinfo::IE) where {E <: EstimateTrait, D, N, T, IE}
-        P, Q = checkinputs(wavenumber, coherence, processinfo)
+        checkinputs(wavenumber, coherence, processinfo)
         IP = typeof(processinfo)
         A = typeof(wavenumber)
-        return new{E, D, P, Q, N, A, T, IP, IE}(
+        return new{E, D, N, A, T, IP, IE}(
             wavenumber, coherence, processinfo, estimationinfo)
     end
     function Coherence{E}( # for inputs that are rotational
             wavenumber::A, coherence::T, processinfo::ProcessInformation{D},
             estimationinfo::IE) where {E <: EstimateTrait, D, A, T, IE}
-        P, Q = checkinputs(wavenumber, coherence, processinfo)
+        checkinputs(wavenumber, coherence, processinfo)
         IP = typeof(processinfo)
-        return new{E, D, P, Q, 1, A, T, IP, IE}(
+        return new{E, D, 1, A, T, IP, IE}(
             wavenumber, coherence, processinfo, estimationinfo)
     end
 end
-const RotationalCoherence{E, D, P, Q, S <: Coherence} = RotationalEstimate{E, D, P, Q, S}
+const RotationalCoherence{E, D, S <: Coherence} = RotationalEstimate{E, D, S}
 getargument(est::Coherence) = est.wavenumber
 getestimate(est::Coherence) = est.coherence
 

@@ -1,5 +1,5 @@
 """
-    MarginallyTransformedEstimate{E, D, P, Q, N, S, A, T, IP, IE, F} <: AbstractEstimate{E, D, P, Q, N}
+    MarginallyTransformedEstimate{E, D, N, S, A, T, IP, IE, F} <: AbstractEstimate{E, D, N}
 
 A wrapper for estimates that have undergone element-wise transformations.
 
@@ -10,7 +10,6 @@ Common examples include taking the real part, magnitude, phase, or logarithm of 
 # Type Parameters
 - `E`: Estimate trait (e.g., `MarginalTrait`, `PartialTrait`)
 - `D`: Spatial dimension
-- `P`, `Q`: Process dimensions
 - `N`: Number of wavenumber dimensions
 - `S`: Type of the original estimate before transformation
 - `A`: Type of the argument (e.g., wavenumber grid)
@@ -37,8 +36,8 @@ real_spec = real(cross_spectrum)
 log_spec = log(abs(spectrum))
 ```
 """
-struct MarginallyTransformedEstimate{E, D, P, Q, N, S, A, T, IP, IE, F} <:
-       AbstractEstimate{E, D, P, Q, N}
+struct MarginallyTransformedEstimate{E, D, N, S, A, T, IP, IE, F} <:
+       AbstractEstimate{E, D, N}
     argument::A
     estimate::T
     processinformation::IP
@@ -46,9 +45,9 @@ struct MarginallyTransformedEstimate{E, D, P, Q, N, S, A, T, IP, IE, F} <:
     function MarginallyTransformedEstimate{E, S, N, F}(argument::A, estimate::T,
             processinfo::ProcessInformation{D}, estimationinfo::IE) where {
             E, S, N, F, A, T, D, IE}
-        P, Q = checkinputs(argument, estimate, processinfo)
+        checkinputs(argument, estimate, processinfo)
         IP = typeof(processinfo)
-        return new{E, D, P, Q, N, S, A, T, IP, IE, F}(
+        return new{E, D, N, S, A, T, IP, IE, F}(
             argument, estimate, processinfo, estimationinfo)
     end
 end
@@ -69,22 +68,22 @@ end
 Internal constructor for creating estimate subsets with different traits.
 """
 function _construct_estimate_subset(
-        ::Type{<:MarginallyTransformedEstimate{E, D, P, Q, N, S, A, T, IP, IE, F}},
+        ::Type{<:MarginallyTransformedEstimate{E, D, N, S, A, T, IP, IE, F}},
         trait::Type{<:EstimateTrait},
         args...
-)::MarginallyTransformedEstimate where {E, D, P, Q, N, S, A, T, IP, IE, F}
+)::MarginallyTransformedEstimate where {E, D, N, S, A, T, IP, IE, F}
     return MarginallyTransformedEstimate{trait, S, N, F}(args...)
 end
 
 # Type introspection utilities
 
 """
-    getoriginaltype(::Type{<:MarginallyTransformedEstimate{E, D, P, Q, N, S}}) where {E, D, P, Q, N, S}
+    getoriginaltype(::Type{<:MarginallyTransformedEstimate{E, D, N, S}}) where {E, D, N, S}
 
 Extract the original estimate type before transformation.
 """
 function getoriginaltype(::Type{<:MarginallyTransformedEstimate{
-        E, D, P, Q, N, S}}) where {E, D, P, Q, N, S}
+        E, D, N, S}}) where {E, D, N, S}
     return S
 end
 
@@ -96,7 +95,7 @@ Get the type of transformation function applied to the estimate.
 gettransformtype(est::MarginallyTransformedEstimate) = gettransformtype(typeof(est))
 
 function gettransformtype(::Type{<:MarginallyTransformedEstimate{
-        E, D, P, Q, N, S, A, T, IP, IE, F}}) where {E, D, P, Q, N, S, A, T, IP, IE, F}
+        E, D, N, S, A, T, IP, IE, F}}) where {E, D, N, S, A, T, IP, IE, F}
     return F
 end
 
@@ -114,7 +113,7 @@ end
 # Core transformation functionality
 
 """
-    apply_marginal_transform(transform::F, est::AbstractEstimate{E, D, P, Q, N}) where {F, E, D, P, Q, N}
+    apply_marginal_transform(transform::F, est::AbstractEstimate{E, D, N}) where {F, E, D, N}
 
 Apply a transformation function element-wise to an estimate.
 
@@ -138,9 +137,9 @@ abs_est = apply_marginal_transform(abs, complex_estimate)
 log_est = apply_marginal_transform(x -> log(x + 1e-10), spectrum)
 ```
 """
-function apply_marginal_transform(
-        transform::F, est::AbstractEstimate{E, D, P, Q, N}
-)::MarginallyTransformedEstimate{E, D, P, Q, N} where {F, E, D, P, Q, N}
+function apply_marginal_transform(transform::F,
+        est::AbstractEstimate{E, D, N})::MarginallyTransformedEstimate{
+        E, D, N} where {F, E, D, N}
     argument = getargument(est)
     estimate = apply_marginal_transform(transform, getestimate(est))
     processinfo = getprocessinformation(est)

@@ -265,7 +265,7 @@ function _sdf2C_anisotropic(
         @argcheck ndims(zero_atom) + length(wavenumber) == ndims(power)
     end
 
-    out = zeros(eltype(power), size(power)[1:((N - D))]..., length(radii))
+    out = zeros(real(eltype(power)), size(power)[1:((N - D))]..., length(radii))
     for idx in CartesianIndices(size(power)[1:(N - D)])
         power_slice = view(power, idx, ntuple(Returns(:), D)...)
         zero_atom_slice = _slice_zero_atom(zero_atom, idx)
@@ -281,7 +281,7 @@ end
 function _sdf2C_isotropic(
         wavenumber, power, trait::Union{SingleProcessTrait, MultipleTupleTrait},
         zero_atom, radii::AbstractVector, ::Val{D}) where {D}
-    out = zeros(eltype(power), length(radii))
+    out = zeros(real(eltype(power)), length(radii))
     for (i, radius) in enumerate(radii)
         out[i] = _sdf2C_isotropic(wavenumber, power, trait, zero_atom, radius, Val{D}())
     end
@@ -307,7 +307,7 @@ function _sdf2C_isotropic(
     end
     @argcheck size(power, ndims(power)) == length(wavenumber)
 
-    out = zeros(eltype(power), size(power)[1:(N - 1)]..., length(radii))
+    out = zeros(real(eltype(power)), size(power)[1:(N - 1)]..., length(radii))
     for idx in CartesianIndices(size(power)[1:(N - 1)])
         power_slice = view(power, idx, ntuple(Returns(:), D)...)
         zero_atom_slice = _slice_zero_atom(zero_atom, idx)

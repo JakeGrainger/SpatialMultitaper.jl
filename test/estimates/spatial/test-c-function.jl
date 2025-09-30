@@ -5,16 +5,21 @@ using .TestData
 
 import SpatialMultitaper: getestimate, getargument, CFunction, default_rotational_kernel,
                           getregion, _isotropic_c_weight, _anisotropic_c_weight,
-                          _isotropic_c_weight_generic, _anisotropic_c_weight_generic
+                          _isotropic_c_weight_generic, _anisotropic_c_weight_generic,
+                          IsotropicEstimate
 
 #
 
 rng = StableRNG(123)
 
 @testset "basic pipeline tests" begin
-    data = make_points_example(rng, n_processes = 1, dim = 2, point_number = 50)
+    data = make_points_example(
+        rng, n_processes = 1, dim = 2, point_number = 50, return_type = :single)
     tapers = sin_taper_family((3, 3), getregion(data))
-    l_function(data; radii = 0:0.1:1, kmax = 2.0, tapers = tapers)
+    c = c_function(data; radii = 0:0.1:1, kmax = 2.0, tapers = tapers)
+    @test getestimate(c) isa AbstractVector{<:Real}
+    @test c isa IsotropicEstimate
+    @test abs(c) isa IsotropicEstimate
 end
 
 # loop over 1d, 2d, 3d

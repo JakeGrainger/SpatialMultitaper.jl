@@ -137,7 +137,7 @@ function _prediction_kernel_ft(
     return (wavenumber = wavenumber, kernels = kernels)
 end
 
-# TODO: should bve made available for other internal storage systems
+# TODO: should be made available for other internal storage systems
 function single_prediction_kernel_ft(S_mat::AbstractMatrix, idx::Int, ntapers::Int)
     scaling = ntapers / (ntapers - size(S_mat, 1) + 1)
     return single_prediction_kernel_ft(S_mat, idx, nothing) .* scaling

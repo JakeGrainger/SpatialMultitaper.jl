@@ -358,8 +358,17 @@ function _anisotropic_c_weight(r, u, ::Val{2})
     return (x < 1e-10) ? (π * r^2) : ((r / x) * besselj1(2π * r * x))
 end
 
+function _anisotropic_c_weight(r, u, ::Val{3})
+    x = norm(u)
+    return (x < 1e-10) ? (4π / 3 * r^3) : (sqrt(r / x)^3 * besselj(3 / 2, 2π * r * x))
+end
+
 function _anisotropic_c_weight(r, u, ::Val{D}) where {D}
     x = norm(u)
+    return _anisotropic_c_weight_generic(r, x, Val{D}())
+end
+
+function _anisotropic_c_weight_generic(r, x, ::Val{D}) where {D}
     if x < 1e-10
         # Handle singularity at origin using ball measure
         return unitless_measure(Ball(Point(ntuple(x -> 0, Val{D}())), r))
@@ -379,15 +388,33 @@ that has already been performed.
 function _isotropic_c_weight(r, k, spacing, ::Val{1})
     half_spacing = spacing / 2
     # note sinint is for the unnormalised sinc integral
-    return (sinint(2r * (k + half_spacing)) - sinint(2r * (k - half_spacing))) / pi
+    # note 2 times because we integrate from k - half_spacing to k + half_spacing and from
+    # -k - half_spacing to -k + half_spacing in this case
+    return 2 / π *
+           (sinint(2π * r * (k + half_spacing)) - sinint(2π * r * (k - half_spacing)))
 end
 function _isotropic_c_weight(r, k, spacing, ::Val{2})
     half_spacing = spacing / 2
     return besselj0(2π * r * (k - half_spacing)) - besselj0(2π * r * (k + half_spacing))
 end
 
+function _isotropic_c_weight(r, k, spacing, ::Val{3})
+    half_spacing = spacing / 2
+    return 2 / π * (sinint(2π * r * (k + half_spacing)) - sin(2π * r * (k + half_spacing)) -
+            sinint(2π * r * (k - half_spacing)) + sin(2π * r * (k - half_spacing)))
+end
+
 function _isotropic_c_weight(r, k, spacing, ::Val{D}) where {D}
-    throw(ArgumentError(
-        "Isotropic weighting not implemented for D > 2, try calling c_function with rotational_method=NoRotational()"
-    ))
+    _isotropic_c_weight_generic(r, k, spacing, Val{D}())
+end
+
+function _isotropic_c_weight_generic(r, k, spacing, ::Val{D}) where {D}
+    half_spacing = spacing / 2
+    _isotropic_c_weight_generic_int(r, k + half_spacing, D) -
+    _isotropic_c_weight_generic_int(r, k - half_spacing, D)
+end
+
+function _isotropic_c_weight_generic_int(r, x, d)
+    u = pi * r * x
+    return u^d / (gamma(d / 2 + 1)^2) * pFq((d / 2,), (d / 2 + 1, d / 2 + 1), -u^2)
 end

@@ -1,9 +1,11 @@
-using Test, SpatialMultitaper, StableRNGs, StaticArrays, LinearAlgebra
+using Test, SpatialMultitaper, StableRNGs, StaticArrays, LinearAlgebra, QuadGK,
+      SpecialFunctions
 include("../../test_utilities/TestData.jl")
 using .TestData
 
 import SpatialMultitaper: getestimate, getargument, CFunction, default_rotational_kernel,
-                          getregion
+                          getregion, _isotropic_c_weight, _anisotropic_c_weight,
+                          _isotropic_c_weight_generic, _anisotropic_c_weight_generic
 
 #
 
@@ -311,7 +313,56 @@ end
     @test c_vec isa CFunction
     @test c_tuple isa CFunction
 
-
     @test getestimate(c_single) ≈ getestimate(c_vec)[1, 1, :]
     @test getestimate(c_single) ≈ getindex.(getestimate(c_tuple), 1, 1)
+end
+
+R = [0.0, 0.1, 1.0, 10.0]
+U = [0.1, 0.5, 1.0, 10.0] # with the SL only makes sense for u >= sl/2
+SL = [0.1]
+
+@testset "anisotropic transforms" begin
+    @testset "r=$r, ||u||=$u, dim=$dim" for r in R, u in [0.0; U], dim in 1:3
+        theoretical = _anisotropic_c_weight(r, u, Val{dim}())
+        general = _anisotropic_c_weight_generic(r, u, Val{dim}())
+        @test theoretical≈general atol=1e-6
+    end
+end
+@testset "anisotropic integrals" begin
+    @testset "r=$r, ||u||=$u, dim=$dim, sl=$sl" for r in R, u in U, sl in SL, dim in 1:3
+        theoretical = _isotropic_c_weight(r, u, sl, Val{dim}())
+        general = _isotropic_c_weight_generic(r, u, sl, Val{dim}())
+        if r == u == 10
+            @test_broken theoretical≈general atol=1e-5
+        else
+            @test theoretical≈general atol=1e-5
+        end
+    end
+end
+
+@testset "1d integration tests" begin
+    @testset "r=$r, ||u||=$u, dim=$dim, sl=$sl" for r in R, u in U, sl in SL, dim in 1:3
+        numerical = 2 * pi^(dim / 2) / gamma(dim / 2) *
+                    quadgk(x -> x^(dim - 1) * _anisotropic_c_weight(r, x, Val{dim}()),
+            u - sl / 2, u + sl / 2)[1]
+
+        theoretical = _isotropic_c_weight(r, u, sl, Val{dim}())
+        @test theoretical≈numerical atol=1e-5
+    end
+end
+
+@testset "checking isotropic integrals" begin
+    @testset "r=$r, ||u||=$u, dim=$dim, sl=$sl" for r in R, u in U, sl in SL, dim in 1:4
+        # Value should be r^{d/2} * A_d * ∫_{k - sl/2}^{k + sl/2} x^{d/2 - 1} * J_{d/2}(2π r x) dx,
+        # where A_d = 2π^{d/2} / Γ(d/2)
+        theoretical = _isotropic_c_weight_generic(r, norm(u), sl, Val{dim}())
+        int_approx = quadgk(
+            x -> (x^(dim / 2 - 1) * besselj(dim / 2, 2π * r * x)), u - sl / 2, u + sl / 2)[1]
+        numerical = 2 * (pi * r)^(dim / 2) / gamma(dim / 2) * int_approx
+        if r == u == 10
+            @test_broken theoretical≈numerical atol=1e-5
+        else
+            @test theoretical≈numerical atol=1e-5
+        end
+    end
 end

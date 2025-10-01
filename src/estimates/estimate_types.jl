@@ -314,32 +314,35 @@ end
 
 ## get estimate index
 function getestimateindex(
-        estimate::AbstractEstimate{E, D, N},
-        p,
-        q,
-        i::Vararg{Any, N}
-) where {E, D, N}
-    _getestimateindex(getestimate(estimate), p, q, i...)
+        estimate::AbstractEstimate{E, D, N}, p, q, i::Vararg{Any, N}) where {E, D, N}
+    return _getestimateindex(process_trait(estimate), getestimate(estimate), p, q, i...)
 end
 
 function getestimateindex(
         estimate::AbstractEstimate{E, D, N}, p, q) where {E, D, N}
-    _getestimateindex(getestimate(estimate), p, q)
+    return _getestimateindex(process_trait(estimate), getestimate(estimate), p, q)
 end
 
+function _getestimateindex(::SingleProcessTrait, estimate::AbstractArray{<:Number, N},
+        p::Int, q::Int, i::Vararg{Any, N}) where {N}
+    return estimate[i...]
+end
+function _getestimateindex(::SingleProcessTrait, estimate::AbstractArray{<:Number},
+        p::Int, q::Int)
+    return estimate
+end
+
+function _getestimateindex(::MultipleTupleTrait, estimate::AbstractArray{<:SMatrix, N},
+        p, q, i::Vararg{Any, N}) where {N}
+    return _getestimateindex(MultipleTupleTrait(), estimate, p, q)[i...]
+end
 function _getestimateindex(
-        estimate::AbstractArray{<:SMatrix, N},
-        p,
-        q,
-        i::Vararg{Any, N}
-) where {N}
-    _getestimateindex(estimate, p, q)[i...]
+        ::MultipleTupleTrait, estimate::AbstractArray{<:SMatrix, N}, p, q) where {N}
+    return getindex.(estimate, Ref(_index_to_svec(p)), Ref(_index_to_svec(q)))
 end
-function _getestimateindex(estimate::AbstractArray{<:SMatrix, N}, p, q) where {N}
-    getindex.(estimate, Ref(_index_to_svec(p)), Ref(_index_to_svec(q)))
-end
-function _getestimateindex(estimate::AbstractArray{<:SMatrix, N}, p::Int, q::Int) where {N}
-    getindex.(estimate, p, q)
+function _getestimateindex(::MultipleTupleTrait, estimate::AbstractArray{<:SMatrix, N},
+        p::Int, q::Int) where {N}
+    return getindex.(estimate, p, q)
 end
 
 _index_to_svec(i::Int) = SVector(i)
@@ -347,35 +350,25 @@ _index_to_svec(i::SVector) = i
 _index_to_svec(i::SOneTo) = i
 _index_to_svec(i::AbstractVector) = SVector(i...)
 
-function _getestimateindex(
-        estimate::AbstractArray{<:Number, M},
-        p::Int,
-        q::Int,
-        i::Vararg{Any, N}
-) where {M, N}
+function _getestimateindex(::MultipleVectorTrait, estimate::AbstractArray{<:Number, M},
+        p::Int, q::Int, i::Vararg{Any, N}) where {M, N}
     estimate[p, q, i...]
 end
-function _getestimateindex(
-        estimate::AbstractArray{<:Number, M},
-        p,
-        q,
-        i::Vararg{Any, N}
-) where {M, N}
+
+function _getestimateindex(::MultipleVectorTrait, estimate::AbstractArray{<:Number, M},
+        p, q, i::Vararg{Any, N}) where {M, N}
     estimate[_index_to_vec(p), _index_to_vec(q), i...]
 end
 _index_to_vec(i::Int) = i:i
 _index_to_vec(i::AbstractVector) = i
 
-function _getestimateindex(estimate::AbstractArray{<:Number, N}, p::Int, q::Int) where {N}
+function _getestimateindex(::MultipleVectorTrait, estimate::AbstractArray{<:Number, N},
+        p::Int, q::Int) where {N}
     estimate[p, q, ntuple(Returns(:), Val{N - 2}())] # once first is selected, second becomes first
 end
-function _getestimateindex(estimate::AbstractArray{<:Number, N}, p, q) where {N}
+function _getestimateindex(
+        ::MultipleVectorTrait, estimate::AbstractArray{<:Number, N}, p, q) where {N}
     estimate[_index_to_vec(p), _index_to_vec(q), ntuple(Returns(:), Val{N - 2}())...] # once first is selected, second becomes first
-end
-
-function _getestimateindex( # one process case, p and q have been checked by this point but should be 1
-        estimate::AbstractArray{<:Number, N}, p, q, i::Vararg{Any, N}) where {N}
-    estimate[i...]
 end
 
 ## constructor input checking

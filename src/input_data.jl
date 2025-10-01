@@ -49,6 +49,9 @@ Creates a `SpatialData` object from raw spatial data and a specified region.
 Automatically unpacks, validates, and masks the input data to the specified region.
 """
 function spatial_data(data, region)
+    @argcheck data isa Union{PointSet, GeoTable} ||
+              all(x -> x isa Union{PointSet, GeoTable}, data)
+
     formatted_data = unpack_observations(data)
     check_observations(formatted_data, region)
     masked_data = mask(formatted_data, region) # note this will copy

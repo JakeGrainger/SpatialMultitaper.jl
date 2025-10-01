@@ -49,7 +49,6 @@ include("estimates/spatial/l_function.jl")
 include("estimates/spatial/centered_l_function.jl")
 include("estimates/spatial/pair_correlation_function.jl")
 
-# include("resampling/partial_null_generation.jl")
 include("resampling/partial_cross_resampling.jl")
 include("resampling/partial_marginal_resampling.jl")
 include("resampling/partial_resampling.jl")

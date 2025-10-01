@@ -84,6 +84,7 @@ const GridGeoTable = GeoTable{<:CartesianGrid}
 const PointPattern{D, R, N} = SpatialData{<:PointSet, D, R, N}
 const MarkedPointPattern{D, R, N} = SpatialData{<:PointGeoTable, D, R, N}
 const GriddedData{D, R, N} = SpatialData{<:GridGeoTable, D, R, N}
+const SingleProcessData{D, R, N} = SpatialData{<:Union{PointSet, GeoTable}, D, R, N}
 const MultipleSpatialDataTuple{P, D, R, N} = SpatialData{<:NTuple{P, Any}, D, R, N}
 const MultipleSpatialDataVec{D, R, N} = SpatialData{<:Vector, D, R, N}
 

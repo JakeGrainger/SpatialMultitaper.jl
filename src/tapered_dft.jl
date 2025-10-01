@@ -27,7 +27,7 @@ entry is an array of size `n1 × ... × nD × M`.
 # Notes
 The `mean_method` should have the same length as the number of processes in `data`.
 """
-function tapered_dft(sd::SpatialData, tapers, nk, kmax,
+function tapered_dft(sd::SingleProcessData, tapers, nk, kmax,
         mean_method::MeanEstimationMethod = DefaultMean())
     checkmeanmethod(sd, mean_method)
     return _single_tapered_dft(sd, tapers, nk, kmax, mean_method)

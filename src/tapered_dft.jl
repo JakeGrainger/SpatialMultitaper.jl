@@ -32,10 +32,13 @@ function tapered_dft(sd::SpatialData, tapers, nk, kmax,
     checkmeanmethod(sd, mean_method)
     return _single_tapered_dft(sd, tapers, nk, kmax, mean_method)
 end
-function tapered_dft(sd::MultipleSpatialDataVec, tapers, nk, kmax,
-        mean_method::MeanEstimationMethod = DefaultMean())
+function tapered_dft(sd::MultipleSpatialDataVec{T, D}, tapers, nk, kmax,
+        mean_method::MeanEstimationMethod = DefaultMean()) where {T, D}
     checkmeanmethod(sd, mean_method)
-    dfts = stack(_single_tapered_dft(sd[p], tapers, nk, kmax, mean_method[p])
+    dfts = stack(_single_tapered_dft(
+                     sd[p], tapers, nk, kmax,
+                     mean_method[p])::Array{
+                     complex(eltype(kmax)), D + 2} # this assertion is a hacky way to make this type stable
     for p in 1:ncol(sd))
     return permutedims(dfts, (ndims(dfts), ndims(dfts) - 1, 1:(ndims(dfts) - 2)...))
 end

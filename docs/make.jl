@@ -53,7 +53,8 @@ makedocs(;
     plugins = [bib],
     pages = ["index.md";
              "Tutorials" => ["Basics" => "tutorials/basic_estimation.md",
-                 "Tapers" => "tutorials/tapers.md", "K function" => "tutorials/k_function.md"]
+                 "Tapers" => "tutorials/tapers.md", "K function" => "tutorials/k_function.md",
+                 "partial K function" => "tutorials/partial_k_function.md"]
              numbered_pages]
 )
 

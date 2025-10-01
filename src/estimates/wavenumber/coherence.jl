@@ -59,9 +59,19 @@ The coherence γᵢⱼ between processes i and j is computed as:
 # Returns
 Coherence matrix with values bounded between 0 and 1 for the magnitude.
 """
-function coherence(x::AbstractMatrix)
+function coherence(x::SMatrix)
     d = diagm(sqrt.(inv.(diag(x))))
     return d * x * d
+end
+function coherence(x::AbstractMatrix)
+    y = deepcopy(x)
+    return coherence!(y)
+end
+function coherence!(x::AbstractMatrix)
+    for i in axes(x, 1), j in axes(x, 2)
+        x[i, j] /= sqrt(x[i, i] * x[j, j])
+    end
+    return x
 end
 
 """
@@ -95,6 +105,10 @@ coh = coherence(data, region, nk=(32, 32), kmax=(0.5, 0.5), tapers=tapers)
 ```
 """
 function coherence(spectrum::NormalOrRotationalSpectra{E})::Coherence{E} where {E}
+    mem = deepcopy(spectrum)
+    return coherence!(mem)
+end
+function coherence!(spectrum::NormalOrRotationalSpectra{E})::Coherence{E} where {E}
     if !is_same_process_sets(spectrum)
         throw(ArgumentError(
             "Coherence computation requires equal input and output process sets. " *
@@ -102,8 +116,10 @@ function coherence(spectrum::NormalOrRotationalSpectra{E})::Coherence{E} where {
         ))
     end
 
-    return _compute_coherence_estimate(spectrum, coherence, E)
+    return _compute_coherence_estimate!(spectrum, _coherence_noalloc!, E)
 end
+_coherence_noalloc!(x::Union{Number, SMatrix}) = coherence(x)
+_coherence_noalloc!(x::AbstractMatrix) = coherence!(x)
 
 """
     coherence(data, region; kwargs...)
@@ -130,8 +146,15 @@ Compute partial coherence from a spectral matrix.
 
 Partial coherence removes the linear effects of all other processes.
 """
-function partial_coherence(x::AbstractMatrix)
+function partial_coherence(x::SMatrix)
     return -coherence(inv(x))
+end
+function partial_coherence(x::AbstractMatrix)
+    y = deepcopy(x)
+    return partial_coherence!(y)
+end
+function partial_coherence!(x::AbstractMatrix)
+    return -coherence(LinearAlgebra.inv!(cholesky!(x)))
 end
 
 """
@@ -142,18 +165,7 @@ Partial coherence for a single process (always returns 1).
 partial_coherence(x::Number) = one(typeof(x))
 
 """
-    partial_coherence(spectrum::NormalOrRotationalSpectra{PartialTrait})
-
-Compute partial coherence from partial spectral estimates.
-
-For partial spectral estimates, partial coherence is equivalent to coherence.
-"""
-function partial_coherence(spectrum::NormalOrRotationalSpectra{PartialTrait})::Coherence{PartialTrait}
-    return coherence(spectrum) # partial coherence is just coherence of the partial spectra
-end
-
-"""
-    partial_coherence(spectrum::NormalOrRotationalSpectra{MarginalTrait})
+    partial_coherence(spectrum::NormalOrRotationalSpectra)
 
 Compute partial coherence from marginal spectral estimates.
 
@@ -166,7 +178,16 @@ A `Coherence{PartialTrait}` object containing partial coherence estimates.
 # Throws
 - `ArgumentError`: If the spectrum does not have equal input and output process sets
 """
-function partial_coherence(spectrum::NormalOrRotationalSpectra{MarginalTrait})::Coherence{PartialTrait}
+function partial_coherence(spectrum::NormalOrRotationalSpectra)::Coherence{PartialTrait}
+    mem = deepcopy(spectrum)
+    return partial_coherence!(mem)
+end
+
+function partial_coherence!(spectrum::NormalOrRotationalSpectra{PartialTrait})::Coherence{PartialTrait}
+    return coherence!(spectrum) # partial coherence is just coherence of the partial spectra
+end
+
+function partial_coherence!(spectrum::NormalOrRotationalSpectra{MarginalTrait})
     if !is_same_process_sets(spectrum)
         throw(ArgumentError(
             "Partial coherence computation requires equal input and output process sets. " *
@@ -174,8 +195,10 @@ function partial_coherence(spectrum::NormalOrRotationalSpectra{MarginalTrait})::
         ))
     end
 
-    return _compute_coherence_estimate(spectrum, partial_coherence, PartialTrait)
+    return _compute_coherence_estimate!(spectrum, _partial_coherence_noalloc!, PartialTrait)
 end
+_partial_coherence_noalloc!(x::Union{Number, SMatrix}) = partial_coherence(x)
+_partial_coherence_noalloc!(x::AbstractMatrix) = partial_coherence!(x)
 
 """
     partial_coherence(data, region; kwargs...)
@@ -302,16 +325,16 @@ partial_phase(args...; kwargs...) = partial_phase(spectra(args...; kwargs...))
 # Helper functions
 
 """
-    _compute_coherence_estimate(spectrum, transform_func, trait_type)
+    _compute_coherence_estimate!(spectrum, transform_func, trait_type)
 
 Internal helper to compute coherence estimates with proper error handling.
 """
-function _compute_coherence_estimate(spectrum, transform_func, trait_type)
+function _compute_coherence_estimate!(spectrum, transform_func, trait_type)
     trait = process_trait(spectrum)
     est = getestimate(spectrum)
     process_info = getprocessinformation(spectrum)
     estimation_info = getestimationinformation(spectrum)
-    transformed = apply_transform(transform_func, est, trait)
+    transformed = apply_transform!(transform_func, est, trait)
     return Coherence{trait_type}(
         getargument(spectrum), transformed, process_info, estimation_info)
 end

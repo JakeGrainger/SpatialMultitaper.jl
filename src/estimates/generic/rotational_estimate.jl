@@ -240,24 +240,45 @@ Core rotational averaging computation.
 Computes weighted averages over circular annuli using the specified kernel.
 """
 function _smoothed_rotational(x::NTuple{D}, y::AbstractArray{T, D},
-        ::Union{SingleProcessTrait, MultipleTupleTrait}, radii,
+        trait::Union{SingleProcessTrait, MultipleTupleTrait}, radii,
+        kernel) where {D, T <: Union{<:Number, <:SMatrix}}
+    out = zeros(eltype(y), length(radii))
+    _smoothed_rotational!(out, x, y, trait, radii, kernel)
+    return out
+end
+function _smoothed_rotational!(out, x::NTuple{D}, y::AbstractArray{T, D},
+        trait::Union{SingleProcessTrait, MultipleTupleTrait}, radii,
         kernel) where {D, T <: Union{<:Number, <:SMatrix}}
     @argcheck length(x) == ndims(y)
     @argcheck size(y) == length.(x)
+    @argcheck length(out) == length(radii)
     xitr = Iterators.ProductIterator(x)
-    return [sum(f * kernel(norm(u) - r) for (u, f) in zip(xitr, y)) /
-            sum(kernel(norm(u) - r) for u in xitr) for r in radii]
+    for (i, r) in enumerate(radii)
+        num = sum(f * kernel(norm(u) - r) for (u, f) in zip(xitr, y))
+        denom = sum(kernel(norm(u) - r) for u in xitr)
+        out[i] = num / denom
+    end
+    return out
 end
 
 function _smoothed_rotational(
         x::NTuple{D}, y::AbstractArray{<:Number, N}, ::MultipleVectorTrait, radii, kernel) where {
         D, N}
+    out = zeros(eltype(y), (size(y)[1:2]..., length(radii)))
+    _smoothed_rotational!(out, x, y, MultipleVectorTrait(), radii, kernel)
+    return out
+end
+function _smoothed_rotational!(
+        out::AbstractArray{<:Number, N}, x::NTuple{D}, y::AbstractArray{<:Number, N},
+        ::MultipleVectorTrait, radii, kernel) where {D, N}
     @argcheck length(x) <= ndims(y)
-    # assumes the that last D dimensions are the spatial ones
     @argcheck size(y)[3:end] == length.(x)
-    out = mapslices(
-        z -> _smoothed_rotational(x, z, SingleProcessTrait(), radii, kernel), y; dims = (N + 1 - D):ndims(y))
-    return reshape(out, size(out)[1:(N + 1 - D)]) # The D spatial dimensions have been collapsed into one
+
+    _trait = SingleProcessTrait()
+    @views for idx in CartesianIndices(size(y)[1:2])
+        _smoothed_rotational!(out[idx, :], x, y[idx, :], _trait, radii, kernel)
+    end
+    return out
 end
 
 """

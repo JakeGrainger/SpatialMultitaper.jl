@@ -141,8 +141,7 @@ function apply_marginal_transform(transform::F,
         est::AbstractEstimate{E, D, N})::MarginallyTransformedEstimate{
         E, D, N} where {F, E, D, N}
     mem = deepcopy(est)
-    apply_marginal_transform!(transform, mem)
-    return mem
+    return apply_marginal_transform!(transform, mem)
 end
 function apply_marginal_transform!(transform::F,
         est::AbstractEstimate{E, D, N})::MarginallyTransformedEstimate{

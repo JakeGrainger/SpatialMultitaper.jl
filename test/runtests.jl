@@ -2,6 +2,7 @@ using SpatialMultitaper, Test, SafeTestsets, Aqua
 
 # Aqua.test_all(SpatialMultitaper)
 run_all = true
+run_spatial = true
 
 # Core functionality tests
 if run_all
@@ -90,6 +91,11 @@ if run_all
         include("estimates/test-printing.jl")
     end
 
+    @safetestset "Resampling" begin
+        include("test-resampling.jl")
+    end
+end
+if run_spatial || run_all
     # spatial
     @safetestset "c function" begin
         include("estimates/spatial/test-c-function.jl")
@@ -105,9 +111,5 @@ if run_all
 
     @safetestset "Centered L function" begin
         include("estimates/spatial/test-centered-l-function.jl")
-    end
-
-    @safetestset "Resampling" begin
-        include("test-resampling.jl")
     end
 end

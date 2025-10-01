@@ -238,3 +238,6 @@ since there are no other processes to partial out.
 function partial_spectra(x::Number, ntapers)
     return x
 end
+
+# temporary to allow other methods to call inplace
+partial_spectra!(args...; kwargs...) = partial_spectra(args...; kwargs...) # TODO: remove!!!

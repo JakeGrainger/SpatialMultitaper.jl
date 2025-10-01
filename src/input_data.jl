@@ -81,11 +81,11 @@ const PointGeoTable = GeoTable{<:PointSet}
 const GridGeoTable = GeoTable{<:CartesianGrid}
 
 # The type aliases below represent every form of supported data input
-const PointPattern = SpatialData{<:PointSet}
-const MarkedPointPattern = SpatialData{<:PointGeoTable}
-const GriddedData = SpatialData{<:GridGeoTable}
-const MultipleSpatialDataTuple{P} = SpatialData{<:NTuple{P, Any}}
-const MultipleSpatialDataVec = SpatialData{<:Vector}
+const PointPattern{D, R, N} = SpatialData{<:PointSet, D, R, N}
+const MarkedPointPattern{D, R, N} = SpatialData{<:PointGeoTable, D, R, N}
+const GriddedData{D, R, N} = SpatialData{<:GridGeoTable, D, R, N}
+const MultipleSpatialDataTuple{P, D, R, N} = SpatialData{<:NTuple{P, Any}, D, R, N}
+const MultipleSpatialDataVec{D, R, N} = SpatialData{<:Vector, D, R, N}
 
 # eventually will have proper names support, but for now downstream will always support names
 defaultnames(data::Union{Tuple, Vector}) = 1:length(data)

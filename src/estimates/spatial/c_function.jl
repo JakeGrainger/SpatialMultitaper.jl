@@ -233,24 +233,36 @@ function _sdf2C(f::IsotropicEstimate{E, D}, radii) where {E, D}
 end
 
 # Anisotropic correlation function computation
+function _sdf2C_anisotropic_internal(store, power, zero_atom)
+    c = sum((p - zero_atom) * s for (p, s) in zip(power, store))
+    return real(c)
+end
+function _sdf2C_anisotropic_internal(store, power, ::Nothing)
+    c = sum(p * s for (p, s) in zip(power, store))
+    return real(c)
+end
 
-function _sdf2C_anisotropic(
-        wavenumber, power, ::Union{SingleProcessTrait, MultipleTupleTrait},
-        zero_atom, radius::Number)
+function precompute_c_weights(
+        wavenumber::NTuple{D, T}, power_size, radii::AbstractVector) where {D, T}
     wavenumber_spacing = prod(step, wavenumber)
-
-    c = sum(_compute_c_term(s, zero_atom, radius, k)
-    for (s, k) in zip(power, Iterators.product(wavenumber...)))
-
-    return wavenumber_spacing * real(c)
+    store = zeros(
+        promote_type(float(eltype(radii)), float(eltype(T))), power_size..., length(radii))
+    for (i, radius) in enumerate(radii)
+        for (idx, k) in zip(CartesianIndices(power_size), Iterators.product(wavenumber...))
+            store[idx, i] = _anisotropic_c_weight(radius, k, Val{D}()) * wavenumber_spacing
+        end
+    end
+    return store
 end
 
 function _sdf2C_anisotropic(
-        wavenumber, power, trait::Union{SingleProcessTrait, MultipleTupleTrait},
+        wavenumber, power, ::Union{SingleProcessTrait, MultipleTupleTrait},
         zero_atom, radii::AbstractVector)
+    store = precompute_c_weights(wavenumber, size(power), radii)
     out = zeros(real(eltype(power)), length(radii))
-    for (i, radius) in enumerate(radii)
-        out[i] = _sdf2C_anisotropic(wavenumber, power, trait, zero_atom, radius)
+    for i in eachindex(out)
+        out[i] = _sdf2C_anisotropic_internal(
+            selectdim(store, ndims(store), i), power, zero_atom)
     end
     return out
 end
@@ -264,14 +276,15 @@ function _sdf2C_anisotropic(
     if !isnothing(zero_atom)
         @argcheck ndims(zero_atom) + length(wavenumber) == ndims(power)
     end
+    store = precompute_c_weights(wavenumber, size(power)[3:end], radii)
 
     out = zeros(real(eltype(power)), size(power)[1:((N - D))]..., length(radii))
-    for idx in CartesianIndices(size(power)[1:(N - D)])
-        power_slice = view(power, idx, ntuple(Returns(:), D)...)
-        zero_atom_slice = _slice_zero_atom(zero_atom, idx)
-        for (i, radius) in enumerate(radii)
-            out[idx, i] = _sdf2C_anisotropic(
-                wavenumber, power_slice, SingleProcessTrait(), zero_atom_slice, radius)
+    for i in axes(out, ndims(out))
+        for idx in CartesianIndices(size(out)[1:(ndims(out) - 1)])
+            power_slice = view(power, idx, ntuple(Returns(:), D)...)
+            zero_atom_slice = _slice_zero_atom(zero_atom, idx)
+            out[idx, i] = _sdf2C_anisotropic_internal(
+                selectdim(store, ndims(store), i), power_slice, zero_atom_slice)
         end
     end
     return out
@@ -323,20 +336,6 @@ _slice_zero_atom(zero_atom, idx) = zero_atom[idx]
 _slice_zero_atom(::Nothing, _) = nothing
 
 # Helper functions for C function computation
-
-"""
-    _compute_c_term(s, zero_atom, radius, k, spacing)
-
-Compute individual terms in the C function sum.
-"""
-function _compute_c_term(s, zero_atom, radius, k)
-    weight = _anisotropic_c_weight(radius, k, Val{length(k)}())
-    return (s - zero_atom) * weight
-end
-function _compute_c_term(s, ::Nothing, radius, k)
-    weight = _anisotropic_c_weight(radius, k, Val{length(k)}())
-    return s * weight
-end
 
 function _compute_c_term(s, zero_atom, radius, k, spacing, ::Val{D}) where {D}
     weight = _isotropic_c_weight(radius, k, spacing, Val{D}())

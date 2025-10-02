@@ -1,4 +1,4 @@
-using SpatialMultitaper, Test, StableRNGs, LinearAlgebra
+using SpatialMultitaper, Test, StableRNGs, LinearAlgebra, StaticArrays
 include("../../test_utilities/TestUtils.jl")
 using .TestUtils
 
@@ -21,7 +21,10 @@ import SpatialMultitaper: Coherence, MarginallyTransformedEstimate, getestimate,
 
     @testset "3x3 matrix" begin
         S = [1.0 0.5im -0.3; -0.5im 2.0 0.7+0.2im; -0.3 0.7-0.2im 3.0]
+        S_static = SMatrix{3, 3}(S)
         C = coherence(S)
+        C_static = coherence(S_static)
+        @test C ≈ C_static  # Should give same result
 
         # Check diagonal elements
         @test all(isapprox(C[i, i], 1.0) for i in 1:3)
@@ -79,7 +82,7 @@ end
         S = [2.0 0.8; 0.8 1.0]
         S_inv = inv(S)
         C_partial = partial_coherence(S)
-        C_expected = -coherence(S_inv)
+        C_expected = -coherence(S_inv) + 2I
 
         @test C_partial ≈ C_expected
 

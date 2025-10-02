@@ -69,7 +69,13 @@ function coherence(x::AbstractMatrix)
 end
 function coherence!(x::AbstractMatrix)
     for i in axes(x, 1), j in axes(x, 2)
+        if i == j
+            continue
+        end
         x[i, j] /= sqrt(x[i, i] * x[j, j])
+    end
+    for i in axes(x, 1)
+        x[i, i] = one(eltype(x))
     end
     return x
 end
@@ -147,14 +153,18 @@ Compute partial coherence from a spectral matrix.
 Partial coherence removes the linear effects of all other processes.
 """
 function partial_coherence(x::SMatrix)
-    return -coherence(inv(x))
+    return -coherence(inv(x)) + 2I # add 2I to set diagonals to 1
 end
 function partial_coherence(x::AbstractMatrix)
     y = deepcopy(x)
     return partial_coherence!(y)
 end
 function partial_coherence!(x::AbstractMatrix)
-    return -coherence(LinearAlgebra.inv!(cholesky!(x)))
+    x = -coherence!(LinearAlgebra.inv!(cholesky!(x)))
+    for i in axes(x, 1)
+        x[i, i] = one(eltype(x))
+    end
+    return x
 end
 
 """

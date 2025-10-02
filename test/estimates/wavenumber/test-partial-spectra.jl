@@ -160,7 +160,7 @@ end
         @test P[1, 1] ≈ 1 / S_inv[1, 1]
         @test P[2, 2] ≈ 1 / S_inv[2, 2]
 
-        # Off-diagonal has more complex relationship involving denominators
+        # Off-diagonal: P[i,j] = -S_inv[i,j] / (S_inv[i,i]*S_inv[j,j] - |S_inv[i,j]|^2)
         expected_12 = -S_inv[1, 2] / (S_inv[1, 1] * S_inv[2, 2] - S_inv[1, 2]^2)
         @test P[1, 2] ≈ expected_12
     end
@@ -286,7 +286,7 @@ end
 
         # Should throw error or handle gracefully (matrix is not invertible)
         # Different Julia versions throw different exception types for singular matrices
-        @test_throws Union{SingularException, LAPACKException} partial_spectra!(S, nothing)
+        @test_throws Union{PosDefException, LAPACKException} partial_spectra!(S, nothing)
     end
 
     @testset "Identity matrix" begin

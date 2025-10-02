@@ -269,14 +269,15 @@ function _smoothed_rotational(
     return out
 end
 function _smoothed_rotational!(
-        out::AbstractArray{<:Number, N}, x::NTuple{D}, y::AbstractArray{<:Number, N},
+        out::AbstractArray{<:Number, 3}, x::NTuple{D}, y::AbstractArray{<:Number, N},
         ::MultipleVectorTrait, radii, kernel) where {D, N}
     @argcheck length(x) <= ndims(y)
     @argcheck size(y)[3:end] == length.(x)
 
     _trait = SingleProcessTrait()
     @views for idx in CartesianIndices(size(y)[1:2])
-        _smoothed_rotational!(out[idx, :], x, y[idx, :], _trait, radii, kernel)
+        y_slice = y[idx, ntuple(Returns(:), Val{N - 2}())...]
+        _smoothed_rotational!(out[idx, :], x, y_slice, _trait, radii, kernel)
     end
     return out
 end

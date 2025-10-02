@@ -140,14 +140,15 @@ log_est = apply_marginal_transform(x -> log(x + 1e-10), spectrum)
 function apply_marginal_transform(transform::F,
         est::AbstractEstimate{E, D, N})::MarginallyTransformedEstimate{
         E, D, N} where {F, E, D, N}
-    mem = deepcopy(est)
-    return apply_marginal_transform!(transform, mem)
+    x = getestimate(est)
+    mem = zeros(typeof(transform.(first(x))), size(x))
+    return apply_marginal_transform!(transform, mem, est)
 end
-function apply_marginal_transform!(transform::F,
+function apply_marginal_transform!(transform::F, mem,
         est::AbstractEstimate{E, D, N})::MarginallyTransformedEstimate{
         E, D, N} where {F, E, D, N}
     argument = getargument(est)
-    estimate = apply_marginal_transform!(transform, getestimate(est))
+    estimate = apply_marginal_transform!(transform, mem, getestimate(est))
     processinfo = getprocessinformation(est)
     estimationinfo = getestimationinformation(est)
     S = typeof(est)
@@ -163,8 +164,8 @@ Apply transformation to arrays of static matrices.
 For arrays containing static matrices (common in multi-process spectral estimates),
 applies the transformation element-wise to each matrix element.
 """
-function apply_marginal_transform!(transform::F, x::AbstractArray{<:SMatrix}) where {F}
-    return map!(y -> transform.(y), x, x)
+function apply_marginal_transform!(transform::F, mem, x::AbstractArray{<:SMatrix}) where {F}
+    return map!(y -> transform.(y), mem, x)
 end
 
 """
@@ -174,8 +175,8 @@ Apply transformation to arrays of numbers.
 
 For arrays of scalar values, applies the transformation element-wise across the array.
 """
-function apply_marginal_transform!(transform, x::AbstractArray{<:Number})
-    return map!(transform, x, x)
+function apply_marginal_transform!(transform::F, mem, x::AbstractArray{<:Number}) where {F}
+    return map!(transform, mem, x)
 end
 
 # Standard mathematical transformations

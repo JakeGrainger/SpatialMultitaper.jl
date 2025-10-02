@@ -156,9 +156,16 @@ Compute uncorrected partial spectra from a general matrix.
 Uses explicit indexing for maximum clarity and type stability.
 """
 function partial_spectra!(x::AbstractMatrix, ::Nothing)
-    C = inv(LinearAlgebra.inv!(cholesky!(x)))
-    @inbounds for i in axes(C, 1), j in axes(C, 2)
-        C[i, j] = i == j ? 1 / C[i, i] : -C[i, j] / (C[i, i] * C[j, j] - abs2(C[i, j]))
+    C = LinearAlgebra.inv!(cholesky!(x))
+    for i in axes(C, 1), j in axes(C, 2)
+        if i == j
+            continue
+        end
+        C[i, j] = -C[i, j] / (C[i, i] * C[j, j] - abs2(C[i, j]))
+    end
+    # need to not overwrite C[i,i] in the above loop
+    for i in axes(C, 1)
+        C[i, i] = 1 / C[i, i]
     end
     return C
 end

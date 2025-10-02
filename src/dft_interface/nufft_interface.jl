@@ -185,7 +185,7 @@ function nufft2d1_anydomain!(output_storage, input_data, nk, kmax, iflag, eps; k
     end
 
     # rescaling
-    out .= oversampled_out[downsample_x, downsample_y, :] .* phase_correction
+    out .= view(oversampled_out, downsample_x, downsample_y, :) .* phase_correction
     return out
 end
 

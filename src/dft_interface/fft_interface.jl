@@ -44,7 +44,9 @@ function fft_anydomain(
     padded_x = padto(x, padded_x_size)
 
     # compute fft over the dimensions corresponding to the grid (spatial variation)
-    J = fftshift(fft(padded_x, 1:embeddim(grid); kwargs...), 1:embeddim(grid))
+    J_x = fft(padded_x, 1:embeddim(grid); kwargs...)
+    J = similar(J_x)
+    J = fftshift!(J, J_x, 1:embeddim(grid))
 
     # downsample to desired output wavenumbers
     down_ind = if ndims(x) === embeddim(grid)

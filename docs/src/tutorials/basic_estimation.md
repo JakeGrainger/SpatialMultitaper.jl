@@ -54,9 +54,12 @@ Mke.current_figure()
 
 ## Estimation
 We can perform spectral estimation using the `spectra` function. This function
-takes the `data` and a `region` on which it is oberved as inputs. In addition, we need to
-specify the tapers to use, the number of wavenumbers we want to compute in each dimension
-`nk`, and the maximum wavenumber in each dimension `kmax`.
+takes the `data` object we already created as an argument. In addition, we need to
+specify the tapers to use, and the maximum wavenumber in each dimension `kmax`.
+Optionally, we can also specify the number of wavenumbers to evaluate in each dimension
+`nk`, or the spacing in wavenumber `dk`. If neither `nk` nor `dk` are specified, then
+`dk=1/L` where `L` is the length of the bounding box region in that dimension, and `nk` is
+the number of wavenumbers that would be computed given `dk`.
 
 ````@example basic_estimation
 tapers = sin_taper_family((4, 4), region)
@@ -67,22 +70,25 @@ spec = spectra(data; tapers = tapers, nk = nk, kmax = kmax)
 
 ## Visualising the output
 The spectral estimate is returned as a `Spectra` object. There are various
-transformations we can apply to this object. But if we want to visualise the raw output,
-we can get the wavenumbers and power from the fields `wavenumber` and `power` respectively.
+transformations we can apply to this object.
 The object is multidimensional, but we can index it to get the estimate between two
-processes.
+processes:
 
 ````@example basic_estimation
 spec11 = spec[1, 1]
 ````
 
+this returns the spectrum of the first process with itself, i.e. the power spectrum of
+the first process. Similarly, `spec[1, 2]` would return the cross-spectrum between the
+first and second processes.
+
 Certain marginal transformations are available, such as taking the real part:
 
 ````@example basic_estimation
-r_spec11 = real.(spec11)
+r_spec11 = real(spec11)
 ````
 
-Then to plot we can use collect to convert any object to a tuple of (x, y, ..., power) and
+Then to plot we can use collect to convert the estimate to a tuple of (x, y, ..., power) and
 then splat into the appropriate plotting function
 
 ````@example basic_estimation

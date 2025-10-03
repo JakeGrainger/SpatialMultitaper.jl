@@ -33,9 +33,9 @@ Mke.lines(collect(kfun)...)
 ````
 
 ## L functions
-The L function is a variance-stabilising transformation of the K function, defined as
-`L(r) = sqrt(K(r)/π)`. This is often more interpretable, as for a homogeneous Poisson process,
-`L(r) = r`. We can compute the L function using the `l_function` function.
+The L function is a transformation of the K function, defined as
+`L(r) = sqrt(K(r)/π)`. This is usually easier to visualise, as for a homogeneous Poisson
+process, `L(r) = r`. We can compute the L function using the `l_function` function.
 
 ````@example k_function
 lfun = l_function(kfun)

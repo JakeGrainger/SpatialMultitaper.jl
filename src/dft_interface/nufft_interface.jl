@@ -93,7 +93,7 @@ end
 Precomputes the memory required for `nufft1d1_anydomain!`.
 """
 function precompute_nufft1d1_anydomain_output(interval, nk, kmax, xj, cj)
-    _, _, oversample_x = _get_oversample(nk, kmax, interval)
+    _, _, oversample_x = _compute_oversample_params(nk, kmax, interval)
     # preallocate storage
     n_transforms = length(cj) ÷ length(xj)
     oversampled_out = Array{complex(eltype(cj)), 2}(
@@ -340,14 +340,14 @@ and the corresponding kmax wavenumber is a multiple of `kmax`.
 Interval just needs to have `minimum` and `maximum` defined.
 """
 function rescale_points(x, nk, kmax, interval; maxoversample = 100)
-    side_length, l, oversample = _get_oversample(
+    side_length, l, oversample = _compute_oversample_params(
         nk, kmax, interval; maxoversample = maxoversample)
     shift = minimum(interval) + side_length / 2
     x_rescaled = (x .- shift) ./ (l * oversample) .* 2π
     return x_rescaled, oversample, shift
 end
 
-function _get_oversample(nk, kmax, interval; maxoversample = 100)
+function _compute_oversample_params(nk, kmax, interval; maxoversample = 100)
     side_length = maximum(interval) - minimum(interval)
     l = (nk) / (2kmax)
     oversample = ceil(Int, side_length / l)

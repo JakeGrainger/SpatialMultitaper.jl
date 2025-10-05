@@ -127,15 +127,24 @@ Important: the resultant array is size `n`, not `size(x) .+ n`.
 Note that `size(x) ≤ n` must hold, and the new array is of size `n` not `size(x).+n`.
 If an integer is provided for `n`, it is interpreted as the same size in all dimensions.
 """
-padto(x::AbstractArray{T, D}, n::Int) where {T, D} = padto(x, ntuple(Returns(n), Val{D}()))
-function padto(x::AbstractArray{T, D}, n::NTuple{D, Int}) where {T, D}
-    if !all(size(x) .≤ n)
-        err = ArgumentError("""size(x) must be smaller than n in each dimension,
-                                but size(x)=$(size(x)) and n=$(n)"""
-        )
-        throw(err)
-    end
-    y = zeros(T, n)
+function padto(x::AbstractArray, n)
+    y = preallocate_padto(x, n)
+    padto!(y, x)
+    return y
+end
+function preallocate_padto(x::AbstractArray{T, D}, n::Int) where {T, D}
+    return preallocate_padto(x, ntuple(Returns(n), Val{D}()))
+end
+function preallocate_padto(x::AbstractArray{T, D}, n::NTuple{D, Int}) where {T, D}
+    @argcheck all(size(x) .≤ n)
+    return zeros(T, n)
+end
+function preallocate_padto_complex(x::AbstractArray{T, D}, n::NTuple{D, Int}) where {T, D} # specifically for ffts
+    @argcheck all(size(x) .≤ n)
+    return zeros(complex(float(T)), n)
+end
+function padto!(y::AbstractArray{S, D}, x::AbstractArray{T, D}) where {S, T, D}
+    @argcheck all(size(x) .≤ size(y))
     y[CartesianIndices(x)] .= x
     return y
 end

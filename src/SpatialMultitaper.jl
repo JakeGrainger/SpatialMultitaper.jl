@@ -5,7 +5,7 @@ using Reexport
 
 using Distributions, FFTW, FINUFFT, Interpolations, InvertedIndices, LinearAlgebra,
       SpecialFunctions, StaticArrays, StatsBase, ConstructionBase, LazyArrays,
-      HypergeometricFunctions, GeoStatsProcesses, Random, ArgCheck
+      HypergeometricFunctions, GeoStatsProcesses, Random, ArgCheck, CircularArrays
 
 import DataAPI: ncol
 

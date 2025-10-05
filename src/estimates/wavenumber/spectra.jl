@@ -59,10 +59,30 @@ end
 
 function spectra(data::SpatialData; nk = nothing, kmax, dk = default_dk(data, nk, kmax),
         tapers, mean_method::MeanEstimationMethod = DefaultMean())::Spectra
+    all_mem = preallocate_spectra(data; nk = nk, kmax = kmax, dk = dk, tapers = tapers)
+    return spectra!(all_mem, data; nk = nk, kmax = kmax, dk = dk,
+        tapers = tapers, mean_method = mean_method)
+end
+
+function preallocate_spectra(
+        data::SpatialData; nk = nothing, kmax, dk = default_dk(data, nk, kmax), tapers)
+    _nk, _kmax = _validate_wavenumber_params(nk, kmax, dk, data)
+    mem = preallocate_tapered_dft(data, tapers, _nk, _kmax)
+    power = _preallocate_spectral_matrix(data, _nk)
+    return (mem, power)
+end
+
+function spectra!(
+        all_mem, data::SpatialData; nk = nothing, kmax, dk = default_dk(data, nk, kmax),
+        tapers, mean_method::MeanEstimationMethod = DefaultMean())::Spectra
     _nk, _kmax = _validate_wavenumber_params(nk, kmax, dk, data)
     wavenumber = _make_wavenumber_grid(_nk, _kmax)
-    J_n = tapered_dft(data, tapers, _nk, _kmax, mean_method)
-    power = _dft_to_spectral_matrix(J_n, process_trait(data))
+
+    mem = all_mem[1]
+    power = all_mem[2]
+
+    J_n = tapered_dft!(mem, data, tapers, _nk, _kmax, mean_method)
+    _dft_to_spectral_matrix!(power, J_n, process_trait(data))
 
     process_info = ProcessInformation(data; mean_method = mean_method)
     estimation_info = EstimationInformation(length(tapers))
@@ -95,29 +115,29 @@ Compute the spectral matrix from DFTs for different process types.
 - For multiple processes (tuple): returns an array of spectral matrices.
 - For multiple vector processes: returns a D+2 array where each slice is a spectral matrix.
 """
-function _dft_to_spectral_matrix(J_n, trait)
-    S_mat = _preallocate_spectral_matrix(J_n, trait)
-    _fill_spectral_matrix!(S_mat, J_n, trait)
+function _dft_to_spectral_matrix(data, J_n, nk)
+    S_mat = _preallocate_spectral_matrix(data, nk)
+    _dft_to_spectral_matrix!(S_mat, J_n, process_trait(data))
     return S_mat
 end
 
-function _preallocate_spectral_matrix(J_n::AbstractArray, ::MultipleVectorTrait)
-    return zeros(eltype(J_n), (size(J_n, 1), size(J_n, 1), size(J_n)[3:end]...))
+function _preallocate_spectral_matrix(data::MultipleSpatialDataVec, nk)
+    return zeros(ComplexF64, (ncol(data), ncol(data), nk...)) # TODO: generalize type
 end
 
-function _fill_spectral_matrix!(
+function _dft_to_spectral_matrix!(
         S_mat::AbstractArray, J_n::AbstractArray, ::MultipleVectorTrait)
     for i in CartesianIndices(size(J_n)[3:end])
-        S_mat[:, :, i] = @views _compute_spectral_matrix(J_n[:, :, i])
+        @views _compute_spectral_matrix!(S_mat[:, :, i], J_n[:, :, i])
     end
     return S_mat
 end
 
-function _preallocate_spectral_matrix(J_n::AbstractArray, ::SingleProcessTrait)
-    return zeros(real(eltype(J_n)), size(J_n)[1:(end - 1)])
+function _preallocate_spectral_matrix(::SingleProcessData, nk)
+    return zeros(Float64, nk) # TODO: generalize type
 end
 
-function _fill_spectral_matrix!(
+function _dft_to_spectral_matrix!(
         S_mat::AbstractArray, J_n::AbstractArray, ::SingleProcessTrait)
     for i in CartesianIndices(S_mat)
         S_mat[i] = mean(abs2, @view J_n[i, :])
@@ -125,23 +145,16 @@ function _fill_spectral_matrix!(
     return S_mat
 end
 
-"""
-    _preallocate_spectral_matrix(J_n::NTuple{P, AbstractArray{T, N}}) where {P, T, N}
-
-Preallocate storage for the spectral matrix computation.
-"""
-function _preallocate_spectral_matrix(
-        J_n::NTuple{P, AbstractArray{T, N}}, ::MultipleTupleTrait) where {P, T, N}
-    output_dims = size(J_n[1])[1:(end - 1)]
-    return Array{SMatrix{P, P, T, P * P}, N - 1}(undef, output_dims)
+function _preallocate_spectral_matrix(data::MultipleSpatialDataTuple{P}, nk) where {P}
+    return zeros(SMatrix{P, P, ComplexF64, P * P}, nk) # TODO: generalize type
 end
 
 """
-    _fill_spectral_matrix!(S_mat::Array{T, D}, J_n::NTuple{1, Array{T, N}}) where {T, N, D}
+    _dft_to_spectral_matrix!(S_mat::Array{T, D}, J_n::NTuple{1, Array{T, N}}) where {T, N, D}
 
 Fill spectral matrix for single process case (P=1).
 """
-function _fill_spectral_matrix!(S_mat::Array{T, D}, J_n::NTuple{1, Array{T, N}},
+function _dft_to_spectral_matrix!(S_mat::Array{T, D}, J_n::NTuple{1, Array{T, N}},
         ::MultipleTupleTrait) where {T, N, D}
     if !all(size(S_mat) == size(J)[1:(end - 1)] for J in J_n)
         throw(DimensionMismatch("S_mat dimensions must match first N-1 dimensions of each J_n array"))
@@ -153,13 +166,13 @@ function _fill_spectral_matrix!(S_mat::Array{T, D}, J_n::NTuple{1, Array{T, N}},
 end
 
 """
-    _fill_spectral_matrix!(S_mat::Array{<:SMatrix{P, P, T}}, J_n::NTuple{P, AbstractArray{T, N}}) where {P, T, N}
+    _dft_to_spectral_matrix!(S_mat::Array{<:SMatrix{P, P, T}}, J_n::NTuple{P, AbstractArray{T, N}}) where {P, T, N}
 
 Fill spectral matrix for multiple process case.
 
 Each array in J_n has size n_1 × ... × n_D × M.
 """
-function _fill_spectral_matrix!(
+function _dft_to_spectral_matrix!(
         S_mat::Array{<:SMatrix{P, P, T}}, J_n::NTuple{P, AbstractArray{T, N}},
         ::MultipleTupleTrait) where {P, T, N}
     # Validate dimensions
@@ -187,7 +200,13 @@ _compute_spectral_matrix(x::AbstractVector) = x * x'
 
 Compute the averaged spectral matrix for a matrix.
 """
-_compute_spectral_matrix(x::AbstractMatrix) = (x * x') ./ size(x, 2)
+_compute_spectral_matrix(x::SMatrix) = (x * x') ./ size(x, 2)
+
+function _compute_spectral_matrix!(y, x::AbstractMatrix)
+    for i in axes(y, 1), j in axes(y, 2)
+        y[i, j] = @views mean(x[i, :] .* conj.(x[j, :]))
+    end
+end
 
 """
     _make_wavenumber_grid(nk, kmax)

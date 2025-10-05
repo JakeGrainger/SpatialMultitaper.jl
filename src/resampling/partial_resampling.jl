@@ -82,7 +82,7 @@ function create_resampler_precompute(
     _nk, _kmax = _validate_wavenumber_params(nk, kmax, nothing, data)
     wavenumber = _make_wavenumber_grid(_nk, _kmax)
     J_n = tapered_dft(data, tapers, _nk, _kmax, mean_method)
-    power = _dft_to_spectral_matrix(J_n, process_trait(data))
+    power = _dft_to_spectral_matrix(data, J_n, _nk)
     f_inv_cross = create_f_inv_cross(power)
     f_inv_marginal = create_f_inv_marginal(power)
     mean_original = mean_estimate(data, mean_method)

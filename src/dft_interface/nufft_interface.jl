@@ -38,15 +38,7 @@ Set `iflag<0` for -i in exponent.
 """
 function nufft1d1_anydomain(interval, nk, kmax, xj, cj, iflag, eps; kwargs...)
     output_storage, input_data = nufft1d1_anydomain_precomp(interval, nk, kmax, xj, cj)
-    return nufft1d1_anydomain!(
-        output_storage,
-        input_data,
-        nk,
-        kmax,
-        iflag,
-        eps;
-        kwargs...
-    )
+    return nufft1d1_anydomain!(output_storage, input_data, nk, kmax, iflag, eps; kwargs...)
 end
 
 """
@@ -72,7 +64,7 @@ function nufft1d1_anydomain!(output_storage, input_data, nk, kmax, iflag, eps; k
     phase_correction .= exp.(exp_scaling .* shift_x .* wavenumber_x)
 
     # rescaling
-    out .= oversampled_out[downsample_x, :] .* phase_correction
+    out .= view(oversampled_out, downsample_x, :) .* phase_correction
     return out
 end
 
@@ -278,7 +270,8 @@ function nufft3d1_anydomain!(output_storage, input_data, nk, kmax, iflag, eps; k
     end
 
     # rescaling
-    out .= oversampled_out[downsample_x, downsample_y, downsample_z, :] .* phase_correction
+    out .= view(oversampled_out, downsample_x, downsample_y, downsample_z, :) .*
+           phase_correction
     return out
 end
 

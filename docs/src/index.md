@@ -4,7 +4,13 @@ CurrentModule = SpatialMultitaper
 
 # SpatialMultitaper
 
-Documentation for [SpatialMultitaper](https://github.com/JakeGrainger/SpatialMultitaper.jl).
+`SpatialMultitaper.jl` provides tools for spectral analysis of spatial point processes and random fields using multitaper methods.
+
+## Installation
+```julia
+using Pkg
+Pkg.add("SpatialMultitaper")
+```
 
 ## Contributors
 

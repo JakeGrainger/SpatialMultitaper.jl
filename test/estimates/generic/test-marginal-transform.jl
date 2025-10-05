@@ -2,7 +2,7 @@ using SpatialMultitaper, Test, StableRNGs, StaticArrays
 include("../../test_utilities/TestUtils.jl")
 using .TestUtils
 
-import SpatialMultitaper: MarginallyTransformedEstimate, apply_marginal_transform,
+import SpatialMultitaper: MarginallyTransformedEstimate, apply_marginal_transform!,
                           getestimatename, getoriginaltype, gettransformname, getestimate,
                           getargument, Spectra, getprocessinformation,
                           getestimationinformation
@@ -146,16 +146,15 @@ end
         # Create array of SMatrix
         using StaticArrays
         data = [SMatrix{2, 2}(rand(ComplexF64, 2, 2)) for _ in 1:5, _ in 1:5]
-
-        result = apply_marginal_transform(real, data)
+        out = similar(data)
+        result = apply_marginal_transform!(conj, out, data)
         @test size(result) == size(data)
-        @test all(x -> all(imag.(x) .≈ 0), result)
     end
 
     @testset "Regular array input" begin
         data = rand(ComplexF64, 3, 3, 5, 5)  # P x Q x k1 x k2
-
-        result = apply_marginal_transform(abs, data)
+        out = zeros(Float64, 3, 3, 5, 5)
+        result = apply_marginal_transform!(abs, out, data)
         @test size(result) == size(data)
         @test all(real.(result) .≥ 0)
         @test all(imag.(result) .≈ 0)

@@ -1,5 +1,5 @@
 using SpatialMultitaper, Test
-import SpatialMultitaper: tapered_dft, _single_tapered_dft, _apply_taper,
+import SpatialMultitaper: tapered_dft, _single_tapered_dft, _apply_taper!,
                           DefaultMean, KnownMean
 include("test_utilities/TestData.jl")
 using .TestData
@@ -16,7 +16,8 @@ using .TestData
         tapers = [taper_family[1], taper_family[2]]  # Use first two tapers
 
         # Apply tapers
-        tapered_marks = _apply_taper(points, marks, tapers)
+        tapered_marks = zeros(ComplexF64, length(points) * length(tapers))
+        _apply_taper!(tapered_marks, points, marks, tapers)
 
         @test length(tapered_marks) == length(points) * length(tapers)
         @test eltype(tapered_marks) == ComplexF64

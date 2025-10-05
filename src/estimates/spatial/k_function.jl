@@ -91,7 +91,7 @@ relationship ``K(r) = C(r)/λ² + V_d r^d``.
 A `KFunction` object containing Ripley's K function estimates.
 """
 function k_function(data::SpatialData; kwargs...)::KFunction
-    return k_function(c_function(data; kwargs...))
+    return k_function!(c_function(data; kwargs...))
 end
 
 """
@@ -109,10 +109,14 @@ where ``λ`` is the process intensity and ``V_d`` is the volume of a unit d-ball
 # Returns
 A `KFunction` object with the corresponding K function values.
 """
-function k_function(c::CFunction{E, D})::KFunction{E, D} where {E, D}
+function k_function(est::AbstractEstimate; kwargs...)::KFunction
+    mem = deepcopy(est)
+    return k_function!(mem; kwargs...)
+end
+function k_function!(c::CFunction{E, D})::KFunction{E, D} where {E, D}
     mean_prod = getprocessinformation(c).mean_product
     radii = getargument(c)
-    value = _c_to_k_transform(radii, getestimate(c), process_trait(c), mean_prod, Val{D}())
+    value = _c_to_k_transform!(radii, getestimate(c), process_trait(c), mean_prod, Val{D}())
     processinfo = getprocessinformation(c)
     estimationinfo = getestimationinformation(c)
     return KFunction{E}(radii, value, processinfo, estimationinfo)
@@ -123,8 +127,8 @@ end
 
 Compute Ripley's K function from a spectral estimate.
 """
-function k_function(spectrum::NormalOrRotationalSpectra; kwargs...)::KFunction
-    return k_function(c_function(spectrum; kwargs...))
+function k_function!(spectrum::NormalOrRotationalSpectra; kwargs...)::KFunction
+    return k_function!(c_function(spectrum; kwargs...))
 end
 
 # Partial K functions
@@ -146,22 +150,27 @@ Compute partial Ripley's K function from spatial data.
 Partial K functions remove the linear influence of other processes.
 """
 function partial_k_function(data::SpatialData; kwargs...)::KFunction{PartialTrait}
-    return k_function(partial_c_function(data; kwargs...))
+    return k_function!(partial_c_function(data; kwargs...))
 end
 
-function partial_k_function(spectrum::NormalOrRotationalSpectra{PartialTrait};
+function partial_k_function(est::AbstractEstimate; kwargs...)::KFunction{PartialTrait}
+    mem = deepcopy(est)
+    return partial_k_function!(mem; kwargs...)
+end
+
+function partial_k_function!(spectrum::NormalOrRotationalSpectra{PartialTrait};
         kwargs...)::KFunction{PartialTrait}
-    return k_function(spectrum; kwargs...)
+    return k_function!(spectrum; kwargs...)
 end
 
-function partial_k_function(spectrum::NormalOrRotationalSpectra{MarginalTrait};
+function partial_k_function!(spectrum::NormalOrRotationalSpectra{MarginalTrait};
         kwargs...)::KFunction{PartialTrait}
-    return k_function(partial_spectra(spectrum); kwargs...)
+    return k_function!(partial_spectra!(spectrum); kwargs...)
 end
 
-partial_k_function(c::CFunction{PartialTrait}) = k_function(c)
+partial_k_function!(c::CFunction{PartialTrait}) = k_function!(c)
 
-function partial_k_function(::CFunction{MarginalTrait})
+function partial_k_function!(::CFunction{MarginalTrait})
     throw(ArgumentError(
         "Cannot compute partial K function from marginal C function. " *
         "Compute from partial spectral estimates or use partial_c_function first."
@@ -171,39 +180,35 @@ end
 # Internal transformation functions
 
 """
-    _c_to_k_transform(radii, c_values, trait, mean_prod, ::Val{D})
+    _c_to_k_transform!(radii, c_values, trait, mean_prod, ::Val{D})
 
 Transform C function values to K function values for multiple vector traits.
 
 Handles the case where we have multiple processes stored as arrays.
 """
-function _c_to_k_transform(radii, c_values::AbstractArray,
+function _c_to_k_transform!(radii, c_values::AbstractArray,
         ::MultipleVectorTrait, mean_prod, ::Val{D}) where {D}
-    output = similar(c_values)
-
     for idx in CartesianIndices(size(c_values)[1:(ndims(c_values) - 1)])
         mean_prod_slice = mean_prod[idx]
         for (i, radius) in enumerate(radii)
-            output[idx, i] = _compute_k_from_c(
+            c_values[idx, i] = _compute_k_from_c(
                 radius, c_values[idx, i], mean_prod_slice, Val{D}())
         end
     end
-    return output
+    return c_values
 end
 
 """
-    _c_to_k_transform(radii, c_values, trait, mean_prod, ::Val{D})
+    _c_to_k_transform!(radii, c_values, trait, mean_prod, ::Val{D})
 
 Transform C function values to K function values for single process or tuple traits.
 """
-function _c_to_k_transform(radii, c_values::AbstractArray,
+function _c_to_k_transform!(radii, c_values::AbstractArray,
         ::Union{MultipleTupleTrait, SingleProcessTrait}, mean_prod, ::Val{D}) where {D}
-    output = similar(c_values)
-
     for (i, radius) in enumerate(radii)
-        output[i] = _compute_k_from_c(radius, c_values[i], mean_prod, Val{D}())
+        c_values[i] = _compute_k_from_c(radius, c_values[i], mean_prod, Val{D}())
     end
-    return output
+    return c_values
 end
 
 """

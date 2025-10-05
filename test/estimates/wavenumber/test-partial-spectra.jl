@@ -5,7 +5,7 @@ using .TestUtils
 
 import SpatialMultitaper: partial_spectra, partial_spectra_uncorrected, getestimate,
                           getargument, is_partial, MarginallyTransformedEstimate, Spectra,
-                          getprocessinformation, getestimationinformation
+                          getprocessinformation, getestimationinformation, partial_spectra!
 
 @testset "partial_spectra matrix function" begin
     @testset "2x2 SMatrix" begin
@@ -29,8 +29,9 @@ import SpatialMultitaper: partial_spectra, partial_spectra_uncorrected, getestim
     end
 
     @testset "3x3 regular matrix" begin
-        S = [3.0 1.0 0.5; 1.0 2.0 0.3; 0.5 0.3 1.5]
-        P = partial_spectra(S, nothing)
+        Sa = [3.0 1.0 0.5; 1.0 2.0 0.3; 0.5 0.3 1.5]
+        S = deepcopy(Sa)  # Keep original for inversion
+        P = partial_spectra!(Sa, nothing)
 
         # Check dimensions
         @test size(P) == (3, 3)
@@ -130,7 +131,7 @@ end
         A = [2.0 0.5; 0.5 1.0]
         @test isposdef(A)
 
-        P = partial_spectra(A, nothing)
+        P = partial_spectra!(A, nothing)
 
         # Diagonal elements should be positive (since A is positive definite)
         @test real(P[1, 1]) > 0
@@ -142,7 +143,7 @@ end
         S = [2.0 1.0+0.5im; 1.0-0.5im 1.5]
         @test S ≈ S'
 
-        P = partial_spectra(S, nothing)
+        P = partial_spectra!(S, nothing)
 
         # Result should also be Hermitian
         @test P ≈ P'
@@ -150,15 +151,16 @@ end
 
     @testset "Inverse relationship" begin
         # For 2x2 case, can check specific relationship with inverse
-        S = [3.0 1.0; 1.0 2.0]  # Real symmetric positive definite
-        P = partial_spectra(S, nothing)
+        Sa = [3.0 1.0; 1.0 2.0]  # Real symmetric positive definite
+        S = deepcopy(Sa)  # Keep original for inversion
+        P = partial_spectra!(Sa, nothing)
         S_inv = inv(S)
 
         # Diagonal: P[i,i] = 1/S_inv[i,i]
         @test P[1, 1] ≈ 1 / S_inv[1, 1]
         @test P[2, 2] ≈ 1 / S_inv[2, 2]
 
-        # Off-diagonal has more complex relationship involving denominators
+        # Off-diagonal: P[i,j] = -S_inv[i,j] / (S_inv[i,i]*S_inv[j,j] - |S_inv[i,j]|^2)
         expected_12 = -S_inv[1, 2] / (S_inv[1, 1] * S_inv[2, 2] - S_inv[1, 2]^2)
         @test P[1, 2] ≈ expected_12
     end
@@ -167,7 +169,7 @@ end
 @testset "Different Matrix Sizes" begin
     @testset "1x1 matrix (trivial case)" begin
         S = [2.0;;]  # 1x1 matrix
-        P = partial_spectra(S, nothing)
+        P = partial_spectra!(S, nothing)
 
         @test size(P) == (1, 1)
         @test P[1, 1] ≈ 2.0 # Should be same as input because nothing to condition on
@@ -179,7 +181,7 @@ end
         A = rand(rng, 4, 4)
         S = A'A + I  # Ensure positive definite
 
-        P = partial_spectra(S, nothing)
+        P = partial_spectra!(S, nothing)
 
         @test size(P) == (4, 4)
         @test P ≈ P'  # Should be Hermitian
@@ -254,7 +256,7 @@ end
         S = [1.0 0.999; 0.999 1.0]
         @test cond(S) > 100  # Ill-conditioned
 
-        P = partial_spectra(S, nothing)
+        P = partial_spectra!(S, nothing)
 
         # Should still produce finite results
         @test all(isfinite, P)
@@ -263,7 +265,7 @@ end
 
     @testset "Very small values" begin
         S = [1e-6 1e-8; 1e-8 1e-6]
-        P = partial_spectra(S, nothing)
+        P = partial_spectra!(S, nothing)
 
         @test all(isfinite, P)
         @test all(!isnan, P)
@@ -271,7 +273,7 @@ end
 
     @testset "Large values" begin
         S = [1e6 1e4; 1e4 1e6]
-        P = partial_spectra(S, nothing)
+        P = partial_spectra!(S, nothing)
 
         @test all(isfinite, P)
         @test all(!isnan, P)
@@ -284,16 +286,16 @@ end
 
         # Should throw error or handle gracefully (matrix is not invertible)
         # Different Julia versions throw different exception types for singular matrices
-        @test_throws Union{SingularException, LAPACKException} partial_spectra(S, nothing)
+        @test_throws Union{PosDefException, LAPACKException} partial_spectra!(S, nothing)
     end
 
     @testset "Identity matrix" begin
-        S = Matrix{Float64}(I, 3, 3)
-        P = partial_spectra(S, nothing)
+        S = diagm(ones(3))
+        P = partial_spectra!(S, nothing)
 
         # Partial spectra of identity should be identity
         # Since inv(I) = I, diagonal elements are 1, off-diagonal are 0
-        @test P ≈ S
+        @test P ≈ diagm(ones(3))
     end
 
     @testset "Single-process spectra edge case" begin

@@ -1,6 +1,6 @@
 # # Partial K function
 
-# The partial K function is a n extension of the K function that allows us to account for
+# The partial K function is an extension of the K function that allows us to account for
 # the effect of other types of points on the points of interest. It is particularly useful
 # in multitype point patterns, where we want to understand the spatial distribution of one
 # type of point while considering the influence of other types.

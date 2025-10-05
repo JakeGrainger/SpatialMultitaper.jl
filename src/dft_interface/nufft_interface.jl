@@ -7,47 +7,47 @@ region, at wavenumbers defined by `kmax` and `nk`.
 Currently only 1d, 2d and 3d are supported.
 """
 function nufft_anydomain(region, nk, kmax, points::PointSet, c, iflag, eps; kwargs...)
-    @assert length(nk)==length(kmax)==embeddim(points) "nk and kmax should have the same length as the number of dimensions of the points"
+    @argcheck length(nk) == length(kmax) == embeddim(points)
+    mem = precompute_nufft_anydomain_output(region, nk, kmax, points, c)
+    return nufft_anydomain!(
+        mem, region, nk, kmax, points::PointSet, c, iflag, eps; kwargs...)
+end
 
+function nufft_anydomain!(mem, region, nk, kmax, points::PointSet, c, iflag, eps; kwargs...)
     points_coords = points2coords(points)
     if embeddim(points) === 1
-        return nufft1d1_anydomain(
-            box2sides(boundingbox(region))[1],
-            nk[1],
-            kmax[1],
-            points_coords[1],
-            c,
-            iflag,
-            eps;
-            kwargs...
-        )
+        return nufft1d1_anydomain_from_storage!(mem,
+            box2sides(boundingbox(region))[1], nk[1], kmax[1],
+            points_coords[1], c, iflag, eps; kwargs...)
     elseif embeddim(points) === 2
-        return nufft2d1_anydomain(
-            box2sides(boundingbox(region)),
-            nk,
-            kmax,
-            points_coords[1],
-            points_coords[2],
-            c,
-            iflag,
-            eps;
-            kwargs...
-        )
+        return nufft2d1_anydomain_from_storage!(mem,
+            box2sides(boundingbox(region)), nk, kmax, points_coords[1],
+            points_coords[2], c, iflag, eps; kwargs...)
     elseif embeddim(points) === 3
-        return nufft3d1_anydomain(
-            box2sides(boundingbox(region)),
-            nk,
-            kmax,
-            points_coords[1],
-            points_coords[2],
-            points_coords[3],
-            c,
-            iflag,
-            eps;
-            kwargs...
-        )
+        return nufft3d1_anydomain_from_storage!(mem,
+            box2sides(boundingbox(region)), nk, kmax, points_coords[1],
+            points_coords[2], points_coords[3], c, iflag, eps; kwargs...)
     else
-        error("Only 1d, 2d and 3d are supported")
+        error("Only 1d, 2d and 3d are supported, not $(embeddim(points))d")
+    end
+end
+
+function precompute_nufft_anydomain_output(region, nk, kmax, points::PointSet, c)
+    points_coords = points2coords(points)
+    if embeddim(points) === 1
+        return precompute_nufft1d1_anydomain_output(
+            box2sides(boundingbox(region))[1], nk[1], kmax[1],
+            points_coords[1], c)
+    elseif embeddim(points) === 2
+        return precompute_nufft2d1_anydomain_output(
+            box2sides(boundingbox(region)), nk, kmax, points_coords[1],
+            points_coords[2], c)
+    elseif embeddim(points) === 3
+        return precompute_nufft3d1_anydomain_output(
+            box2sides(boundingbox(region)), nk, kmax, points_coords[1],
+            points_coords[2], points_coords[3], c)
+    else
+        error("Only 1d, 2d and 3d are supported, not $(embeddim(points))d")
     end
 end
 
@@ -61,16 +61,15 @@ interval, at wavenumbers defined by `kmax` and `nk`.
 Set `iflag<0` for -i in exponent.
 """
 function nufft1d1_anydomain(interval, nk, kmax, xj, cj, iflag, eps; kwargs...)
-    output_storage, input_data = nufft1d1_anydomain_precomp(interval, nk, kmax, xj, cj)
-    return nufft1d1_anydomain!(
-        output_storage,
-        input_data,
-        nk,
-        kmax,
-        iflag,
-        eps;
-        kwargs...
-    )
+    output_storage = precompute_nufft1d1_anydomain_output(interval, nk, kmax, xj, cj)
+    return nufft1d1_anydomain_from_storage!(
+        output_storage, interval, nk, kmax, xj, cj, iflag, eps; kwargs...)
+end
+function nufft1d1_anydomain_from_storage!(
+        output_storage, interval, nk, kmax, xj, cj, iflag, eps; kwargs...)
+    xj_copy = collect(float(eltype(xj)), deepcopy(xj)) # to avoid modifying input
+    input_data = precompute_nufft1d1_anydomain_input!(interval, nk, kmax, xj_copy, cj)
+    return nufft1d1_anydomain!(output_storage, input_data, nk, kmax, iflag, eps; kwargs...)
 end
 
 """
@@ -96,20 +95,30 @@ function nufft1d1_anydomain!(output_storage, input_data, nk, kmax, iflag, eps; k
     phase_correction .= exp.(exp_scaling .* shift_x .* wavenumber_x)
 
     # rescaling
-    out .= oversampled_out[downsample_x, :] .* phase_correction
+    out .= view(oversampled_out, downsample_x, :) .* phase_correction
     return out
 end
 
 """
-	nufft1d1_anydomain_precomp(interval, nk, kmax, xj, cj)
+	precompute_nufft1d1_anydomain_input!(interval, nk, kmax, xj, cj)
 
-Precomputes the input data and memory required for `nufft1d1_anydomain!`.
+Precomputes the input data required for `nufft1d1_anydomain!`.
 """
-function nufft1d1_anydomain_precomp(interval, nk, kmax, xj, cj)
+function precompute_nufft1d1_anydomain_input!(interval, nk, kmax, xj, cj)
     @assert length(cj) % length(xj)==0 "length(cj) must be a multiple of length(xj)"
     # rescale data
-    xj_rescaled, oversample_x, shift_x = rescale_points(xj, nk, kmax, interval)
+    xj_rescaled, oversample_x, shift_x = rescale_points!(xj, nk, kmax, interval)
+    input_data = (
+        xj_rescaled = xj_rescaled, oversample_x = oversample_x, shift_x = shift_x, cj = cj)
+    return input_data
+end
+"""
+	precompute_nufft1d1_anydomain_output(nk, xj, cj)
 
+Precomputes the memory required for `nufft1d1_anydomain!`.
+"""
+function precompute_nufft1d1_anydomain_output(interval, nk, kmax, xj, cj)
+    _, _, oversample_x = _compute_oversample_params(nk, kmax, interval)
     # preallocate storage
     n_transforms = length(cj) ÷ length(xj)
     oversampled_out = Array{complex(eltype(cj)), 2}(
@@ -118,11 +127,9 @@ function nufft1d1_anydomain_precomp(interval, nk, kmax, xj, cj)
     phase_correction = Vector{complex(eltype(cj))}(undef, nk)
 
     # format return
-    input_data = (
-        xj_rescaled = xj_rescaled, oversample_x = oversample_x, shift_x = shift_x, cj = cj)
     output_storage = (
         oversampled_out = oversampled_out, out = out, phase_correction = phase_correction)
-    return output_storage, input_data
+    return output_storage
 end
 
 ## two dimensional case
@@ -137,16 +144,17 @@ Similarly for `kmax` and `nk`.
 Set `iflag<0` for -i in exponent.
 """
 function nufft2d1_anydomain(box, nk, kmax, xj, yj, cj, iflag, eps; kwargs...)
-    output_storage, input_data = nufft2d1_anydomain_precomp(box, nk, kmax, xj, yj, cj)
-    return nufft2d1_anydomain!(
-        output_storage,
-        input_data,
-        nk,
-        kmax,
-        iflag,
-        eps;
-        kwargs...
-    )
+    output_storage = precompute_nufft2d1_anydomain_output(
+        box, nk, kmax, xj, yj, cj)
+    return nufft2d1_anydomain_from_storage!(
+        output_storage, box, nk, kmax, xj, yj, cj, iflag, eps; kwargs...)
+end
+function nufft2d1_anydomain_from_storage!(
+        output_storage, box, nk, kmax, xj, yj, cj, iflag, eps; kwargs...)
+    xj_copy = collect(float(eltype(xj)), deepcopy(xj)) # to avoid modifying input
+    yj_copy = collect(float(eltype(yj)), deepcopy(yj)) # to avoid modifying input
+    input_data = precompute_nufft2d1_anydomain_input!(box, nk, kmax, xj_copy, yj_copy, cj)
+    return nufft2d1_anydomain!(output_storage, input_data, nk, kmax, iflag, eps; kwargs...)
 end
 
 """
@@ -185,21 +193,39 @@ function nufft2d1_anydomain!(output_storage, input_data, nk, kmax, iflag, eps; k
     end
 
     # rescaling
-    out .= oversampled_out[downsample_x, downsample_y, :] .* phase_correction
+    out .= view(oversampled_out, downsample_x, downsample_y, :) .* phase_correction
     return out
 end
 
 """
-	nufft2d1_anydomain_precomp(box, nk, kmax, xj, yj, cj)
+	precompute_nufft2d1_anydomain_input!(box, nk, kmax, xj, yj, cj)
 
-Precomputes the input data and memory required for `nufft2d1_anydomain!`.
+Precomputes the input data required for `nufft2d1_anydomain!`.
 """
-function nufft2d1_anydomain_precomp(box, nk, kmax, xj, yj, cj)
+function precompute_nufft2d1_anydomain_input!(box, nk, kmax, xj, yj, cj)
     @assert length(cj) % length(xj)==0 "length(cj) must be a multiple of length(xj)"
     # rescale data
-    xj_rescaled, oversample_x, shift_x = rescale_points(xj, nk[1], kmax[1], box[1])
-    yj_rescaled, oversample_y, shift_y = rescale_points(yj, nk[2], kmax[2], box[2])
+    xj_rescaled, oversample_x, shift_x = rescale_points!(xj, nk[1], kmax[1], box[1])
+    yj_rescaled, oversample_y, shift_y = rescale_points!(yj, nk[2], kmax[2], box[2])
+    input_data = (
+        xj_rescaled = xj_rescaled,
+        oversample_x = oversample_x,
+        shift_x = shift_x,
+        yj_rescaled = yj_rescaled,
+        oversample_y = oversample_y,
+        shift_y = shift_y,
+        cj = cj
+    )
+    return input_data
+end
+"""
+	precompute_nufft2d1_anydomain_output(box, nk, kmax, xj, yj, cj)
 
+Precomputes the memory required for `nufft2d1_anydomain!`.
+"""
+function precompute_nufft2d1_anydomain_output(box, nk, kmax, xj, yj, cj)
+    _, _, oversample_x = _compute_oversample_params(nk[1], kmax[1], box[1])
+    _, _, oversample_y = _compute_oversample_params(nk[2], kmax[2], box[2])
     # preallocate storage
     n_transforms = length(cj) ÷ length(xj)
     oversampled_out = Array{complex(eltype(cj)), 3}(
@@ -212,18 +238,9 @@ function nufft2d1_anydomain_precomp(box, nk, kmax, xj, yj, cj)
     phase_correction = Array{complex(eltype(cj)), 2}(undef, nk[1], nk[2])
 
     # format return
-    input_data = (
-        xj_rescaled = xj_rescaled,
-        oversample_x = oversample_x,
-        shift_x = shift_x,
-        yj_rescaled = yj_rescaled,
-        oversample_y = oversample_y,
-        shift_y = shift_y,
-        cj = cj
-    )
     output_storage = (
         oversampled_out = oversampled_out, out = out, phase_correction = phase_correction)
-    return output_storage, input_data
+    return output_storage
 end
 
 """
@@ -237,10 +254,21 @@ Similarly for `kmax` and `nk`.
 Set `iflag<0` for -i in exponent.
 """
 function nufft3d1_anydomain(cube, nk, kmax, xj, yj, zj, cj, iflag, eps; kwargs...)
-    output_storage, input_data = nufft3d1_anydomain_precomp(
+    output_storage = precompute_nufft3d1_anydomain_output(
         cube, nk, kmax, xj, yj, zj, cj)
-    nufft3d1_anydomain!(output_storage, input_data, nk, kmax, iflag, eps; kwargs...)
-    return output_storage.out
+    return nufft3d1_anydomain_from_storage!(
+        output_storage, cube, nk, kmax, xj, yj, zj, cj, iflag, eps; kwargs...)
+end
+function nufft3d1_anydomain_from_storage!(
+        output_storage, cube, nk, kmax, xj, yj, zj, cj, iflag, eps; kwargs...)
+    xj_copy = collect(float(eltype(xj)), deepcopy(xj)) # to avoid modifying input
+    yj_copy = collect(float(eltype(yj)), deepcopy(yj)) # to avoid modifying input
+    zj_copy = collect(float(eltype(zj)), deepcopy(zj)) # to avoid modifying input
+    input_data = precompute_nufft3d1_anydomain_input!(
+        cube, nk, kmax, xj_copy, yj_copy, zj_copy, cj)
+    result = nufft3d1_anydomain!(
+        output_storage, input_data, nk, kmax, iflag, eps; kwargs...)
+    return result
 end
 
 """
@@ -302,33 +330,22 @@ function nufft3d1_anydomain!(output_storage, input_data, nk, kmax, iflag, eps; k
     end
 
     # rescaling
-    out .= oversampled_out[downsample_x, downsample_y, downsample_z, :] .* phase_correction
+    out .= view(oversampled_out, downsample_x, downsample_y, downsample_z, :) .*
+           phase_correction
     return out
 end
 
 """
-	nufft3d1_anydomain_precomp(cube, nk, kmax, xj, yj, zj, cj)
+	precompute_nufft3d1_anydomain_input!(cube, nk, kmax, xj, yj, zj, cj)
 
-Precomputes the input data and memory required for `nufft3d1_anydomain!`.
+Precomputes the input data required for `nufft3d1_anydomain!`.
 """
-function nufft3d1_anydomain_precomp(cube, nk, kmax, xj, yj, zj, cj)
+function precompute_nufft3d1_anydomain_input!(cube, nk, kmax, xj, yj, zj, cj)
     @assert length(cj) % length(xj)==0 "length(cj) must be a multiple of length(xj)"
     # rescale data
-    xj_rescaled, oversample_x, shift_x = rescale_points(xj, nk[1], kmax[1], cube[1])
-    yj_rescaled, oversample_y, shift_y = rescale_points(yj, nk[2], kmax[2], cube[2])
-    zj_rescaled, oversample_z, shift_z = rescale_points(zj, nk[3], kmax[3], cube[3])
-
-    # preallocate storage
-    n_transforms = length(cj) ÷ length(xj)
-    oversampled_out = Array{complex(eltype(cj)), 4}(
-        undef,
-        nk[1] * oversample_x,
-        nk[2] * oversample_y,
-        nk[3] * oversample_z,
-        n_transforms
-    )
-    out = Array{complex(eltype(cj)), 4}(undef, nk[1], nk[2], nk[3], n_transforms)
-    phase_correction = Array{complex(eltype(cj)), 3}(undef, nk[1], nk[2], nk[3])
+    xj_rescaled, oversample_x, shift_x = rescale_points!(xj, nk[1], kmax[1], cube[1])
+    yj_rescaled, oversample_y, shift_y = rescale_points!(yj, nk[2], kmax[2], cube[2])
+    zj_rescaled, oversample_z, shift_z = rescale_points!(zj, nk[3], kmax[3], cube[3])
 
     # format return
     input_data = (
@@ -343,32 +360,63 @@ function nufft3d1_anydomain_precomp(cube, nk, kmax, xj, yj, zj, cj)
         shift_z = shift_z,
         cj = cj
     )
+    return input_data
+end
+"""
+	precompute_nufft3d1_anydomain_output(cube, nk, kmax, xj, yj, zj, cj)
+
+Precomputes the memory required for `nufft3d1_anydomain!`.
+"""
+function precompute_nufft3d1_anydomain_output(cube, nk, kmax, xj, yj, zj, cj)
+    _, _, oversample_x = _compute_oversample_params(nk[1], kmax[1], cube[1])
+    _, _, oversample_y = _compute_oversample_params(nk[2], kmax[2], cube[2])
+    _, _, oversample_z = _compute_oversample_params(nk[3], kmax[3], cube[3])
+    # preallocate storage
+    n_transforms = length(cj) ÷ length(xj)
+    oversampled_out = Array{complex(eltype(cj)), 4}(
+        undef,
+        nk[1] * oversample_x,
+        nk[2] * oversample_y,
+        nk[3] * oversample_z,
+        n_transforms
+    )
+    out = Array{complex(eltype(cj)), 4}(undef, nk[1], nk[2], nk[3], n_transforms)
+    phase_correction = Array{complex(eltype(cj)), 3}(undef, nk[1], nk[2], nk[3])
+
+    # format return
     output_storage = (
         oversampled_out = oversampled_out, out = out, phase_correction = phase_correction)
-    return output_storage, input_data
+    return output_storage
 end
 
 """
-	rescale_points(x, nk, kmax, interval; max_oversample = 100)
+	rescale_points(x, nk, kmax, interval; maxoversample = 100)
 
 Rescales points to be in the interval [-π, π] and returns the oversampling factor.
 Oversampling factor is the smallest integer so that the interval is rescaled to fit in [-π, π],
 and the corresponding kmax wavenumber is a multiple of `kmax`.
 Interval just needs to have `minimum` and `maximum` defined.
 """
-function rescale_points(x, nk, kmax, interval; max_oversample = 100)
+function rescale_points!(x, nk, kmax, interval; maxoversample = 100)
+    side_length, l, oversample = _compute_oversample_params(
+        nk, kmax, interval; maxoversample = maxoversample)
+    shift = minimum(interval) + side_length / 2
+    x .-= shift
+    x .*= 2pi / (l * oversample)
+    return x, oversample, shift
+end
+
+function _compute_oversample_params(nk, kmax, interval; maxoversample = 100)
     side_length = maximum(interval) - minimum(interval)
     l = (nk) / (2kmax)
-    oversample = 1
-    for c in 1:max_oversample
-        oversample = c
-        if side_length / (l * c) ≤ 1
-            break
-        end
+    oversample = ceil(Int, side_length / l)
+    if oversample > maxoversample
+        err = ErrorException("""
+            Required oversampling is $(oversample) which is greater than maxoversample=$(maxoversample).
+            If you use this output wavenumber choice, you will have very poor performance
+            computationally, probably something has been missspecified.
+        """)
+        throw(err)
     end
-    oversample < max_oversample ||
-        error("Could not find oversampling factor, try increasing max_oversample")
-    shift = minimum(interval) + side_length / 2
-    x_rescaled = (x .- shift) ./ (l * oversample) .* 2π
-    return x_rescaled, oversample, shift
+    return side_length, l, oversample
 end

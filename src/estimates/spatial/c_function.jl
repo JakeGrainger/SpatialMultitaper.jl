@@ -49,19 +49,7 @@ struct CFunction{E, D, A, T, IP, IE} <: IsotropicEstimate{E, D}
 end
 
 getbaseestimatename(::Type{<:CFunction}) = "C function"
-
-"""
-    getargument(f::CFunction)
-
-Get the radii at which the C function is evaluated.
-"""
 getargument(f::CFunction) = f.radii
-
-"""
-    getestimate(f::CFunction)
-
-Get the C function values.
-"""
 getestimate(f::CFunction) = f.value
 
 # Public API
@@ -126,44 +114,22 @@ Compute spatial C function from a spectral estimate.
 # Returns
 A `CFunction` object with the C function values.
 """
-function c_function(
-        spectrum::Spectra; radii,
+function c_function(spectrum::Spectra; radii,
         wavenumber_radii = process_c_rotational_kernel(spectrum, nothing),
-        rotational_method = process_c_rotational_kernel(spectrum, nothing)
-)::CFunction
-    return _c_function(spectrum, radii, wavenumber_radii, rotational_method)
+        rotational_method = process_c_rotational_kernel(spectrum, nothing))
+    rot_spec = rotational_estimate(
+        spectrum, radii = wavenumber_radii, kernel = rotational_method)
+    return _c_function(rot_spec, radii)
 end
 
-"""
-    c_function(spectrum::RotationalSpectra{E}; radii) where {E}
-
-Compute C function from an already rotationally averaged spectrum.
-"""
-function c_function(spectrum::RotationalSpectra{E}; radii)::CFunction{E} where {E}
-    value = _sdf2C(spectrum, radii)
-    return CFunction{E}(
-        radii, value, getprocessinformation(spectrum), getestimationinformation(spectrum))
+function c_function(spectrum::RotationalSpectra; radii)
+    _c_function(spectrum, radii)
 end
 
-# Partial correlation functions
-
-"""
-    partial_c_function(data, region; kwargs...)
-
-Compute partial spatial C function directly from data and region.
-"""
 function partial_c_function(data, region; kwargs...)::CFunction{PartialTrait}
     return partial_c_function(spatial_data(data, region); kwargs...)
 end
 
-"""
-    partial_c_function(data::SpatialData; radii, nk, kmax, spectra_kwargs...)
-
-Compute partial spatial C function from spatial data.
-
-Partial C functions show direct spatial relationships with the influence
-of other processes removed.
-"""
 function partial_c_function(
         data::SpatialData; radii, spectra_kwargs...)::CFunction{PartialTrait}
     f_mt = partial_spectra(data; spectra_kwargs...)
@@ -184,136 +150,42 @@ end
 
 # Internal implementation
 
-"""
-    _c_function(spectrum::Spectra{E}, radii, wavenumber_radii, rotational_method) where {E}
+function _c_function(spectrum::NormalOrRotationalSpectra{E}, radii) where {E}
+    out = preallocate_c_output(spectrum, radii)
+    store = precompute_c_weights(spectrum, radii)
 
-Internal function to compute C function with rotational averaging.
-"""
-function _c_function(
-        spectrum::Spectra{E}, radii, wavenumber_radii, rotational_method) where {E}
-    # Perform rotational averaging if needed
-    rot_spec = rotational_estimate(
-        spectrum, radii = wavenumber_radii, kernel = rotational_method)
-    value = _sdf2C(rot_spec, radii)
+    value = _sdf2C!(out, store, spectrum, radii)
     return CFunction{E}(
         radii, value, getprocessinformation(spectrum), getestimationinformation(spectrum))
 end
 
 # Core transformation functions
 
-"""
-    _sdf2C(f::Spectra, radii::Number)
-
-Convert spectral density to C function at some collection of radii.
-
-Uses appropriate weighting functions based on spatial dimension and handles
-zero-atom corrections when present.
-"""
-function _sdf2C(f::Spectra, radii)
-    wavenumber = getargument(f)
-    spectra = getestimate(f)
-    zero_atom = getprocessinformation(f).atoms
-    return _sdf2C_anisotropic(wavenumber, spectra, process_trait(f), zero_atom, radii)
+function _sdf2C!(out, store, spectrum::NormalOrRotationalSpectra, radii)
+    power = getestimate(spectrum)
+    zero_atom = getprocessinformation(spectrum).atoms
+    trait = process_trait(spectrum)
+    return _sdf2C_internal!(out, store, power, trait, zero_atom, radii)
 end
 
-"""
-    _sdf2C(f::IsotropicEstimate{E, D}, radius) where {E, D}
-
-Convert isotropic spectral density to C function at some radii.
-
-For isotropic estimates, weights are integrated over each interval in the integral being
-approximated.
-"""
-function _sdf2C(f::IsotropicEstimate{E, D}, radii) where {E, D}
-    wavenumber = getargument(f)
-    spectra = getestimate(f)
-    zero_atom = getprocessinformation(f).atoms
-    return _sdf2C_isotropic(
-        wavenumber, spectra, process_trait(f), zero_atom, radii, Val{D}())
-end
-
-# Anisotropic correlation function computation
-
-function _sdf2C_anisotropic(
-        wavenumber, power, ::Union{SingleProcessTrait, MultipleTupleTrait},
-        zero_atom, radius::Number)
-    wavenumber_spacing = prod(step, wavenumber)
-
-    c = sum(_compute_c_term(s, zero_atom, radius, k)
-    for (s, k) in zip(power, Iterators.product(wavenumber...)))
-
-    return wavenumber_spacing * real(c)
-end
-
-function _sdf2C_anisotropic(
-        wavenumber, power, trait::Union{SingleProcessTrait, MultipleTupleTrait},
+function _sdf2C_internal!(
+        out, store, power, ::Union{SingleProcessTrait, MultipleTupleTrait},
         zero_atom, radii::AbstractVector)
-    out = zeros(real(eltype(power)), length(radii))
-    for (i, radius) in enumerate(radii)
-        out[i] = _sdf2C_anisotropic(wavenumber, power, trait, zero_atom, radius)
+    for i in eachindex(out)
+        out[i] = _sdf2C_sum(selectdim(store, ndims(store), i), power, zero_atom)
     end
     return out
 end
 
-function _sdf2C_anisotropic(
-        wavenumber::NTuple{D}, power::AbstractArray{<:Number, N}, ::MultipleVectorTrait,
-        zero_atom, radii::AbstractVector) where {D, N}
-    if length(wavenumber) > ndims(power)
-        throw(DimensionMismatch("Wavenumber dimensions ($(length(wavenumber))) cannot exceed power array dimensions ($(ndims(power)))"))
-    end
-    if !isnothing(zero_atom)
-        @argcheck ndims(zero_atom) + length(wavenumber) == ndims(power)
-    end
-
-    out = zeros(real(eltype(power)), size(power)[1:((N - D))]..., length(radii))
-    for idx in CartesianIndices(size(power)[1:(N - D)])
-        power_slice = view(power, idx, ntuple(Returns(:), D)...)
-        zero_atom_slice = _slice_zero_atom(zero_atom, idx)
-        for (i, radius) in enumerate(radii)
-            out[idx, i] = _sdf2C_anisotropic(
-                wavenumber, power_slice, SingleProcessTrait(), zero_atom_slice, radius)
-        end
-    end
-    return out
-end
-
-## _sdf2C_isotropic
-function _sdf2C_isotropic(
-        wavenumber, power, trait::Union{SingleProcessTrait, MultipleTupleTrait},
-        zero_atom, radii::AbstractVector, ::Val{D}) where {D}
-    out = zeros(real(eltype(power)), length(radii))
-    for (i, radius) in enumerate(radii)
-        out[i] = _sdf2C_isotropic(wavenumber, power, trait, zero_atom, radius, Val{D}())
-    end
-    return out
-end
-
-function _sdf2C_isotropic(
-        wavenumber, power, ::Union{SingleProcessTrait, MultipleTupleTrait},
-        zero_atom, radius::Number, ::Val{D}) where {D}
-    spacing = step(wavenumber)
-
-    c = sum(_compute_c_term(s, zero_atom, radius, k, spacing, Val{D}())
-    for (s, k) in zip(power, wavenumber))
-
-    return real(c)
-end
-
-function _sdf2C_isotropic(
-        wavenumber, power::AbstractArray{<:Number, N}, ::MultipleVectorTrait,
-        zero_atom, radii::AbstractVector, ::Val{D}) where {D, N}
-    if !isnothing(zero_atom)
-        @argcheck ndims(zero_atom) + 1 == ndims(power)
-    end
-    @argcheck size(power, ndims(power)) == length(wavenumber)
-
-    out = zeros(real(eltype(power)), size(power)[1:(N - 1)]..., length(radii))
-    for idx in CartesianIndices(size(power)[1:(N - 1)])
-        power_slice = view(power, idx, ntuple(Returns(:), D)...)
-        zero_atom_slice = _slice_zero_atom(zero_atom, idx)
-        for (i, radius) in enumerate(radii)
-            out[idx, i] = _sdf2C_isotropic(
-                wavenumber, power_slice, SingleProcessTrait(), zero_atom_slice, radius, Val{D}())
+function _sdf2C_internal!(
+        out, store, power::AbstractArray{<:Number, N}, ::MultipleVectorTrait,
+        zero_atom, radii::AbstractVector) where {N}
+    for i in axes(out, ndims(out))
+        store_slice = selectdim(store, ndims(store), i)
+        for idx in CartesianIndices(size(out)[1:2])
+            power_slice = view(power, idx, ntuple(Returns(:), N - 2)...)
+            zero_atom_slice = _slice_zero_atom(zero_atom, idx)
+            out[idx, i] = _sdf2C_sum(store_slice, power_slice, zero_atom_slice)
         end
     end
     return out
@@ -323,28 +195,53 @@ _slice_zero_atom(zero_atom, idx) = zero_atom[idx]
 _slice_zero_atom(::Nothing, _) = nothing
 
 # Helper functions for C function computation
-
-"""
-    _compute_c_term(s, zero_atom, radius, k, spacing)
-
-Compute individual terms in the C function sum.
-"""
-function _compute_c_term(s, zero_atom, radius, k)
-    weight = _anisotropic_c_weight(radius, k, Val{length(k)}())
-    return (s - zero_atom) * weight
+function _sdf2C_sum(store, power, zero_atom)
+    c = sum((p - zero_atom) * s for (p, s) in zip(power, store))
+    return real(c)
 end
-function _compute_c_term(s, ::Nothing, radius, k)
-    weight = _anisotropic_c_weight(radius, k, Val{length(k)}())
-    return s * weight
+function _sdf2C_sum(store, power, ::Nothing)
+    c = sum(p * s for (p, s) in zip(power, store))
+    return real(c)
 end
 
-function _compute_c_term(s, zero_atom, radius, k, spacing, ::Val{D}) where {D}
-    weight = _isotropic_c_weight(radius, k, spacing, Val{D}())
-    return (s - zero_atom) * weight
+function preallocate_c_output(spectrum::NormalOrRotationalSpectra, radii)
+    return _preallocate_c_output(getestimate(spectrum), process_trait(spectrum), radii)
 end
-function _compute_c_term(s, ::Nothing, radius, k, spacing, ::Val{D}) where {D}
-    weight = _isotropic_c_weight(radius, k, spacing, Val{D}())
-    return s * weight
+function _preallocate_c_output(
+        power, ::Union{SingleProcessTrait, MultipleTupleTrait}, radii)
+    return zeros(real(eltype(power)), length(radii))
+end
+function _preallocate_c_output(power, ::MultipleVectorTrait, radii)
+    return zeros(real(eltype(power)), size(power, 1), size(power, 2), length(radii))
+end
+
+function precompute_c_weights(spectra::Spectra{E, D}, radii::AbstractVector) where {E, D}
+    wavenumber = getargument(spectra)
+    power_size = size(getestimate(spectra))
+    wavenumber_spacing = prod(step, wavenumber)
+    T = promote_type(float(eltype(radii)), float(typeof(wavenumber_spacing)))
+    store = zeros(T, power_size..., length(radii))
+    for (i, radius) in enumerate(radii)
+        for (idx, k) in zip(CartesianIndices(power_size), Iterators.product(wavenumber...))
+            store[idx, i] = _anisotropic_c_weight(radius, k, Val{D}()) * wavenumber_spacing
+        end
+    end
+    return store
+end
+
+function precompute_c_weights(
+        spectra::RotationalSpectra{E, D}, radii::AbstractVector) where {E, D}
+    wavenumber = getargument(spectra)
+    power_size = size(getestimate(spectra))
+    spacing = step(wavenumber)
+    T = promote_type(float(eltype(radii)), float(typeof(spacing)))
+    store = zeros(T, power_size..., length(radii))
+    for (i, radius) in enumerate(radii)
+        for (idx, k) in zip(CartesianIndices(power_size), wavenumber)
+            store[idx, i] = _isotropic_c_weight(radius, k, spacing, Val{D}())
+        end
+    end
+    return store
 end
 
 # Spatial weighting functions

@@ -6,7 +6,8 @@ import SpatialMultitaper: Spectra, getargument, getestimate, _dft_to_spectral_ma
                           _compute_spectral_matrix, _make_wavenumber_grid,
                           getestimationinformation,
                           ProcessInformation, EstimationInformation, MarginalTrait,
-                          MultipleVectorTrait, SingleProcessTrait, MultipleTupleTrait
+                          MultipleVectorTrait, SingleProcessTrait, MultipleTupleTrait,
+                          _compute_spectral_matrix!
 
 @testset "Spectra Construction" begin
     rng = StableRNG(123)
@@ -91,7 +92,9 @@ end
     @testset "MultipleVectorTrait" begin
         # P x M x n1 x n2 array
         J_n = rand(rng, ComplexF64, 3, 10, 8, 8)  # 3 processes, 10 tapers, 8x8 wavenumbers
-        S_mat = _dft_to_spectral_matrix(J_n, MultipleVectorTrait())
+        data = make_points_example(
+            rng, n_processes = 3, return_type = :vector, point_number = 50)
+        S_mat = _dft_to_spectral_matrix(data, J_n, (8, 8))
 
         @test size(S_mat) == (3, 3, 8, 8)  # Should be spatial dimensions only
         @test eltype(S_mat) <: ComplexF64
@@ -100,7 +103,9 @@ end
     @testset "SingleProcessTrait" begin
         # n1 x n2 x M array
         J_n = rand(rng, ComplexF64, 8, 8, 10)  # 8x8 wavenumbers, 10 tapers
-        S_mat = _dft_to_spectral_matrix(J_n, SingleProcessTrait())
+        data = make_points_example(
+            rng, n_processes = 1, return_type = :single, point_number = 50)
+        S_mat = _dft_to_spectral_matrix(data, J_n, (8, 8))
 
         @test size(S_mat) == (8, 8)
         @test eltype(S_mat) == Float64  # Should be real-valued for single process
@@ -111,14 +116,17 @@ end
         J_1 = rand(rng, ComplexF64, 8, 8, 10)
         J_2 = rand(rng, ComplexF64, 8, 8, 10)
         J_n = (J_1, J_2)
+        data = make_points_example(
+            rng, n_processes = 2, return_type = :tuple, point_number = 50)
 
-        S_mat = _dft_to_spectral_matrix(J_n, MultipleTupleTrait())
+        S_mat = _dft_to_spectral_matrix(data, J_n, (8, 8))
         @test size(S_mat) == (8, 8)
         @test eltype(S_mat) <: SMatrix{2, 2}
 
         # Single process case
         J_single = (J_1,)
-        S_single = _dft_to_spectral_matrix(J_single, MultipleTupleTrait())
+        data_single = spatial_data((observations(data)[1],), getregion(data))
+        S_single = _dft_to_spectral_matrix(data_single, J_single, (8, 8))
         @test size(S_single) == (8, 8)
         @test eltype(S_single) <: SMatrix{1, 1}
     end
@@ -136,7 +144,8 @@ end
 
     @testset "Matrix input" begin
         X = rand(rng, ComplexF64, 3, 10)  # 3 processes, 10 tapers
-        S = _compute_spectral_matrix(X)
+        S = zeros(ComplexF64, 3, 3)
+        _compute_spectral_matrix!(S, X)
         expected = (X * X') / 10
         @test S ≈ expected
         @test size(S) == (3, 3)

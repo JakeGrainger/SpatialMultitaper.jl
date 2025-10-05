@@ -131,10 +131,15 @@ end
 function _prediction_kernel_ft(
         wavenumber, est::AbstractArray{<:SMatrix{P, P}}, trait::MultipleTupleTrait, ntapers) where {P}
     kernels = ntuple(
-        idx -> apply_transform(single_prediction_kernel_ft, est, trait, idx, ntapers),
+        idx -> _apply_transform(single_prediction_kernel_ft, est, trait, idx, ntapers),
         Val{P}()
     )
     return (wavenumber = wavenumber, kernels = kernels)
+end
+
+function _apply_transform(
+        transform, power::AbstractArray{<:SMatrix}, ::MultipleTupleTrait, args...)
+    transform.(power, Ref.(args)...)
 end
 
 # TODO: should be made available for other internal storage systems

@@ -9,69 +9,69 @@ must be the same as the grid.
 When `x` has more dimensions than `grid`, the fft is only applied over the dimensions
 corresponding to the grid.
 """
-function fft_anydomain(
-        x::Array,
-        grid::Grid,
-        nk::NTuple{D, Int},
-        kmax::NTuple{D, Number};
-        kwargs...
-) where {D}
-    if embeddim(grid) > ndims(x)
-        throw(ArgumentError("x must have at least $(embeddim(grid)) dimensions"))
-    end
-    if size(x)[1:embeddim(grid)] != size(grid)
-        err = ArgumentError(
-            """x and grid must have the same size in the first $(embeddim(grid)),
-            but size of x is $(size(x)) and size of grid is $(size(grid))"""
-        )
-        throw(err)
-    end
+function fft_anydomain(x::Array, grid::Grid, nk::NTuple{D, Int},
+        kmax::NTuple{D, Number}; kwargs...) where {D}
+    mem = preallocate_fft_anydomain(x, grid, nk, kmax)
+    fft_anydomain!(mem, x, grid, nk, kmax; kwargs...)
+end
+
+function preallocate_fft_anydomain(
+        x::Array, grid::Grid, nk::NTuple{D, Int}, kmax::NTuple{D, Number}) where {D}
     # check that kmax is a integer multiple of nyquist
     nyquist = 1 ./ (2 .* unitless_spacing(grid))
     kmaxrel = round.(Int, kmax ./ nyquist)
     all(abs.(kmaxrel .- kmax ./ nyquist) .< 1e-10) ||
         throw(ArgumentError("kmax must be a multiple of nyquist"))
 
+    padded_x_size, down_ind = _padding_and_downsampling_setup(x, grid, nk)
+
+    # allocations
+    padded_x = preallocate_padto_complex(x, padded_x_size)
+    J = preallocate_padto_complex(x, padded_x_size)
+    J_downsample = zeros(eltype(J), size(down_ind))
+    J_unwrapped = preallocated_unwrap_fft_output(J_downsample, kmaxrel)
+
+    return (padded_x = padded_x, J = J, J_downsample = J_downsample,
+        J_unwrapped = J_unwrapped, down_ind = down_ind, kmaxrel = kmaxrel)
+end
+
+function fft_anydomain!(mem, x::Array, grid::Grid, nk::NTuple{D, Int},
+        kmax::NTuple{D, Number}; kwargs...) where {D}
+    @argcheck embeddim(grid) ≤ ndims(x)
+
+    @argcheck size(x)[1:embeddim(grid)] == size(grid)
+
+    # allocations
+    kmaxrel = mem.kmaxrel
+    down_ind = mem.down_ind
+    padded_x = mem.padded_x
+    J = mem.J
+    J_downsample = mem.J_downsample
+    J_unwrapped = mem.J_unwrapped
+
+    # algorithm
+
     # padding
-    # getting `oversample` from `choose_wavenumber_oversample` ensures that we pad to at least size(grid)
-    # also ensures that the desired wavenumbers can be recovered at the end
-    oversample = choose_wavenumber_oversample.(size(grid), nk)
-    padded_x_size = if ndims(x) === embeddim(grid)
-        nk .* oversample
-    else
-        (nk .* oversample..., size(x)[(embeddim(grid) + 1):ndims(x)]...)
-    end
-    padded_x = padto(x, padded_x_size)
+    padded_x = padto!(padded_x, x)
 
     # compute fft over the dimensions corresponding to the grid (spatial variation)
-    J = fftshift(fft(padded_x, 1:embeddim(grid); kwargs...), 1:embeddim(grid))
+    J_x = fft!(padded_x, 1:embeddim(grid); kwargs...)
+    J = fftshift!(J, J_x, 1:embeddim(grid))
 
     # downsample to desired output wavenumbers
-    down_ind = if ndims(x) === embeddim(grid)
-        CartesianIndices(wavenumber_downsample_index.(nk, oversample))
-    else
-        CartesianIndices((
-            wavenumber_downsample_index.(nk, oversample)...,
-            axes(x)[(embeddim(grid) + 1):ndims(x)]...
-        ))
-    end
-    J_downsample = J[down_ind] # this does not happen inside unwrap_fft_output as this first copies, and then downsamples, which would result in very large intermediate arrays
+    J_downsample .= view(J, down_ind) # this does not happen inside unwrap_fft_output as this first copies, and then downsamples, which would result in very large intermediate arrays
 
     # unwrap fft output (if higher than the nyquist wavenumber was requested this copies out to that wavenumber, and then downsamples to the correct number of wavenumbers)
-    J_unwrapped = unwrap_fft_output(J_downsample, kmaxrel)
+    J_unwrapped = unwrap_fft_output!(J_unwrapped, J_downsample, kmaxrel)
 
     # rescale to account for shift in grid
     # temporary reshape so that we only have one residual dimension
     J_unwrapped_reshaped = if ndims(J_unwrapped) === embeddim(grid)
         reshape(J_unwrapped, (size(J_unwrapped)..., 1))
     else
-        reshape(
-            J_unwrapped,
-            (
-                size(J_unwrapped)[1:embeddim(grid)]...,
-                prod(size(J_unwrapped)[(embeddim(grid) + 1):end])
-            )
-        )
+        reshape(J_unwrapped,
+            (size(J_unwrapped)[1:embeddim(grid)]...,
+                prod(size(J_unwrapped)[(embeddim(grid) + 1):end])))
     end
 
     wavenumber = Iterators.ProductIterator(_choose_wavenumbers_1d.(nk, kmax))
@@ -84,6 +84,18 @@ function fft_anydomain(
     end
 
     return J_unwrapped
+end
+
+function _padding_and_downsampling_setup(x, grid, nk)
+    # getting `oversample` from `choose_wavenumber_oversample` ensures that we pad to at least size(grid)
+    # also ensures that the desired wavenumbers can be recovered at the end
+    oversample = choose_wavenumber_oversample.(size(grid), nk)
+    pad_size = (nk .* oversample..., size(x)[(embeddim(grid) + 1):ndims(x)]...)
+    down_ind = CartesianIndices(
+        (wavenumber_downsample_index.(nk, oversample)...,
+        axes(x)[(embeddim(grid) + 1):ndims(x)]...)
+    )
+    return pad_size, down_ind
 end
 
 """
@@ -130,39 +142,40 @@ has this periodicity.
 The final output of the calling function is adjusted appropriately for shifts in the input.
 """
 function unwrap_fft_output(J::AbstractArray, kmaxrel::NTuple{D, Int}) where {D}
-    if ndims(J) < D
-        err = ArgumentError(
-            "J must have at least $(D) dimensions, but got ndims(J)=$(ndims(J))"
-        )
-        throw(err)
-    end
-    if !all(kmaxrel .> 0)
-        err = ArgumentError("kmaxrel must be a tuple of positive integers, but got kmaxrel=$(kmaxrel)")
-        throw(err)
-    end
-    if isempty(J)
-        err = ArgumentError("J must be non-empty")
-        throw(err)
-    end
-
+    J_unwrapped = preallocated_unwrap_fft_output(J, kmaxrel)
     if all(kmaxrel .== 1)
         return J
     end
+    return unwrap_fft_output!(J_unwrapped, J, kmaxrel)
+end
 
-    ind = if ndims(J) === D
-        CartesianIndices(unwrap_index.(size(J), kmaxrel))
-    else
-        CartesianIndices((
-            unwrap_index.(size(J)[1:D], kmaxrel)..., axes(J)[(D + 1):ndims(J)]...))
+function preallocated_unwrap_fft_output(J::AbstractArray, kmaxrel::NTuple{D, Int}) where {D}
+    @argcheck ndims(J) ≥ D
+    @argcheck all(kmaxrel .> 0)
+    @argcheck !isempty(J)
+
+    idxs = _make_unwrap_index(J, kmaxrel)
+    return zeros(eltype(J), size(idxs))
+end
+
+function unwrap_fft_output!(J_unwrapped::AbstractArray, J::AbstractArray, kmaxrel)
+    idxs = _make_unwrap_index(J, kmaxrel)
+    J_circular = CircularArray(J)
+    for (i, idx) in enumerate(idxs)
+        J_unwrapped[i] = J_circular[idx]
     end
+    return J_unwrapped
+end
 
-    repeat_times = if ndims(J) === D # repeats kmaxrel times in transformed dimensions is kmaxrel is odd, or kmaxrel+1 times if kmaxrel is even (does not repeat in the extra dimensions)
-        kmaxrel .+ iseven.(kmaxrel)
-    else
-        (kmaxrel .+ iseven.(kmaxrel)..., ntuple(d -> 1, ndims(J) - D)...)
-    end
+function _make_unwrap_index(J::AbstractArray{T, D}, kmaxrel::NTuple{D, Int}) where {D, T}
+    return CartesianIndices(unwrap_index.(size(J), kmaxrel))
+end
 
-    repeat(J, outer = repeat_times)[ind]
+function _make_unwrap_index(J::AbstractArray{T, N}, kmaxrel::NTuple{D, Int}) where {D, T, N}
+    @argcheck N > D
+
+    return CartesianIndices((
+        unwrap_index.(size(J)[1:D], kmaxrel)..., axes(J)[(D + 1):N]...))
 end
 
 """

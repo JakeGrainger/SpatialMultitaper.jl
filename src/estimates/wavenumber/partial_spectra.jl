@@ -31,7 +31,11 @@ partial_spec = partial_spectra(marginal_spec)
 partial_spec = partial_spectra(data; nk=nk, kmax=kmax, tapers=tapers)
 ```
 """
-function partial_spectra(spectrum::Spectra{MarginalTrait})::Spectra{PartialTrait}
+function partial_spectra(spectrum::NormalOrRotationalSpectra{MarginalTrait})
+    mem = deepcopy(spectrum)
+    partial_spectra!(mem)
+end
+function partial_spectra!(spectrum::Spectra{MarginalTrait})::Spectra{PartialTrait}
     if !is_same_process_sets(spectrum)
         throw(ArgumentError(
             "Partial spectra computation requires equal input and output process sets. " *
@@ -45,7 +49,8 @@ function partial_spectra(spectrum::Spectra{MarginalTrait})::Spectra{PartialTrait
     process_info = getprocessinformation(spectrum)
     estimation_info = getestimationinformation(spectrum)
 
-    transformed = apply_transform(partial_spectra, est, trait, estimation_info.ntapers)
+    transformed = apply_transform!(
+        _partial_spectra_noalloc!, est, trait, estimation_info.ntapers)
 
     return Spectra{PartialTrait}(
         getargument(spectrum), transformed, process_info, estimation_info)
@@ -56,7 +61,7 @@ end
 
 Compute partial spectral estimates directly from data and region.
 """
-function partial_spectra(data, region; kwargs...)::Spectra{PartialTrait}
+function partial_spectra(data, region::Meshes.Geometry; kwargs...)::Spectra{PartialTrait}
     return partial_spectra(spatial_data(data, region); kwargs...)
 end
 
@@ -68,7 +73,7 @@ Compute partial spectral estimates from spatial data.
 First computes marginal spectra, then converts to partial spectra.
 """
 function partial_spectra(data::SpatialData; kwargs...)::Spectra{PartialTrait}
-    return partial_spectra(spectra(data; kwargs...))
+    return partial_spectra!(spectra(data; kwargs...))
 end
 
 """
@@ -101,7 +106,7 @@ Compute partial spectral estimates from rotational marginal spectral estimates.
 For rotational estimates, the bias correction is handled differently and is
 not currently fully implemented.
 """
-function partial_spectra(spectrum::RotationalSpectra{MarginalTrait})::RotationalEstimate{PartialTrait}
+function partial_spectra!(spectrum::RotationalSpectra{MarginalTrait})::RotationalEstimate{PartialTrait}
     if !is_same_process_sets(spectrum)
         throw(ArgumentError(
             "Partial spectra computation requires equal input and output process sets. " *
@@ -113,7 +118,7 @@ function partial_spectra(spectrum::RotationalSpectra{MarginalTrait})::Rotational
     power = getestimate(spectrum)
     trait = process_trait(spectrum)
     # Note: Debiasing is different for rotational estimates (not currently implemented)
-    value = apply_transform(partial_spectra, power, trait, nothing)
+    value = apply_transform!(_partial_spectra_noalloc!, power, trait, nothing)
     processinfo = getprocessinformation(spectrum)
     estimationinfo = getestimationinformation(spectrum)
 
@@ -150,13 +155,19 @@ Compute uncorrected partial spectra from a general matrix.
 
 Uses explicit indexing for maximum clarity and type stability.
 """
-function partial_spectra(x::AbstractMatrix, ::Nothing)
-    C = inv(x)
-    out = zeros(eltype(C), size(C))
-    @inbounds for i in axes(C, 1), j in axes(C, 2)
-        out[i, j] = i == j ? 1 / C[i, i] : -C[i, j] / (C[i, i] * C[j, j] - abs2(C[i, j]))
+function partial_spectra!(x::AbstractMatrix, ::Nothing)
+    C = LinearAlgebra.inv!(cholesky!(x))
+    for i in axes(C, 1), j in axes(C, 2)
+        if i == j
+            continue
+        end
+        C[i, j] = -C[i, j] / (C[i, i] * C[j, j] - abs2(C[i, j]))
     end
-    return out
+    # need to not overwrite C[i,i] in the above loop
+    for i in axes(C, 1)
+        C[i, i] = 1 / C[i, i]
+    end
+    return C
 end
 
 """
@@ -215,9 +226,9 @@ Compute bias-corrected partial spectra from a general matrix.
 - `x`: Square spectral matrix
 - `ntapers`: Number of tapers used in original estimation
 """
-function partial_spectra(x::AbstractMatrix{T}, ntapers::Int) where {T}
+function partial_spectra!(x::AbstractMatrix{T}, ntapers::Int) where {T}
     Q = size(x, 1)
-    p = partial_spectra(x, nothing)
+    p = partial_spectra!(x, nothing)
 
     # Apply bias correction element-wise
     @inbounds for i in axes(p, 1), j in axes(p, 2)
@@ -238,3 +249,6 @@ since there are no other processes to partial out.
 function partial_spectra(x::Number, ntapers)
     return x
 end
+
+_partial_spectra_noalloc!(x::Union{Number, SMatrix}, ntapers) = partial_spectra(x, ntapers)
+_partial_spectra_noalloc!(x::AbstractMatrix, ntapers) = partial_spectra!(x, ntapers)

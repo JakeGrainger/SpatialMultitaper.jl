@@ -1,6 +1,6 @@
 using SpatialMultitaper, Test
 import SpatialMultitaper: _choose_wavenumbers_1d, nufft1d1_anydomain, nufft2d1_anydomain,
-                          nufft3d1_anydomain, rescale_points,
+                          nufft3d1_anydomain, rescale_points!,
                           wavenumber_downsample_startindex,
                           box2sides, points2coords, nufft_anydomain
 include("../test_utilities/TestUtils.jl")
@@ -55,11 +55,11 @@ end
     kmaxs = [5, 4.5]
     x = [0.1, 0.2, 0.3, 0.4, 0.5]
     for (nk, kmax) in zip(nks, kmaxs)
-        x_scaled, oversample, shift = rescale_points(x, nk, kmax, interval)
+        x_scaled, oversample, shift = rescale_points!(deepcopy(x), nk, kmax, interval)
         @test x_scaled == [0.1, 0.2, 0.3, 0.4, 0.5] .* 2π
         @test oversample == 1
-        @test rescale_points(x, nk, kmax - 1, interval)[2] == 1
-        @test rescale_points(x, nk, kmax + 1, interval)[2] == 2
+        @test rescale_points!(deepcopy(x), nk, kmax - 1, interval)[2] == 1
+        @test rescale_points!(deepcopy(x), nk, kmax + 1, interval)[2] == 2
     end
 end
 

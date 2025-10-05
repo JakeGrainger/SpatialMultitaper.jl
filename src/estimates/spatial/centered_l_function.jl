@@ -76,50 +76,46 @@ end
 Compute centered L function from spatial data via L function transformation.
 """
 function centered_l_function(data::SpatialData; kwargs...)::CenteredLFunction
-    return centered_l_function(l_function(data; kwargs...))
+    return centered_l_function!(l_function(data; kwargs...))
 end
 
 """
-    centered_l_function(spectrum::NormalOrRotationalSpectra; kwargs...)
+    centered_l_function(est::AbstractEstimate; kwargs...)
 
-Compute centered L function from spectral estimates.
+Compute centered L function from some estimate.
 """
-function centered_l_function(
+function centered_l_function(est::AbstractEstimate; kwargs...)::CenteredLFunction
+    mem = deepcopy(est)
+    return centered_l_function!(mem; kwargs...)
+end
+
+function centered_l_function!(
         spectrum::NormalOrRotationalSpectra; kwargs...)::CenteredLFunction
-    return centered_l_function(l_function(spectrum; kwargs...))
+    return centered_l_function!(l_function(spectrum; kwargs...))
 end
 
 """
-    centered_l_function(c::CFunction)
+    centered_l_function!(c::CFunction)
 
 Compute centered L function from C function via L function transformation.
 """
-centered_l_function(c::CFunction) = centered_l_function(l_function(c))
+centered_l_function!(c::CFunction) = centered_l_function!(l_function!(c))
 
 """
-    centered_l_function(k::KFunction)
+    centered_l_function!(k::KFunction)
 
 Compute centered L function from K function via L function transformation.
 """
-centered_l_function(k::KFunction) = centered_l_function(l_function(k))
+centered_l_function!(k::KFunction) = centered_l_function!(l_function!(k))
 
 """
-    centered_l_function(l::LFunction{E, D}) where {E, D}
+    centered_l_function!(l::LFunction{E, D}) where {E, D}
 
 Transform L function to centered L function.
-
-Applies the centering transformation ``CL(r) = L(r) - r`` to remove the
-theoretical Poisson expectation.
-
-# Arguments
-- `l::LFunction`: Input L function estimate
-
-# Returns
-A `CenteredLFunction` object with values ``CL(r) = L(r) - r``.
 """
-function centered_l_function(l::LFunction{E, D})::CenteredLFunction{E, D} where {E, D}
+function centered_l_function!(l::LFunction{E, D})::CenteredLFunction{E, D} where {E, D}
     radii = getargument(l)
-    value = _l_to_centered_l_transform(radii, getestimate(l), process_trait(l))
+    value = _l_to_centered_l_transform!(radii, getestimate(l), process_trait(l))
     processinfo = getprocessinformation(l)
     estimationinfo = getestimationinformation(l)
     return CenteredLFunction{E}(radii, value, processinfo, estimationinfo)
@@ -129,20 +125,25 @@ function partial_centered_l_function(data, region; kwargs...)
     partial_centered_l_function(spatial_data(data, region); kwargs...)
 end
 function partial_centered_l_function(data::SpatialData; kwargs...)
-    centered_l_function(partial_l_function(data; kwargs...))
+    centered_l_function!(partial_l_function(data; kwargs...))
 end
-function partial_centered_l_function(
+function partial_centered_l_function(est::AbstractEstimate; kwargs...)
+    mem = deepcopy(est)
+    return partial_centered_l_function!(mem; kwargs...)
+end
+
+function partial_centered_l_function!(
         spectrum::NormalOrRotationalSpectra{PartialTrait}; kwargs...)
-    k_function(spectrum; kwargs...)
+    centered_l_function!(spectrum; kwargs...)
 end
 function partial_centered_l_function(
         spectrum::NormalOrRotationalSpectra{MarginalTrait}; kwargs...)
-    k_function(partial_spectra(spectrum); kwargs...)
+    centered_l_function!(partial_spectra!(spectrum); kwargs...)
 end
-partial_centered_l_function(est::CFunction{PartialTrait}) = centered_l_function(est)
-partial_centered_l_function(est::KFunction{PartialTrait}) = centered_l_function(est)
-partial_centered_l_function(est::LFunction{PartialTrait}) = centered_l_function(est)
-function partial_centered_l_function(est::Union{
+partial_centered_l_function!(est::CFunction{PartialTrait}) = centered_l_function!(est)
+partial_centered_l_function!(est::KFunction{PartialTrait}) = centered_l_function!(est)
+partial_centered_l_function!(est::LFunction{PartialTrait}) = centered_l_function!(est)
+function partial_centered_l_function!(est::Union{
         LFunction{MarginalTrait}, CFunction{MarginalTrait}, KFunction{MarginalTrait}})
     throw(partial_from_marginal_error(LFunction, typeof(est)))
 end
@@ -150,32 +151,30 @@ end
 ## internals
 
 """
-    _l_to_centered_l_transform(radii, l_values, ::MultipleVectorTrait)
+    _l_to_centered_l_transform!(radii, l_values, ::MultipleVectorTrait)
 
 Transform L function values to centered L function for multiple vector processes.
 """
-function _l_to_centered_l_transform(radii, l_values::AbstractArray, ::MultipleVectorTrait)
-    output = zeros(eltype(l_values), size(l_values))
+function _l_to_centered_l_transform!(radii, l_values::AbstractArray, ::MultipleVectorTrait)
     for idx in CartesianIndices(size(l_values)[1:(ndims(l_values) - 1)])
         for (i, radius) in enumerate(radii)
-            output[idx, i] = _apply_centering(radius, l_values[idx, i])
+            l_values[idx, i] = _apply_centering(radius, l_values[idx, i])
         end
     end
-    return output
+    return l_values
 end
 
 """
-    _l_to_centered_l_transform(radii, l_values, ::Union{MultipleTupleTrait, SingleProcessTrait})
+    _l_to_centered_l_transform!(radii, l_values, ::Union{MultipleTupleTrait, SingleProcessTrait})
 
 Transform L function values to centered L function for single process or tuple traits.
 """
-function _l_to_centered_l_transform(radii, l_values::AbstractArray,
+function _l_to_centered_l_transform!(radii, l_values::AbstractArray,
         ::Union{MultipleTupleTrait, SingleProcessTrait})
-    output = zeros(eltype(l_values), size(l_values))
     for (i, radius) in enumerate(radii)
-        output[i] = _apply_centering(radius, l_values[i])
+        l_values[i] = _apply_centering(radius, l_values[i])
     end
-    return output
+    return l_values
 end
 
 """

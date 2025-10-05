@@ -37,7 +37,13 @@ interval, at wavenumbers defined by `kmax` and `nk`.
 Set `iflag<0` for -i in exponent.
 """
 function nufft1d1_anydomain(interval, nk, kmax, xj, cj, iflag, eps; kwargs...)
-    output_storage, input_data = nufft1d1_anydomain_precomp(interval, nk, kmax, xj, cj)
+    output_storage = precompute_nufft1d1_anydomain_output(nk, xj, cj)
+    return nufft1d1_anydomain_from_storage!(
+        output_storage, interval, nk, kmax, xj, cj, iflag, eps; kwargs...)
+end
+function nufft1d1_anydomain_from_storage!(
+        output_storage, interval, nk, kmax, xj, cj, iflag, eps; kwargs...)
+    input_data = precompute_nufft1d1_anydomain_input(interval, nk, kmax, xj, cj)
     return nufft1d1_anydomain!(output_storage, input_data, nk, kmax, iflag, eps; kwargs...)
 end
 
@@ -69,15 +75,24 @@ function nufft1d1_anydomain!(output_storage, input_data, nk, kmax, iflag, eps; k
 end
 
 """
-	nufft1d1_anydomain_precomp(interval, nk, kmax, xj, cj)
+	precompute_nufft1d1_anydomain_input(interval, nk, kmax, xj, cj)
 
-Precomputes the input data and memory required for `nufft1d1_anydomain!`.
+Precomputes the input data required for `nufft1d1_anydomain!`.
 """
-function nufft1d1_anydomain_precomp(interval, nk, kmax, xj, cj)
+function precompute_nufft1d1_anydomain_input(interval, nk, kmax, xj, cj)
     @assert length(cj) % length(xj)==0 "length(cj) must be a multiple of length(xj)"
     # rescale data
     xj_rescaled, oversample_x, shift_x = rescale_points(xj, nk, kmax, interval)
+    input_data = (
+        xj_rescaled = xj_rescaled, oversample_x = oversample_x, shift_x = shift_x, cj = cj)
+    return input_data
+end
+"""
+	precompute_nufft1d1_anydomain_output(nk, xj, cj)
 
+Precomputes the memory required for `nufft1d1_anydomain!`.
+"""
+function precompute_nufft1d1_anydomain_output(nk, xj, cj)
     # preallocate storage
     n_transforms = length(cj) ÷ length(xj)
     oversampled_out = Array{complex(eltype(cj)), 2}(
@@ -86,11 +101,9 @@ function nufft1d1_anydomain_precomp(interval, nk, kmax, xj, cj)
     phase_correction = Vector{complex(eltype(cj))}(undef, nk)
 
     # format return
-    input_data = (
-        xj_rescaled = xj_rescaled, oversample_x = oversample_x, shift_x = shift_x, cj = cj)
     output_storage = (
         oversampled_out = oversampled_out, out = out, phase_correction = phase_correction)
-    return output_storage, input_data
+    return output_storage
 end
 
 ## two dimensional case

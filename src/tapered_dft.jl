@@ -27,28 +27,67 @@ entry is an array of size `n1 × ... × nD × M`.
 # Notes
 The `mean_method` should have the same length as the number of processes in `data`.
 """
-function tapered_dft(sd::SingleProcessData, tapers, nk, kmax,
+function tapered_dft(
+        data, tapers, nk, kmax, mean_method::MeanEstimationMethod = DefaultMean())
+    mem = preallocate_tapered_dft(data, tapers, nk, kmax)
+    return tapered_dft!(mem, data, tapers, nk, kmax, mean_method)
+end
+
+function tapered_dft!(mem, sd::SingleProcessData, tapers, nk, kmax,
         mean_method::MeanEstimationMethod = DefaultMean())
     checkmeanmethod(sd, mean_method)
-    return _single_tapered_dft(sd, tapers, nk, kmax, mean_method)
+    return _single_tapered_dft!(mem[1], mem[2], sd, tapers, nk, kmax, mean_method)
 end
-function tapered_dft(sd::MultipleSpatialDataVec{D}, tapers, nk, kmax,
-        mean_method::MeanEstimationMethod = DefaultMean()) where {D}
-    checkmeanmethod(sd, mean_method)
-    dfts = stack(_single_tapered_dft(sd[p], tapers, nk, kmax,
-                     mean_method[p])::Array{complex(eltype(kmax)), D + 1} # this assertion is a hacky way to make this type stable
-    for p in 1:ncol(sd))
-    return permutedims(dfts, (ndims(dfts), ndims(dfts) - 1, 1:(ndims(dfts) - 2)...))
-end
-function tapered_dft(sd::MultipleSpatialDataTuple, tapers, nk, kmax,
+
+function tapered_dft!(mem, sd::MultipleSpatialDataVec, tapers, nk, kmax,
         mean_method::MeanEstimationMethod = DefaultMean())
+    checkmeanmethod(sd, mean_method)
+    for p in 1:ncol(sd)
+        result = _single_tapered_dft!(
+            mem[1][p], mem[2][p], sd[p], tapers, nk, kmax, mean_method[p])
+        for idx in CartesianIndices(size(result)[1:(end - 1)])
+            for m in axes(result, ndims(result))
+                mem[3][p, m, idx] = result[idx, m]
+            end
+        end
+    end
+    return mem[3]
+end
+
+function tapered_dft!(mem, sd::MultipleSpatialDataTuple{P}, tapers, nk, kmax,
+        mean_method::MeanEstimationMethod = DefaultMean()) where {P}
     checkmeanmethod(sd, mean_method)
     dfts = ntuple(
-        p -> _single_tapered_dft(sd[p], tapers, nk, kmax, mean_method[p]),
-        Val{ncol(sd)}()
-    )
+        p -> _single_tapered_dft!(
+            mem[1][p], mem[2][p], sd[p], tapers, nk, kmax, mean_method[p]),
+        Val{P}())
     return dfts
 end
+
+function preallocate_tapered_dft(data::SingleProcessData, tapers, nk, kmax)
+    tapered_data = preallocate_single_tapered_dft(data, tapers)
+    mem = preallocate_fft_any_type(tapered_data, data, nk, kmax)
+    return (mem, tapered_data)
+end
+
+function preallocate_tapered_dft(data::MultipleSpatialDataVec, tapers, nk, kmax)
+    tapered_data = [preallocate_single_tapered_dft(data[p], tapers) for p in 1:ncol(data)]
+    mem = [preallocate_fft_any_type(tapered_data[p], data[p], nk, kmax)
+           for p in 1:ncol(data)]
+    stacked_output = zeros(complex(Float64), ncol(data), length(tapers), nk...) # TODO: should be made generic
+    return (mem, tapered_data, stacked_output)
+end
+
+function preallocate_tapered_dft(
+        data::MultipleSpatialDataTuple{P}, tapers, nk, kmax) where {P}
+    tapered_data = ntuple(
+        p -> preallocate_single_tapered_dft(data[p], tapers), Val{P}())
+    mem = ntuple(
+        p -> preallocate_fft_any_type(tapered_data[p], data[p], nk, kmax), Val{P}())
+    return (mem, tapered_data)
+end
+
+##
 
 function _single_tapered_dft(data, tapers, nk, kmax, mean_method::MeanEstimationMethod)
     tapered_data = preallocate_single_tapered_dft(data, tapers)

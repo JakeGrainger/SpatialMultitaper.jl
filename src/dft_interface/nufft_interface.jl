@@ -7,47 +7,23 @@ region, at wavenumbers defined by `kmax` and `nk`.
 Currently only 1d, 2d and 3d are supported.
 """
 function nufft_anydomain(region, nk, kmax, points::PointSet, c, iflag, eps; kwargs...)
-    @assert length(nk)==length(kmax)==embeddim(points) "nk and kmax should have the same length as the number of dimensions of the points"
+    @argcheck length(nk) == length(kmax) == embeddim(points)
 
     points_coords = points2coords(points)
     if embeddim(points) === 1
         return nufft1d1_anydomain(
-            box2sides(boundingbox(region))[1],
-            nk[1],
-            kmax[1],
-            points_coords[1],
-            c,
-            iflag,
-            eps;
-            kwargs...
-        )
+            box2sides(boundingbox(region))[1], nk[1], kmax[1],
+            points_coords[1], c, iflag, eps; kwargs...)
     elseif embeddim(points) === 2
         return nufft2d1_anydomain(
-            box2sides(boundingbox(region)),
-            nk,
-            kmax,
-            points_coords[1],
-            points_coords[2],
-            c,
-            iflag,
-            eps;
-            kwargs...
-        )
+            box2sides(boundingbox(region)), nk, kmax, points_coords[1],
+            points_coords[2], c, iflag, eps; kwargs...)
     elseif embeddim(points) === 3
         return nufft3d1_anydomain(
-            box2sides(boundingbox(region)),
-            nk,
-            kmax,
-            points_coords[1],
-            points_coords[2],
-            points_coords[3],
-            c,
-            iflag,
-            eps;
-            kwargs...
-        )
+            box2sides(boundingbox(region)), nk, kmax, points_coords[1],
+            points_coords[2], points_coords[3], c, iflag, eps; kwargs...)
     else
-        error("Only 1d, 2d and 3d are supported")
+        error("Only 1d, 2d and 3d are supported, not $(embeddim(points))d")
     end
 end
 

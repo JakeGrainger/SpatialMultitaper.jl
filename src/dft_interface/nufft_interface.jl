@@ -37,7 +37,7 @@ interval, at wavenumbers defined by `kmax` and `nk`.
 Set `iflag<0` for -i in exponent.
 """
 function nufft1d1_anydomain(interval, nk, kmax, xj, cj, iflag, eps; kwargs...)
-    output_storage = precompute_nufft1d1_anydomain_output(nk, xj, cj)
+    output_storage = precompute_nufft1d1_anydomain_output(interval, nk, kmax, xj, cj)
     return nufft1d1_anydomain_from_storage!(
         output_storage, interval, nk, kmax, xj, cj, iflag, eps; kwargs...)
 end
@@ -92,7 +92,8 @@ end
 
 Precomputes the memory required for `nufft1d1_anydomain!`.
 """
-function precompute_nufft1d1_anydomain_output(nk, xj, cj)
+function precompute_nufft1d1_anydomain_output(interval, nk, kmax, xj, cj)
+    _, _, oversample_x = _get_oversample(nk, kmax, interval)
     # preallocate storage
     n_transforms = length(cj) ÷ length(xj)
     oversampled_out = Array{complex(eltype(cj)), 2}(
@@ -331,26 +332,32 @@ function nufft3d1_anydomain_precomp(cube, nk, kmax, xj, yj, zj, cj)
 end
 
 """
-	rescale_points(x, nk, kmax, interval; max_oversample = 100)
+	rescale_points(x, nk, kmax, interval; maxoversample = 100)
 
 Rescales points to be in the interval [-π, π] and returns the oversampling factor.
 Oversampling factor is the smallest integer so that the interval is rescaled to fit in [-π, π],
 and the corresponding kmax wavenumber is a multiple of `kmax`.
 Interval just needs to have `minimum` and `maximum` defined.
 """
-function rescale_points(x, nk, kmax, interval; max_oversample = 100)
-    side_length = maximum(interval) - minimum(interval)
-    l = (nk) / (2kmax)
-    oversample = 1
-    for c in 1:max_oversample
-        oversample = c
-        if side_length / (l * c) ≤ 1
-            break
-        end
-    end
-    oversample < max_oversample ||
-        error("Could not find oversampling factor, try increasing max_oversample")
+function rescale_points(x, nk, kmax, interval; maxoversample = 100)
+    side_length, l, oversample = _get_oversample(
+        nk, kmax, interval; maxoversample = maxoversample)
     shift = minimum(interval) + side_length / 2
     x_rescaled = (x .- shift) ./ (l * oversample) .* 2π
     return x_rescaled, oversample, shift
+end
+
+function _get_oversample(nk, kmax, interval; maxoversample = 100)
+    side_length = maximum(interval) - minimum(interval)
+    l = (nk) / (2kmax)
+    oversample = ceil(Int, side_length / l)
+    if oversample > maxoversample
+        err = ErrorException("""
+            Required oversampling is $(oversample) which is greater than maxoversample=$(maxoversample).
+            If you use this output wavenumber choice, you will have very poor performance
+            computationally, probably something has been missspecified.
+        """)
+        throw(err)
+    end
+    return side_length, l, oversample
 end

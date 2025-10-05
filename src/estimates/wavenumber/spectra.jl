@@ -74,46 +74,54 @@ end
 const multitaper_estimate = spectra
 
 """
-    _dft_to_spectral_matrix(J_n::AbstractArray, ::MultipleVectorTrait)
-
-Compute the spectral matrix from DFTs for multiple vector processes.
-
-The DFTs are expected to be stored as a P × M × n_1 × ... × n_D array.
-"""
-function _dft_to_spectral_matrix(J_n::AbstractArray, ::MultipleVectorTrait)
-    power = zeros(eltype(J_n), (size(J_n, 1), size(J_n, 1), size(J_n)[3:end]...))
-    for i in CartesianIndices(size(J_n)[3:end])
-        power[:, :, i] = @views _compute_spectral_matrix(J_n[:, :, i])
-    end
-    return power
-end
-
-"""
     _dft_to_spectral_matrix(J_n::AbstractArray, ::SingleProcessTrait)
-
-Compute the spectral matrix from DFTs for a single process.
-
-The DFT is expected to be stored as an n_1 × ... × n_D × M array.
-"""
-function _dft_to_spectral_matrix(J_n::AbstractArray, ::SingleProcessTrait)
-    power = zeros(real(eltype(J_n)), size(J_n)[1:(end - 1)])
-    for i in CartesianIndices(power)
-        power[i] = mean(abs2, @view J_n[i, :])
-    end
-    return power
-end
-
-"""
+    _dft_to_spectral_matrix(J_n::AbstractArray, ::MultipleVectorTrait)
     _dft_to_spectral_matrix(J_n::NTuple{P, AbstractArray}, ::MultipleTupleTrait) where {P}
 
-Compute the spectral matrix from DFTs stored as a tuple of P arrays.
+Compute the spectral matrix from DFTs for different process types.
 
-Each array has size n_1 × ... × n_D × M.
+# Arguments
+- `J_n`: The tapered DFTs, with shape depending on the process type:
+    - For `SingleProcessTrait`: `n₁ × ... × n_D × M` array (single process)
+    - For `MultipleVectorTrait`: `P × M × n₁ × ... × n_D` array (multiple vector processes)
+    - For `MultipleTupleTrait`: Tuple of `P` arrays, each of size `n₁ × ... × n_D × M` (multiple processes as tuple)
+- Trait type: Specifies the process structure.
+
+# Returns
+- The spectral matrix or array of spectral matrices, with shape depending on the input.
+
+# Notes
+- For single process: returns an array of power spectral densities.
+- For multiple processes (tuple): returns an array of spectral matrices.
+- For multiple vector processes: returns a D+2 array where each slice is a spectral matrix.
 """
-function _dft_to_spectral_matrix(
-        J_n::NTuple{P, AbstractArray}, ::MultipleTupleTrait) where {P}
-    S_mat = _preallocate_spectral_matrix(J_n)
-    _fill_spectral_matrix!(S_mat, J_n)
+function _dft_to_spectral_matrix(J_n, trait)
+    S_mat = _preallocate_spectral_matrix(J_n, trait)
+    _fill_spectral_matrix!(S_mat, J_n, trait)
+    return S_mat
+end
+
+function _preallocate_spectral_matrix(J_n::AbstractArray, ::MultipleVectorTrait)
+    return zeros(eltype(J_n), (size(J_n, 1), size(J_n, 1), size(J_n)[3:end]...))
+end
+
+function _fill_spectral_matrix!(
+        S_mat::AbstractArray, J_n::AbstractArray, ::MultipleVectorTrait)
+    for i in CartesianIndices(size(J_n)[3:end])
+        S_mat[:, :, i] = @views _compute_spectral_matrix(J_n[:, :, i])
+    end
+    return S_mat
+end
+
+function _preallocate_spectral_matrix(J_n::AbstractArray, ::SingleProcessTrait)
+    return zeros(real(eltype(J_n)), size(J_n)[1:(end - 1)])
+end
+
+function _fill_spectral_matrix!(
+        S_mat::AbstractArray, J_n::AbstractArray, ::SingleProcessTrait)
+    for i in CartesianIndices(S_mat)
+        S_mat[i] = mean(abs2, @view J_n[i, :])
+    end
     return S_mat
 end
 
@@ -122,7 +130,8 @@ end
 
 Preallocate storage for the spectral matrix computation.
 """
-function _preallocate_spectral_matrix(J_n::NTuple{P, AbstractArray{T, N}}) where {P, T, N}
+function _preallocate_spectral_matrix(
+        J_n::NTuple{P, AbstractArray{T, N}}, ::MultipleTupleTrait) where {P, T, N}
     output_dims = size(J_n[1])[1:(end - 1)]
     return Array{SMatrix{P, P, T, P * P}, N - 1}(undef, output_dims)
 end
@@ -132,8 +141,8 @@ end
 
 Fill spectral matrix for single process case (P=1).
 """
-function _fill_spectral_matrix!(
-        S_mat::Array{T, D}, J_n::NTuple{1, Array{T, N}}) where {T, N, D}
+function _fill_spectral_matrix!(S_mat::Array{T, D}, J_n::NTuple{1, Array{T, N}},
+        ::MultipleTupleTrait) where {T, N, D}
     if !all(size(S_mat) == size(J)[1:(end - 1)] for J in J_n)
         throw(DimensionMismatch("S_mat dimensions must match first N-1 dimensions of each J_n array"))
     end
@@ -147,9 +156,12 @@ end
     _fill_spectral_matrix!(S_mat::Array{<:SMatrix{P, P, T}}, J_n::NTuple{P, AbstractArray{T, N}}) where {P, T, N}
 
 Fill spectral matrix for multiple process case.
+
+Each array in J_n has size n_1 × ... × n_D × M.
 """
-function _fill_spectral_matrix!(S_mat::Array{<:SMatrix{P, P, T}},
-        J_n::NTuple{P, AbstractArray{T, N}}) where {P, T, N}
+function _fill_spectral_matrix!(
+        S_mat::Array{<:SMatrix{P, P, T}}, J_n::NTuple{P, AbstractArray{T, N}},
+        ::MultipleTupleTrait) where {P, T, N}
     # Validate dimensions
     if !all(size(S_mat) == size(J)[1:(end - 1)] for J in J_n)
         throw(DimensionMismatch("S_mat dimensions must match first N-1 dimensions of each J_n array"))

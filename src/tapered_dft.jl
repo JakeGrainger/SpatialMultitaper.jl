@@ -50,29 +50,56 @@ function tapered_dft(sd::MultipleSpatialDataTuple, tapers, nk, kmax,
     return dfts
 end
 
-# points (just adds marks with value 1 and proceeds)
-function _single_tapered_dft(
-        data::PointPattern, tapers, nk, kmax, mean_method::MeanEstimationMethod)
-    marks = ones(length(observations(data)))
-    markedtable = georef((marks = marks,), observations(data))
-    markeddata = SpatialData(markedtable, getregion(data), propertynames(data))
-    return _single_tapered_dft(markeddata, tapers, nk, kmax, mean_method)
+function _single_tapered_dft(data, tapers, nk, kmax, mean_method::MeanEstimationMethod)
+    tapered_data = preallocate_single_tapered_dft(data, tapers)
+    mem = preallocate_fft_any_type(tapered_data, data, nk, kmax)
+    return _single_tapered_dft!(mem, tapered_data, data, tapers, nk, kmax, mean_method)
 end
 
-# points with marks
-function _single_tapered_dft(
-        data::MarkedPointPattern, tapers, nk, kmax, mean_method::MeanEstimationMethod)
+function preallocate_fft_any_type(tapered_data, data::PointPattern, nk, kmax)
+    points = observations(data)
+    mem = precompute_nufft_anydomain_output(getregion(data), nk, kmax, points, tapered_data)
+    return mem
+end
+
+function preallocate_fft_any_type(tapered_data, data::MarkedPointPattern, nk, kmax)
+    points = domain(observations(data))
+    mem = precompute_nufft_anydomain_output(getregion(data), nk, kmax, points, tapered_data)
+    return mem
+end
+
+function preallocate_fft_any_type(tapered_data, data::GriddedData, nk, kmax)
+    grid = domain(observations(data))
+    mem = preallocate_fft_anydomain(tapered_data, grid, nk, kmax)
+    return mem
+end
+
+function preallocate_single_tapered_dft(data::PointPattern, tapers)
+    n = length(observations(data))
+    marks = one(Float64) # TODO: should be made generic
+    return Vector{complex(eltype(marks))}(undef, n * length(tapers))
+end
+
+function preallocate_single_tapered_dft(data::MarkedPointPattern, tapers)
+    n = length(domain(observations(data)))
+    marks = values(observations(data))[1]
+    return Vector{complex(eltype(marks))}(undef, n * length(tapers))
+end
+
+function _single_tapered_dft!(
+        mem, tapered_marks, data::Union{PointPattern, MarkedPointPattern}, tapers,
+        nk, kmax, mean_method::MeanEstimationMethod)
     # apply tapers
     λ = mean_estimate(data, mean_method)
 
-    marks = values(observations(data))[1]
-    points = domain(observations(data))
+    points, marks = _unpack_points_and_marks(data)
     region = getregion(data)
     wavenumber = Iterators.ProductIterator(_make_wavenumber_grid(nk, kmax))
-    tapered_marks = _apply_taper(points, marks, tapers)
+
+    _apply_taper!(tapered_marks, points, marks, tapers)
 
     # perform transform
-    J = nufft_anydomain(region, nk, kmax, points, tapered_marks, -1, 1e-14)
+    J = nufft_anydomain!(mem, region, nk, kmax, points, tapered_marks, -1, 1e-14)
     for i in eachindex(tapers)
         J_h = selectdim(J, embeddim(points) + 1, i)
         for (j, k) in zip(eachindex(J_h), wavenumber)
@@ -81,37 +108,50 @@ function _single_tapered_dft(
     end
     return J
 end
-function _apply_taper(points::PointSet, marks, tapers)
+function _unpack_points_and_marks(data::MarkedPointPattern)
+    marks = values(observations(data))[1]
+    points = domain(observations(data))
+    return points, marks
+end
+function _unpack_points_and_marks(data::PointPattern)
+    marks = one(Float64) # TODO: should be made generic
+    points = observations(data)
+    return points, marks
+end
+
+function _apply_taper!(tapered_marks, points::PointSet, marks, tapers)
     n = length(points)
-    tapered_marks = Vector{complex(eltype(marks))}(undef, n * length(tapers))
     for i in eachindex(tapers)
         tapered_marks[(1:n) .+ (i - 1) * n] .= complex.(tapers[i].(points) .* marks)
     end
     return tapered_marks
 end
 
-function _single_tapered_dft(data::GriddedData, tapers, nk,
-        kmax, mean_method::MeanEstimationMethod)
-    # preallocate
+function preallocate_single_tapered_dft(data::GriddedData, tapers)
+    rf = values(observations(data))[1]
+    grid = domain(observations(data))
+    return zeros(eltype(rf), (size(grid)..., length(tapers)))
+end
+
+function _single_tapered_dft!(mem, tapered_data, data::GriddedData, tapers,
+        nk, kmax, mean_method::MeanEstimationMethod)
     λ = mean_estimate(data, mean_method)
     rf = values(observations(data))[1]
     grid = domain(observations(data))
 
-    replace!(rf, NaN => zero(eltype(rf))) # means single_tapered_dft should have ! after name
-
-    tapered_data = Array{eltype(rf), embeddim(grid) + 1}(
-        undef, (size(grid)..., length(tapers)))
-
     # apply taper and mean removal
     scaling = prod(unitless_spacing(grid))
     for i in eachindex(tapers)
-        for j in eachindex(selectdim(tapered_data, embeddim(grid) + 1, i))
-            val = tapers[i](centroid(grid, j)) * (rf[j] - λ) * scaling
-            selectdim(tapered_data, embeddim(grid) + 1, i)[j] = val
+        for (j, idx) in enumerate(CartesianIndices(size(grid)))
+            rf_val = rf[j]
+            rf_val = isnan(rf_val) ? zero(eltype(rf)) : rf_val
+            scaled_rf = (rf_val - λ) * scaling
+            loc = centroid(grid, j)
+            val = tapers[i](loc) * scaled_rf
+            tapered_data[idx, i] = val
         end
     end
 
     # perform transform
-    J = fft_anydomain(tapered_data, grid, nk, kmax)
-    return J
+    return fft_anydomain!(mem, tapered_data, grid, nk, kmax)
 end

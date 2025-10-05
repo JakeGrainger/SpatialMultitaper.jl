@@ -8,20 +8,44 @@ Currently only 1d, 2d and 3d are supported.
 """
 function nufft_anydomain(region, nk, kmax, points::PointSet, c, iflag, eps; kwargs...)
     @argcheck length(nk) == length(kmax) == embeddim(points)
+    mem = precompute_nufft_anydomain_output(region, nk, kmax, points, c)
+    return nufft_anydomain!(
+        mem, region, nk, kmax, points::PointSet, c, iflag, eps; kwargs...)
+end
 
+function nufft_anydomain!(mem, region, nk, kmax, points::PointSet, c, iflag, eps; kwargs...)
     points_coords = points2coords(points)
     if embeddim(points) === 1
-        return nufft1d1_anydomain(
+        return nufft1d1_anydomain_from_storage!(mem,
             box2sides(boundingbox(region))[1], nk[1], kmax[1],
             points_coords[1], c, iflag, eps; kwargs...)
     elseif embeddim(points) === 2
-        return nufft2d1_anydomain(
+        return nufft2d1_anydomain_from_storage!(mem,
             box2sides(boundingbox(region)), nk, kmax, points_coords[1],
             points_coords[2], c, iflag, eps; kwargs...)
     elseif embeddim(points) === 3
-        return nufft3d1_anydomain(
+        return nufft3d1_anydomain_from_storage!(mem,
             box2sides(boundingbox(region)), nk, kmax, points_coords[1],
             points_coords[2], points_coords[3], c, iflag, eps; kwargs...)
+    else
+        error("Only 1d, 2d and 3d are supported, not $(embeddim(points))d")
+    end
+end
+
+function precompute_nufft_anydomain_output(region, nk, kmax, points::PointSet, c)
+    points_coords = points2coords(points)
+    if embeddim(points) === 1
+        return precompute_nufft1d1_anydomain_output(
+            box2sides(boundingbox(region))[1], nk[1], kmax[1],
+            points_coords[1], c)
+    elseif embeddim(points) === 2
+        return precompute_nufft2d1_anydomain_output(
+            box2sides(boundingbox(region)), nk, kmax, points_coords[1],
+            points_coords[2], c)
+    elseif embeddim(points) === 3
+        return precompute_nufft3d1_anydomain_output(
+            box2sides(boundingbox(region)), nk, kmax, points_coords[1],
+            points_coords[2], points_coords[3], c)
     else
         error("Only 1d, 2d and 3d are supported, not $(embeddim(points))d")
     end
@@ -43,7 +67,8 @@ function nufft1d1_anydomain(interval, nk, kmax, xj, cj, iflag, eps; kwargs...)
 end
 function nufft1d1_anydomain_from_storage!(
         output_storage, interval, nk, kmax, xj, cj, iflag, eps; kwargs...)
-    input_data = precompute_nufft1d1_anydomain_input(interval, nk, kmax, xj, cj)
+    xj_copy = collect(float(eltype(xj)), deepcopy(xj)) # to avoid modifying input
+    input_data = precompute_nufft1d1_anydomain_input!(interval, nk, kmax, xj_copy, cj)
     return nufft1d1_anydomain!(output_storage, input_data, nk, kmax, iflag, eps; kwargs...)
 end
 
@@ -75,14 +100,14 @@ function nufft1d1_anydomain!(output_storage, input_data, nk, kmax, iflag, eps; k
 end
 
 """
-	precompute_nufft1d1_anydomain_input(interval, nk, kmax, xj, cj)
+	precompute_nufft1d1_anydomain_input!(interval, nk, kmax, xj, cj)
 
 Precomputes the input data required for `nufft1d1_anydomain!`.
 """
-function precompute_nufft1d1_anydomain_input(interval, nk, kmax, xj, cj)
+function precompute_nufft1d1_anydomain_input!(interval, nk, kmax, xj, cj)
     @assert length(cj) % length(xj)==0 "length(cj) must be a multiple of length(xj)"
     # rescale data
-    xj_rescaled, oversample_x, shift_x = rescale_points(xj, nk, kmax, interval)
+    xj_rescaled, oversample_x, shift_x = rescale_points!(xj, nk, kmax, interval)
     input_data = (
         xj_rescaled = xj_rescaled, oversample_x = oversample_x, shift_x = shift_x, cj = cj)
     return input_data
@@ -119,13 +144,16 @@ Similarly for `kmax` and `nk`.
 Set `iflag<0` for -i in exponent.
 """
 function nufft2d1_anydomain(box, nk, kmax, xj, yj, cj, iflag, eps; kwargs...)
-    output_storage = precompute_nufft2d1_anydomain_output(box, nk, kmax, xj, yj, cj)
+    output_storage = precompute_nufft2d1_anydomain_output(
+        box, nk, kmax, xj, yj, cj)
     return nufft2d1_anydomain_from_storage!(
         output_storage, box, nk, kmax, xj, yj, cj, iflag, eps; kwargs...)
 end
 function nufft2d1_anydomain_from_storage!(
         output_storage, box, nk, kmax, xj, yj, cj, iflag, eps; kwargs...)
-    input_data = precompute_nufft2d1_anydomain_input(box, nk, kmax, xj, yj, cj)
+    xj_copy = collect(float(eltype(xj)), deepcopy(xj)) # to avoid modifying input
+    yj_copy = collect(float(eltype(yj)), deepcopy(yj)) # to avoid modifying input
+    input_data = precompute_nufft2d1_anydomain_input!(box, nk, kmax, xj_copy, yj_copy, cj)
     return nufft2d1_anydomain!(output_storage, input_data, nk, kmax, iflag, eps; kwargs...)
 end
 
@@ -170,15 +198,15 @@ function nufft2d1_anydomain!(output_storage, input_data, nk, kmax, iflag, eps; k
 end
 
 """
-	precompute_nufft2d1_anydomain_input(box, nk, kmax, xj, yj, cj)
+	precompute_nufft2d1_anydomain_input!(box, nk, kmax, xj, yj, cj)
 
 Precomputes the input data required for `nufft2d1_anydomain!`.
 """
-function precompute_nufft2d1_anydomain_input(box, nk, kmax, xj, yj, cj)
+function precompute_nufft2d1_anydomain_input!(box, nk, kmax, xj, yj, cj)
     @assert length(cj) % length(xj)==0 "length(cj) must be a multiple of length(xj)"
     # rescale data
-    xj_rescaled, oversample_x, shift_x = rescale_points(xj, nk[1], kmax[1], box[1])
-    yj_rescaled, oversample_y, shift_y = rescale_points(yj, nk[2], kmax[2], box[2])
+    xj_rescaled, oversample_x, shift_x = rescale_points!(xj, nk[1], kmax[1], box[1])
+    yj_rescaled, oversample_y, shift_y = rescale_points!(yj, nk[2], kmax[2], box[2])
     input_data = (
         xj_rescaled = xj_rescaled,
         oversample_x = oversample_x,
@@ -226,13 +254,18 @@ Similarly for `kmax` and `nk`.
 Set `iflag<0` for -i in exponent.
 """
 function nufft3d1_anydomain(cube, nk, kmax, xj, yj, zj, cj, iflag, eps; kwargs...)
-    output_storage = precompute_nufft3d1_anydomain_output(cube, nk, kmax, xj, yj, zj, cj)
+    output_storage = precompute_nufft3d1_anydomain_output(
+        cube, nk, kmax, xj, yj, zj, cj)
     return nufft3d1_anydomain_from_storage!(
         output_storage, cube, nk, kmax, xj, yj, zj, cj, iflag, eps; kwargs...)
 end
 function nufft3d1_anydomain_from_storage!(
         output_storage, cube, nk, kmax, xj, yj, zj, cj, iflag, eps; kwargs...)
-    input_data = precompute_nufft3d1_anydomain_input(cube, nk, kmax, xj, yj, zj, cj)
+    xj_copy = collect(float(eltype(xj)), deepcopy(xj)) # to avoid modifying input
+    yj_copy = collect(float(eltype(yj)), deepcopy(yj)) # to avoid modifying input
+    zj_copy = collect(float(eltype(zj)), deepcopy(zj)) # to avoid modifying input
+    input_data = precompute_nufft3d1_anydomain_input!(
+        cube, nk, kmax, xj_copy, yj_copy, zj_copy, cj)
     result = nufft3d1_anydomain!(
         output_storage, input_data, nk, kmax, iflag, eps; kwargs...)
     return result
@@ -303,16 +336,16 @@ function nufft3d1_anydomain!(output_storage, input_data, nk, kmax, iflag, eps; k
 end
 
 """
-	precompute_nufft3d1_anydomain_input(cube, nk, kmax, xj, yj, zj, cj)
+	precompute_nufft3d1_anydomain_input!(cube, nk, kmax, xj, yj, zj, cj)
 
 Precomputes the input data required for `nufft3d1_anydomain!`.
 """
-function precompute_nufft3d1_anydomain_input(cube, nk, kmax, xj, yj, zj, cj)
+function precompute_nufft3d1_anydomain_input!(cube, nk, kmax, xj, yj, zj, cj)
     @assert length(cj) % length(xj)==0 "length(cj) must be a multiple of length(xj)"
     # rescale data
-    xj_rescaled, oversample_x, shift_x = rescale_points(xj, nk[1], kmax[1], cube[1])
-    yj_rescaled, oversample_y, shift_y = rescale_points(yj, nk[2], kmax[2], cube[2])
-    zj_rescaled, oversample_z, shift_z = rescale_points(zj, nk[3], kmax[3], cube[3])
+    xj_rescaled, oversample_x, shift_x = rescale_points!(xj, nk[1], kmax[1], cube[1])
+    yj_rescaled, oversample_y, shift_y = rescale_points!(yj, nk[2], kmax[2], cube[2])
+    zj_rescaled, oversample_z, shift_z = rescale_points!(zj, nk[3], kmax[3], cube[3])
 
     # format return
     input_data = (
@@ -364,12 +397,13 @@ Oversampling factor is the smallest integer so that the interval is rescaled to 
 and the corresponding kmax wavenumber is a multiple of `kmax`.
 Interval just needs to have `minimum` and `maximum` defined.
 """
-function rescale_points(x, nk, kmax, interval; maxoversample = 100)
+function rescale_points!(x, nk, kmax, interval; maxoversample = 100)
     side_length, l, oversample = _compute_oversample_params(
         nk, kmax, interval; maxoversample = maxoversample)
     shift = minimum(interval) + side_length / 2
-    x_rescaled = (x .- shift) ./ (l * oversample) .* 2π
-    return x_rescaled, oversample, shift
+    x .-= shift
+    x .*= 2pi / (l * oversample)
+    return x, oversample, shift
 end
 
 function _compute_oversample_params(nk, kmax, interval; maxoversample = 100)

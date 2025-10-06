@@ -157,7 +157,7 @@ The cross inverses will have been premultiplied so that they take the form
 f[idx, idx]^{-1}f[idx, jdx]
 """
 function partial_from_resampled(
-        J_cross::NTuple{Q},
+        J_cross::AbstractArray{<:SVector{Q}},
         mean_cross,
         J_marginal,
         mean_marginal,
@@ -182,13 +182,13 @@ function partial_from_resampled(
 end
 
 function partial_from_resampled(
-        J_cross::NTuple{Q, AbstractArray{T, N}},
+        J_cross::AbstractArray{<:SVector{Q}, N},
         mean_cross,
-        J_marginal::NTuple{P, AbstractArray{T, N}},
+        J_marginal::AbstractArray{<:SVector{P}, N},
         mean_marginal,
         atoms,
         wavenumber,
-        J_original::NTuple{P, AbstractArray{T, N}},
+        J_original::AbstractArray{<:SVector{P}, N},
         mean_original,
         f_inv_cross::Union{Matrix{<:AbstractArray{SVector{R, T}, D}}, Nothing},
         f_inv_marginal::NTuple{P, AbstractArray{SMatrix{Q, Q, T, L}, D}},
@@ -197,15 +197,14 @@ function partial_from_resampled(
     @assert (isnothing(f_inv_cross) && P == 2) || R == P - 2
     @assert isnothing(f_inv_cross) || size(f_inv_cross) == (P - 1, P - 1)
 
-    output = zeros(SMatrix{P, P, T, P^2}, size(J_cross[1])[1:(end - 1)]) # last dimension is tapers
-    for i in CartesianIndices(output)
+    output = zeros(SMatrix{P, P, T, P^2}, size(J_cross)[1:(end - 1)]) # last dimension is tapers
+    for i in CartesianIndices(output) # todo: now very outdated
         for p in 1:P
-            other_idx = ApplyArray(vcat, 1:(p - 1), (p + 1):P)
-            J_p = J_marginal[p]
-            f_pp = mean(abs2, view(J_p, i, :))
-            f_px = mean(J_p[i, m] *
-                        SVector(ntuple(j -> J_original[other_idx[j]][i, m], Val{P - 1}()))'
-            for m in axes(J_p, N))
+            other_idx = static_not(Val{P}(), p)
+            f_pp = mean(
+                abs2, J_marginal[i, m][p] for m in axes(J_marginal, ndims(J_marginal)))
+            f_px = mean(J_marginal[i, m][p] * J_original[i, m][other_idx]'
+            for m in axes(J_marginal, N))
             x = f_pp - f_px * f_inv_marginal[p][i] * f_px'
             output[i] = setindex(output[i], x, p, p)
         end
@@ -232,21 +231,18 @@ function partial_from_resampled(
 end
 
 function partial_from_resampled_cross(
-        J_cross, J_original::NTuple{P}, f_inv_cross, p, q, i) where {P}
-    J_p = J_cross[p]
-    J_q = J_original[q]
-    other_idx = ApplyArray(vcat, 1:(p - 1), (p + 1):(q - 1), (q + 1):P)
-    f_pq = mean(J_p[i, m] * conj(J_q[i, m]) for m in axes(J_p, ndims(J_p)))
-    f_px = mean(J_p[i, m] *
-                SVector(ntuple(j -> J_original[other_idx[j]][i, m], Val{P - 2}()))'
-    for m in axes(J_p, ndims(J_p)))
+        J_cross, J_original::AbstractArray{<:SVector{P}}, f_inv_cross, p, q, i) where {P}
+    other_idx = static_not(Val{P}(), p, q)
+    f_pq = mean(J_cross[i, m][p] * conj(J_original[i, m][q])
+    for m in axes(J_cross, ndims(J_cross)))
+    f_px = mean(J_cross[i, m][p] * J_original[i, m][other_idx]'
+    for m in axes(J_cross, ndims(J_cross)))
     return f_pq - f_px * f_inv_cross[p, q - p][i]
 end
 
 function partial_from_resampled_cross(
-        J_cross, J_original::NTuple{2}, f_inv_cross::Nothing, p, q, i)
-    J_p = J_cross[p]
-    J_q = J_original[q]
-    f_pq = mean(J_p[i, m] * conj(J_q[i, m]) for m in axes(J_p, ndims(J_p)))
+        J_cross, J_original::AbstractArray{<:SVector{2}}, f_inv_cross::Nothing, p, q, i)
+    f_pq = mean(J_cross[i, m][p] * conj(J_original[i, m][q])
+    for m in axes(J_cross, ndims(J_cross)))
     return f_pq
 end

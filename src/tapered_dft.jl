@@ -57,10 +57,14 @@ end
 function tapered_dft!(mem, sd::MultipleSpatialDataTuple{P}, tapers, nk, kmax,
         mean_method::MeanEstimationMethod = DefaultMean()) where {P}
     checkmeanmethod(sd, mean_method)
-    dfts = ntuple(
+    dfts_internal = ntuple(
         p -> _single_tapered_dft!(
             mem[1][p], mem[2][p], sd[p], tapers, nk, kmax, mean_method[p]),
         Val{P}())
+    dfts = mem[3]
+    for i in CartesianIndices(dfts)
+        dfts[i] = SVector(ntuple(j -> dfts_internal[j][i], Val{P}()))
+    end
     return dfts
 end
 
@@ -84,7 +88,8 @@ function preallocate_tapered_dft(
         p -> preallocate_single_tapered_dft(data[p], tapers), Val{P}())
     mem = ntuple(
         p -> preallocate_fft_any_type(tapered_data[p], data[p], nk, kmax), Val{P}())
-    return (mem, tapered_data)
+    dfts = zeros(SVector{P, ComplexF64}, nk..., length(tapers)) # TODO: should be made generic
+    return (mem, tapered_data, dfts)
 end
 
 ##

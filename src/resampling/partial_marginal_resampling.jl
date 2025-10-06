@@ -159,8 +159,7 @@ function single_prediction_kernel_ft(
         ::Nothing
 ) where {P, T, L}
     @boundscheck checkbounds(1:P, idx)
-    other_idx = StaticArrays.sacollect(
-        SVector{P - 1, Int}, ApplyArray(vcat, 1:(idx - 1), (idx + 1):P))
+    other_idx = static_not(Val{P}(), idx)
     S_XZ = S_mat[SVector{1, Int}(idx), other_idx]
     S_ZZ = S_mat[other_idx, other_idx]
     return S_XZ / S_ZZ

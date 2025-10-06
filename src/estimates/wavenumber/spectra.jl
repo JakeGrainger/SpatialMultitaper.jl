@@ -150,40 +150,22 @@ function _preallocate_spectral_matrix(data::MultipleSpatialDataTuple{P}, nk) whe
 end
 
 """
-    _dft_to_spectral_matrix!(S_mat::Array{T, D}, J_n::NTuple{1, Array{T, N}}) where {T, N, D}
-
-Fill spectral matrix for single process case (P=1).
-"""
-function _dft_to_spectral_matrix!(S_mat::Array{T, D}, J_n::NTuple{1, Array{T, N}},
-        ::MultipleTupleTrait) where {T, N, D}
-    if !all(size(S_mat) == size(J)[1:(end - 1)] for J in J_n)
-        throw(DimensionMismatch("S_mat dimensions must match first N-1 dimensions of each J_n array"))
-    end
-    for i in CartesianIndices(S_mat)
-        S_mat[i] = mean(abs2, @view J_n[1][i, :])
-    end
-    return S_mat
-end
-
-"""
-    _dft_to_spectral_matrix!(S_mat::Array{<:SMatrix{P, P, T}}, J_n::NTuple{P, AbstractArray{T, N}}) where {P, T, N}
+    _dft_to_spectral_matrix!(
+        S_mat::Array{<:SMatrix{P, P}}, J_n::AbstractArray{<:SVector{P}, N},
+        ::MultipleTupleTrait) where {P, N}
 
 Fill spectral matrix for multiple process case.
 
 Each array in J_n has size n_1 × ... × n_D × M.
 """
 function _dft_to_spectral_matrix!(
-        S_mat::Array{<:SMatrix{P, P, T}}, J_n::NTuple{P, AbstractArray{T, N}},
-        ::MultipleTupleTrait) where {P, T, N}
+        S_mat::Array{<:SMatrix{P, P}}, J_n::AbstractArray{<:SVector{P}, N},
+        ::MultipleTupleTrait) where {P, N}
     # Validate dimensions
-    if !all(size(S_mat) == size(J)[1:(end - 1)] for J in J_n)
-        throw(DimensionMismatch("S_mat dimensions must match first N-1 dimensions of each J_n array"))
-    end
+    @argcheck size(S_mat) == size(J_n)[1:(end - 1)]
 
     for i in CartesianIndices(S_mat)
-        S_mat[i] = mean(_compute_spectral_matrix(SVector(ntuple(
-                            j -> J_n[j][i, m], Val{P}())))
-        for m in axes(J_n[1], N))
+        S_mat[i] = mean(_compute_spectral_matrix(J_n[i, m]) for m in axes(J_n, N))
     end
     return S_mat
 end

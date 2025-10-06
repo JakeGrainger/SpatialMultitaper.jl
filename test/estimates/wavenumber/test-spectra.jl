@@ -115,7 +115,8 @@ end
         # Tuple of arrays n1 x n2 x M
         J_1 = rand(rng, ComplexF64, 8, 8, 10)
         J_2 = rand(rng, ComplexF64, 8, 8, 10)
-        J_n = (J_1, J_2)
+        J_n = [SVector{2, ComplexF64}((J_1[i], J_2[i]))
+               for i in CartesianIndices(size(J_1))]
         data = make_points_example(
             rng, n_processes = 2, return_type = :tuple, point_number = 50)
 
@@ -124,7 +125,7 @@ end
         @test eltype(S_mat) <: SMatrix{2, 2}
 
         # Single process case
-        J_single = (J_1,)
+        J_single = getindex.(J_n, Ref(SOneTo(1)))
         data_single = spatial_data((observations(data)[1],), getregion(data))
         S_single = _dft_to_spectral_matrix(data_single, J_single, (8, 8))
         @test size(S_single) == (8, 8)

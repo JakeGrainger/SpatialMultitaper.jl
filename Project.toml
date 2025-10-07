@@ -35,6 +35,9 @@ ArgCheck = "2.5.0"
 CircularArrays = "1.4.0"
 DataAPI = "1.16.0"
 
+[extensions]
+MakieExt = "Makie"
+
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 

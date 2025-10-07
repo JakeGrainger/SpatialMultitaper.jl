@@ -54,8 +54,8 @@ is accounted for.
 fig = Mke.Figure()
 ax = Mke.Axis(fig[1, 1], title = "L function vs partial", xlabel = "r", ylabel = "K(r)")
 Mke.ablines!(ax, 0, 1; color = :black, linestyle = :dash)
-Mke.lines!(ax, collect(lfun[2, 3])..., label = "L function")
-Mke.lines!(ax, collect(par_lfun[2, 3])..., label = "Partial L function")
+Mke.lines!(ax, lfun[2, 3], label = "L function")
+Mke.lines!(ax, par_lfun[2, 3], label = "Partial L function")
 Mke.axislegend(ax; position = :lt)
 fig
 ````

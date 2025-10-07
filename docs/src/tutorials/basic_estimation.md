@@ -88,11 +88,11 @@ Certain marginal transformations are available, such as taking the real part:
 r_spec11 = real(spec11)
 ````
 
-Then to plot we can use collect to convert the estimate to a tuple of (x, y, ..., power) and
-then splat into the appropriate plotting function
+Then to plot we can call the appropriate plotting function for the dimensionality of the
+statistic. In this case, the spectrum is two-dimensional, so we can use a heatmap:
 
 ````@example basic_estimation
-Mke.heatmap(collect(r_spec11)...)
+Mke.heatmap(r_spec11)
 ````
 
 ## A more interesting example
@@ -112,7 +112,7 @@ nk = (100, 100)
 kmax = (0.1, 0.1)
 spec = spectra(data; tapers = tapers, nk = nk, kmax = kmax)
 
-Mke.heatmap(collect(real(spec[1, 2]))...)
+Mke.heatmap(real(spec[1, 2]))
 ````
 
 However, the cross-spectrum is complex-valued, and so it is often more useful to look at
@@ -129,9 +129,9 @@ example_phase = phase(spec)
 
 fig = Mke.Figure()
 ax_coh = Mke.Axis(fig[1, 1], title = "Magnitude Coherence", aspect = 1)
-Mke.heatmap!(ax_coh, collect(example_coh[1, 2])..., colorrange = (0, 1))
+Mke.heatmap!(ax_coh, example_coh[1, 2], colorrange = (0, 1))
 ax_phase = Mke.Axis(fig[1, 2], title = "Phase", aspect = 1)
-Mke.heatmap!(ax_phase, collect(example_phase[1, 2])..., colorrange = (-π, π))
+Mke.heatmap!(ax_phase, example_phase[1, 2], colorrange = (-π, π))
 fig
 ````
 

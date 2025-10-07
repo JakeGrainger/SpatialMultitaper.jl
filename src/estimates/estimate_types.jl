@@ -19,6 +19,15 @@ is_partial(::PartialAbstractEstimate) = true
 # default assumptions are that these fields exists with the names estimationinformation and processinformation
 getestimationinformation(est::AbstractEstimate) = est.estimationinformation
 getprocessinformation(est::AbstractEstimate) = est.processinformation
+
+function Base.:(==)(a::AbstractEstimate, b::AbstractEstimate)
+    getestimate(a) == getestimate(b) &&
+        getargument(a) == getargument(b) &&
+        getprocessinformation(a) == getprocessinformation(b) &&
+        getestimationinformation(a) == getestimationinformation(b) &&
+        getextrainformation(a) == getextrainformation(b)
+end
+
 function is_same_process_sets(est::AbstractEstimate)
     is_same_process_sets(getprocessinformation(est))
 end

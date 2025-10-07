@@ -5,8 +5,10 @@ struct ProcessInformation{D, T, I1, I2, M, A}
     atoms::A
     function ProcessInformation{D, T}(process_indices_1::I1, process_indices_2::I2,
             mean_product::M, atoms::A) where {D, T, I1, I2, M, A}
-        @argcheck length(process_indices_1) == size(mean_product, 1)
-        @argcheck length(process_indices_2) == size(mean_product, 2)
+        if mean_product isa AbstractMatrix
+            @argcheck length(process_indices_1) == size(mean_product, 1)
+            @argcheck length(process_indices_2) == size(mean_product, 2)
+        end
         @argcheck size(mean_product) == size(atoms)
         new{D, T, I1, I2, M, A}(process_indices_1, process_indices_2, mean_product, atoms)
     end

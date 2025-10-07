@@ -29,7 +29,7 @@ kfun = k_function(data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 We can then visualise the K function using Makie
 
 ````@example k_function
-Mke.lines(collect(kfun)...)
+Mke.lines(kfun)
 ````
 
 ## L functions
@@ -44,14 +44,14 @@ lfun = l_function(kfun)
 and again plot this using Makie
 
 ````@example k_function
-Mke.lines(collect(lfun)...)
+Mke.lines(lfun)
 ````
 
 we can also plot the difference `L(r) - r`, which is often used to assess clustering or
 inhibition in the point process.
 
 ````@example k_function
-Mke.lines(collect(centered_l_function(lfun))...)
+Mke.lines(centered_l_function(lfun))
 ````
 
 these functions can be computed from each other or directly from the data

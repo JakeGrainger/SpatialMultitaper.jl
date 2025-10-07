@@ -217,5 +217,17 @@ end
     end
 end
 
+@testset "automatic tapers" begin
+    rng = StableRNG(123)
+    data = make_points_example(rng, n_processes = 1, return_type = :single)
+    nk = (6, 6)
+    kmax = (0.3, 0.3)
+    region = getregion(data)
+    tapers = sin_taper_family((2, 2), region)
+    spec = spectra(data, nk = nk, kmax = kmax, nw = 2)
+    spec2 = spectra(data, nk = nk, kmax = kmax, tapers = tapers)
+    @test spec == spec2
+end
+
 # TODO: need to add this
 # @testset "NaN handling" begin

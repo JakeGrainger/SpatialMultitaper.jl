@@ -58,15 +58,17 @@ function spectra(data, region::Meshes.Geometry; kwargs...)::Spectra
 end
 
 function spectra(data::SpatialData; nk = nothing, kmax, dk = default_dk(data, nk, kmax),
-        tapers, mean_method::MeanEstimationMethod = DefaultMean())::Spectra
+        tapers = nothing, nw = 3, mean_method::MeanEstimationMethod = DefaultMean())::Spectra
+    tapers = _validate_tapers(tapers, getregion(data), nw)
     all_mem = preallocate_spectra(data; nk = nk, kmax = kmax, dk = dk, tapers = tapers)
     return spectra!(all_mem, data; nk = nk, kmax = kmax, dk = dk,
         tapers = tapers, mean_method = mean_method)
 end
 
 function preallocate_spectra(
-        data::SpatialData; nk = nothing, kmax, dk = default_dk(data, nk, kmax), tapers)
+        data::SpatialData; nk = nothing, kmax, dk = default_dk(data, nk, kmax), tapers = nothing, nw = 3)
     _nk, _kmax = _validate_wavenumber_params(nk, kmax, dk, data)
+    tapers = _validate_tapers(tapers, getregion(data), nw)
     mem = preallocate_tapered_dft(data, tapers, _nk, _kmax)
     power = _preallocate_spectral_matrix(data, _nk)
     return (mem, power)
@@ -74,9 +76,10 @@ end
 
 function spectra!(
         all_mem, data::SpatialData; nk = nothing, kmax, dk = default_dk(data, nk, kmax),
-        tapers, mean_method::MeanEstimationMethod = DefaultMean())::Spectra
+        tapers = nothing, nw = 3, mean_method::MeanEstimationMethod = DefaultMean())::Spectra
     _nk, _kmax = _validate_wavenumber_params(nk, kmax, dk, data)
     wavenumber = _make_wavenumber_grid(_nk, _kmax)
+    tapers = _validate_tapers(tapers, getregion(data), nw)
 
     mem = all_mem[1]
     power = all_mem[2]

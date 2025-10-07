@@ -10,6 +10,9 @@ function _default_dk(region::Geometry)
 end
 
 # validation
+function _validate_dims(x::AbstractVector, ::Val{D}) where {D}
+    return _validate_dims(tuple(x...), Val{D}())
+end
 function _validate_dims(x::NTuple{D}, ::Val{D}) where {D}
     return x
 end
@@ -67,4 +70,20 @@ function _validate_wavenumber_params(nk::Nothing, kmax, dk::Nothing, dim)
 end
 function _validate_wavenumber_params(nk, kmax::Nothing, dk::Nothing, dim)
     error("Must specify at least two of nk, kmax, or dk, not just nk.")
+end
+
+# default tapers
+function _validate_tapers(tapers::TaperFamily, region, nw)
+    return tapers
+end
+function _validate_tapers(::Nothing, region::Box, nw)
+    @argcheck all(nw .> 0)
+    _nw = _validate_dims(nw, Val{embeddim(region)}())
+    return sin_taper_family(_nw, region)
+end
+function _validate_tapers(::Nothing, region, nw)
+    @argcheck nw isa Int
+    @argcheck nw > 0
+    bandwidth = nw / Meshes.ustrip(minimum(sides(boundingbox(region))))
+    return make_tapers(region, bandwidth = bandwidth)[1]
 end

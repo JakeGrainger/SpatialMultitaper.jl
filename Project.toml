@@ -30,10 +30,12 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 
 [weakdeps]
+RCall = "6f49c342-dc21-5d91-9882-a32aef131414"
 Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
 
 [extensions]
 MakieExt = "Makie"
+RCallExt = "RCall"
 
 [compat]
 Aqua = "0.8.14"
@@ -41,6 +43,7 @@ ArgCheck = "2.5.0"
 CircularArrays = "1.4.0"
 DataAPI = "1.16.0"
 Makie = "0.24.6"
+RCall = "0.14.9"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"

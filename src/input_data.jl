@@ -43,19 +43,19 @@ function Base.show(io::IO, ::MIME"text/plain", estimate::SpatialData)
 end
 
 """
-    spatial_data(data, region::R)
+    spatial_data(data, region::R, [names])
 
 Creates a `SpatialData` object from raw spatial data and a specified region.
 Automatically unpacks, validates, and masks the input data to the specified region.
 """
-function spatial_data(data, region)
+function spatial_data(data, region, names = nothing)
     @argcheck data isa Union{PointSet, GeoTable} ||
               all(x -> x isa Union{PointSet, GeoTable}, data)
 
     formatted_data = unpack_observations(data)
     check_observations(formatted_data, region)
     masked_data = mask(formatted_data, region) # note this will copy
-    names = defaultnames(masked_data)
+    names = defaultnames(masked_data, names) # will suggest names if none provided
     return SpatialData(masked_data, region, names)
 end
 
@@ -92,8 +92,15 @@ const MultipleSpatialDataTuple{P, D, R, N} = SpatialData{<:NTuple{P, Any}, D, R,
 const MultipleSpatialDataVec{D, R, N} = SpatialData{<:Vector, D, R, N}
 
 # eventually will have proper names support, but for now downstream will always support names
-defaultnames(data::Union{Tuple, Vector}) = 1:length(data)
-defaultnames(data) = 1
+defaultnames(data::Union{Tuple, Vector}, ::Nothing) = 1:length(data)
+defaultnames(data, ::Nothing) = 1
+function defaultnames(data::Union{Tuple, Vector}, names)
+    @argcheck length(names) == length(data)
+    names
+end
+function defaultnames(data, names)
+    names
+end
 
 # Helper function to ensure observations are in a supported format
 abstract type SpatialDataUnpackMethod end

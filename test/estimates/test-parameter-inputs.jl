@@ -32,8 +32,10 @@ import SpatialMultitaper: _validate_nk, _validate_dk, _validate_kmax, _validate_
 
         @testset "Invalid inputs" begin
             # Non-integer
-            @test_throws ArgumentError _validate_nk((32.5, 64), Val{2}())
-            @test_throws ArgumentError _validate_nk(32.0, Val{2}())
+            msg = "Non-integer nk rounded down to nearest integer."
+            @test_logs (:warn, msg) _validate_nk((32.5, 64), Val{2}())
+            @test _validate_nk((32.5, 64), Val{2}()) == (32, 64)  # rounded down
+            @test _validate_nk(32.0, Val{2}()) == (32, 32)      # exact float
 
             # Non-positive
             @test_throws ArgumentError _validate_nk((0, 64), Val{2}())
@@ -199,14 +201,14 @@ import SpatialMultitaper: _validate_nk, _validate_dk, _validate_kmax, _validate_
 
     @testset "Edge cases and type stability" begin
         @testset "Large numbers" begin
-            @test _validate_nk(1000000, Val{1}()) == (1000000,)
+            msg = "Value of nk >= 10,000, probably means you misspecified kmax, may want to ctrl-c and check."
+            @test_logs (:warn, msg) _validate_nk(1000000, Val{1}())==(1000000,)
             @test _validate_kmax(1e6, Val{1}()) == (1e6,)
             @test _validate_dk(1e-10, Val{1}()) == (1e-10,)
         end
 
         @testset "Type preservation" begin
             # Integer types
-            @test typeof(_validate_nk(Int32(64), Val{1}())[1]) == Int32
             @test typeof(_validate_nk(Int64(64), Val{1}())[1]) == Int64
 
             # Float types

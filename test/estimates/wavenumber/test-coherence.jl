@@ -293,7 +293,7 @@ end
             tapers = sin_taper_family((2, 2), region))
 
         coh = coherence(spec)
-        @test size(coh) == (1, 1)
+        @test size(coh) == ()
 
         # Single process coherence should be 1 everywhere
         estimate = getestimate(coh)

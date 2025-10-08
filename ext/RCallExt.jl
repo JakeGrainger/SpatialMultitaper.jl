@@ -4,7 +4,7 @@ using SpatialMultitaper
 using RCall
 
 import SpatialMultitaper: IsotropicEstimate, SpatialData, getargument, getestimate,
-                          getestimatename
+                          getestimatename, getshortestimatename
 import RCall.CategoricalArrays: CategoricalArray, levels
 import RCall: rcopy, RClass, rcopytype, sexp, protect, unprotect, setclass!, sexpclass,
               setattrib!
@@ -13,15 +13,27 @@ import RCall: rcopy, RClass, rcopytype, sexp, protect, unprotect, setclass!, sex
 sexpclass(::IsotropicEstimate) = RClass{:fv}
 
 function sexp(::Type{RClass{:fv}}, est::IsotropicEstimate)
-    r = protect(sexp(Dict(:r => getargument(est), :values => getestimate(est))))
+    radii = getargument(est)
+    name = getshortestimatename(est)
+    dict = if size(est) == ()
+        Dict(name => getestimate(est))
+    else
+        Dict(name * "[$i,$j]" => getestimate(est[i, j]) for i in 1:size(est)[1]
+        for j in 1:size(est)[2] if i <= j)
+    end
+    default_name = size(est) == () ? name : name * "[1,2]"
+    dict["r"] = radii
+    labels = collect(keys(dict))
+
+    r = protect(sexp(dict))
     setattrib!(r, "argu", "r")
-    setattrib!(r, "valu", "values")
-    setattrib!(r, "ylab", getestimatename(est))
-    setattrib!(r, "yexp", getestimatename(est))
-    setattrib!(r, "fmla", "r~values")
-    setattrib!(r, "alim", [extrema(getestimate(est))...])
-    setattrib!(r, "labl", ["r", getestimatename(est)])
-    setattrib!(r, "desc", ["r", getestimatename(est)])
+    setattrib!(r, "valu", default_name)
+    setattrib!(r, "ylab", getshortestimatename(est) * "(r)")
+    setattrib!(r, "yexp", getshortestimatename(est) * "(r)")
+    setattrib!(r, "fmla", "r~$default_name")
+    setattrib!(r, "alim", [extrema(radii)...])
+    setattrib!(r, "labl", labels)
+    setattrib!(r, "desc", labels)
     setattrib!(r, "units", "NULL")
     setattrib!(r, "fname", "NULL")
     setattrib!(r, "dotnames", "NULL")

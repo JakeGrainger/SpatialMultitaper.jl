@@ -49,8 +49,15 @@ getestimatename(T::Type{<:MarginalAbstractEstimate}) = getbaseestimatename(T)
 getestimatename(T::Type{<:PartialAbstractEstimate}) = "partial " * getbaseestimatename(T)
 getestimatename(est::AbstractEstimate) = getestimatename(typeof(est))
 
+getshortbaseestimatename(T) = getbaseestimatename(T)
+getshortestimatename(T::Type{<:MarginalAbstractEstimate}) = getshortbaseestimatename(T)
+function getshortestimatename(T::Type{<:PartialAbstractEstimate})
+    "partial " * getshortbaseestimatename(T)
+end
+getshortestimatename(est::AbstractEstimate) = getshortestimatename(typeof(est))
+
 Meshes.embeddim(::AbstractEstimate{E, D}) where {E, D} = D
-Base.size(est::AbstractEstimate) = length.(processnames(est))
+Base.size(est::AbstractEstimate) = size(getprocessinformation(est).mean_product)
 function processnames(estimate::AbstractEstimate)
     processinfo = getprocessinformation(estimate)
     (processinfo.process_indices_1, processinfo.process_indices_2)

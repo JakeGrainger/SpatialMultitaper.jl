@@ -18,10 +18,10 @@ function sexp(::Type{RClass{:fv}}, est::IsotropicEstimate)
     dict = if size(est) == ()
         Dict(name => getestimate(est))
     else
-        Dict(name * "[$i,$j]" => getestimate(est[i, j]) for i in 1:size(est)[1]
+        Dict(name * "[$i$j]" => getestimate(est[i, j]) for i in 1:size(est)[1]
         for j in 1:size(est)[2] if i <= j)
     end
-    default_name = size(est) == () ? name : name * "[1,2]"
+    default_name = size(est) == () ? name : name * "[12]"
     dict["r"] = radii
     labels = collect(keys(dict))
 
@@ -30,16 +30,17 @@ function sexp(::Type{RClass{:fv}}, est::IsotropicEstimate)
     setattrib!(r, "valu", default_name)
     setattrib!(r, "ylab", getshortestimatename(est) * "(r)")
     setattrib!(r, "yexp", getshortestimatename(est) * "(r)")
-    setattrib!(r, "fmla", "r~$default_name")
+    setattrib!(r, "fmla", ".~r")
     setattrib!(r, "alim", [extrema(radii)...])
     setattrib!(r, "labl", labels)
+    setattrib!(r, "names", labels)
     setattrib!(r, "desc", labels)
-    setattrib!(r, "units", "NULL")
-    setattrib!(r, "fname", "NULL")
-    setattrib!(r, "dotnames", "NULL")
-    setattrib!(r, "shade", "NULL")
+    setattrib!(r, "fname", labels)
+    setattrib!(r, "dotnames", labels)
+    # setattrib!(r, "units", "NULL")
+    # setattrib!(r, "shade", "NULL")
 
-    setclass!(r, sexp("fv"))
+    setclass!(r, sexp(["fv", "data.frame"]))
     unprotect(1)
     return r
 end

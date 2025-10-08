@@ -24,9 +24,15 @@ function _validate_dims(x::Number, ::Val{D}) where {D}
 end
 
 function _validate_nk(nk, ::Val{D}) where {D}
-    @argcheck all(@. nk isa Integer)
-    @argcheck all(@. nk > 0)
-    return _validate_dims(nk, Val{D}())
+    _nk = floor.(Int, nk)
+    if !all(@. nk == _nk)
+        @warn "Non-integer nk rounded down to nearest integer."
+    end
+    if any(@. _nk >= 10_000)
+        @warn "Value of nk >= 10,000, probably means you misspecified kmax, may want to ctrl-c and check."
+    end
+    @argcheck all(@. _nk > 0)
+    return _validate_dims(_nk, Val{D}())
 end
 
 function _validate_dk(dk, ::Val{D}) where {D}

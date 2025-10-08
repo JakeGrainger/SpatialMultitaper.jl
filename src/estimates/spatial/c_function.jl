@@ -81,7 +81,8 @@ via inverse Fourier transform with appropriate spatial weighting.
 # Returns
 A `CFunction` object containing the spatial C function.
 """
-function c_function(data::SpatialData; radii, rotational_wavenumber_radii = nothing,
+function c_function(data::SpatialData; radii = default_radii(data),
+        rotational_wavenumber_radii = nothing,
         rotational_method = nothing, kwargs...)::CFunction
     spectrum = spectra(data; kwargs...)
     wavenumber_radii_processed = process_c_rotational_radii(
@@ -100,6 +101,12 @@ process_c_rotational_radii(spectrum, radii) = radii
 default_c_rotational_kernel(spectrum) = NoRotational()
 default_c_rotational_radii(spectrum) = default_rotational_radii(spectrum)
 
+function default_radii(data::SpatialData)
+    region = getregion(data)
+    short_side = Meshes.ustrip(minimum(sides(region)))
+    return range(0, short_side / 3, length = 100)
+end
+
 """
     c_function(spectrum::Spectra; radii, wavenumber_radii, rotational_method)
 
@@ -114,7 +121,7 @@ Compute spatial C function from a spectral estimate.
 # Returns
 A `CFunction` object with the C function values.
 """
-function c_function(spectrum::Spectra; radii,
+function c_function(spectrum::Spectra; radii = default_radii(data),
         wavenumber_radii = process_c_rotational_kernel(spectrum, nothing),
         rotational_method = process_c_rotational_kernel(spectrum, nothing))
     rot_spec = rotational_estimate(
@@ -122,7 +129,7 @@ function c_function(spectrum::Spectra; radii,
     return _c_function(rot_spec, radii)
 end
 
-function c_function(spectrum::RotationalSpectra; radii)
+function c_function(spectrum::RotationalSpectra; radii = default_radii(data))
     _c_function(spectrum, radii)
 end
 
@@ -131,7 +138,7 @@ function partial_c_function(data, region; kwargs...)::CFunction{PartialTrait}
 end
 
 function partial_c_function(
-        data::SpatialData; radii, spectra_kwargs...)::CFunction{PartialTrait}
+        data::SpatialData; radii = default_radii(data), spectra_kwargs...)::CFunction{PartialTrait}
     f_mt = partial_spectra(data; spectra_kwargs...)
     return c_function(f_mt; radii = radii)
 end

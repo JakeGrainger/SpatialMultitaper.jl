@@ -12,6 +12,7 @@ end
 
 const RotationalSpectra{E, D, S <: Spectra} = RotationalEstimate{E, D, S}
 const NormalOrRotationalSpectra{E} = Union{Spectra{E}, RotationalSpectra{E}}
+getshortestimatename(::Type{<:Spectra}) = "f"
 getargument(est::Spectra) = est.wavenumber
 getestimate(est::Spectra) = est.power
 

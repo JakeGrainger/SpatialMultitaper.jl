@@ -47,7 +47,7 @@ struct CFunction{E, D, A, T, IP, IE} <: IsotropicEstimate{E, D}
         return new{E, D, A, T, IP, IE}(radii, value, processinfo, estimationinfo)
     end
 end
-
+getshortbaseestimatename(::Type{<:CFunction}) = "C"
 getbaseestimatename(::Type{<:CFunction}) = "C function"
 getargument(f::CFunction) = f.radii
 getestimate(f::CFunction) = f.value

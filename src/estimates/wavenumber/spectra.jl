@@ -16,6 +16,10 @@ getshortestimatename(::Type{<:Spectra}) = "f"
 getargument(est::Spectra) = est.wavenumber
 getestimate(est::Spectra) = est.power
 
+function rotational_spectra(args..., kwargs...)
+    rotational_estimate(spectra(args...; kwargs...))
+end
+
 """
     spectra(data, region; nk, kmax, tapers, mean_method = DefaultMean())
 

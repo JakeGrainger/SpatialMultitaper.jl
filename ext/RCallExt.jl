@@ -36,7 +36,7 @@ function sexp(::Type{RClass{:fv}}, est::IsotropicEstimate)
     setattrib!(r, "names", labels)
     setattrib!(r, "desc", labels)
     setattrib!(r, "fname", labels)
-    setattrib!(r, "dotnames", labels)
+    setattrib!(r, "dotnames", setdiff(labels, "r"))
     # setattrib!(r, "units", "NULL")
     # setattrib!(r, "shade", "NULL")
 

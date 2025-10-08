@@ -16,10 +16,10 @@ getshortestimatename(::Type{<:Spectra}) = "f"
 getargument(est::Spectra) = est.wavenumber
 getestimate(est::Spectra) = est.power
 
-function rotational_spectra(args..., kwargs...)
+function rotational_spectra(args...; kwargs...)
     real(rotational_estimate(spectra(args...; kwargs...))) # real valued as isotropic
 end
-function rotational_coherence(args..., kwargs...)
+function rotational_coherence(args...; kwargs...)
     real(rotational_estimate(coherence(args...; kwargs...))) # real valued as isotropic
 end
 

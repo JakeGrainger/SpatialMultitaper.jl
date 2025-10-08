@@ -332,7 +332,7 @@ end
     @testset "Process indexing" begin
         rot_sub = rot_spec[1, 2]
         @test rot_sub isa RotationalEstimate
-        @test size(rot_sub) == (1, 1)
+        @test size(rot_sub) == ()
         @test getargument(rot_sub) == getargument(rot_spec)  # Same radii
     end
 
@@ -344,7 +344,7 @@ end
         if length(radii) > 2
             rot_radius = rot_spec[1, 1, 3]  # 3rd radius point
             @test rot_radius isa RotationalEstimate
-            @test size(rot_radius) == (1, 1)
+            @test size(rot_radius) == ()
 
             radius_arg = getargument(rot_radius)
             @test length(radius_arg) == 1

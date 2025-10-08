@@ -70,7 +70,7 @@ end
         tapers = sin_taper_family((2, 2), region)
 
         spec = spectra(grids, nk = nk, kmax = kmax, tapers = tapers)
-        @test size(spec) == (1, 1)
+        @test size(spec) == ()
         @test embeddim(spec) == 2
     end
 
@@ -82,7 +82,7 @@ end
         tapers = sin_taper_family((2, 2), region)
 
         spec = spectra(data, nk = nk, kmax = kmax, tapers = tapers)
-        @test size(spec) == (1, 1)
+        @test size(spec) == ()
     end
 end
 
@@ -187,13 +187,13 @@ end
 
     @testset "Process indexing" begin
         spec_sub = spec[1, 2]
-        @test size(spec_sub) == (1, 1)  # Single process pair
+        @test size(spec_sub) == ()  # Single process pair
         @test getargument(spec_sub) == getargument(spec)  # Same wavenumbers
     end
 
     @testset "Wavenumber indexing" begin
         spec_wavenumber = spec[1, 1, 3, 4]  # specific wavenumber bin
-        @test size(spec_wavenumber) == (1, 1)
+        @test size(spec_wavenumber) == ()
         wavenumber_arg = getargument(spec_wavenumber)
         @test length(wavenumber_arg[1]) == 1  # Single wavenumber
         @test length(wavenumber_arg[2]) == 1
@@ -213,7 +213,7 @@ end
 
         # Should not crash but might have limited meaningful results
         spec = spectra(data, nk = nk, kmax = kmax, tapers = tapers)
-        @test size(spec) == (1, 1)
+        @test size(spec) == ()
     end
 end
 

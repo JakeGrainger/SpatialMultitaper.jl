@@ -231,12 +231,12 @@ end
     @testset "Indexing operations" begin
         # Test process indexing
         partial_sub = partial_spec[1, 2]
-        @test size(partial_sub) == (1, 1)
+        @test size(partial_sub) == ()
         @test is_partial(partial_sub) == true
 
         # Test wavenumber indexing
         partial_wavenumber = partial_spec[1, 1, 2, 3]
-        @test size(partial_wavenumber) == (1, 1)
+        @test size(partial_wavenumber) == ()
         @test is_partial(partial_wavenumber) == true
     end
 
@@ -308,7 +308,7 @@ end
 
         partial_spec = partial_spectra(spec)
 
-        @test size(partial_spec) == (1, 1)
+        @test size(partial_spec) == ()
         @test is_partial(partial_spec) == true
 
         # For single process, partial spectrum should equal to the original

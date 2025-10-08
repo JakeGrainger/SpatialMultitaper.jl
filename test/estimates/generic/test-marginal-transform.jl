@@ -224,14 +224,14 @@ end
     @testset "Process indexing" begin
         real_sub = real_spec[1, 2]
         @test real_sub isa MarginallyTransformedEstimate
-        @test size(real_sub) == (1, 1)
+        @test size(real_sub) == ()
         @test getargument(real_sub) == getargument(real_spec)
     end
 
     @testset "Wavenumber indexing" begin
         real_wavenumber = real_spec[1, 1, 2, 3]
         @test real_wavenumber isa MarginallyTransformedEstimate
-        @test size(real_wavenumber) == (1, 1)
+        @test size(real_wavenumber) == ()
 
         # Check wavenumber was correctly indexed
         wavenumber_arg = getargument(real_wavenumber)
@@ -288,7 +288,7 @@ end
             tapers = sin_taper_family((1, 1), region))
 
         abs_spec = abs(spec)
-        @test size(abs_spec) == (1, 1)
+        @test size(abs_spec) == ()
         @test embeddim(abs_spec) == 2
     end
 end

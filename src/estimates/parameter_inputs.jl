@@ -24,7 +24,7 @@ function _validate_dims(x::Number, ::Val{D}) where {D}
 end
 
 function _validate_nk(nk, ::Val{D}) where {D}
-    _nk = floor.(Int, nk)
+    _nk = floor.(Integer, nk)
     if !all(@. nk == _nk)
         @warn "Non-integer nk rounded down to nearest integer."
     end

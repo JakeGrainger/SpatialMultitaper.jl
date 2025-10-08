@@ -49,7 +49,10 @@ getestimatename(T::Type{<:MarginalAbstractEstimate}) = getbaseestimatename(T)
 getestimatename(T::Type{<:PartialAbstractEstimate}) = "partial " * getbaseestimatename(T)
 getestimatename(est::AbstractEstimate) = getestimatename(typeof(est))
 
-getshortbaseestimatename(T) = getbaseestimatename(T)
+getshortbaseestimatename(est::AbstractEstimate) = getshortbaseestimatename(typeof(est))
+function getshortbaseestimatename(T::Type{<:AbstractEstimate})
+    getbaseestimatename(T::Type{<:AbstractEstimate})
+end
 getshortestimatename(T::Type{<:MarginalAbstractEstimate}) = getshortbaseestimatename(T)
 function getshortestimatename(T::Type{<:PartialAbstractEstimate})
     "partial " * getshortbaseestimatename(T)

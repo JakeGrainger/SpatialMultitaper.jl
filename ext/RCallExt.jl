@@ -4,7 +4,8 @@ using SpatialMultitaper
 using RCall
 
 import SpatialMultitaper: IsotropicEstimate, SpatialData, getargument, getestimate,
-                          getestimatename, getshortestimatename
+                          getestimatename, getshortestimatename, getshortbaseestimatename,
+                          processnames
 import RCall.CategoricalArrays: CategoricalArray, levels
 import RCall: rcopy, RClass, rcopytype, sexp, protect, unprotect, setclass!, sexpclass,
               setattrib!
@@ -13,29 +14,39 @@ import RCall: rcopy, RClass, rcopytype, sexp, protect, unprotect, setclass!, sex
 sexpclass(::IsotropicEstimate) = RClass{:fv}
 
 function sexp(::Type{RClass{:fv}}, est::IsotropicEstimate)
-    radii = getargument(est)
+    radii = collect(getargument(est))
+    proc_names_1, proc_names_2 = processnames(est)
     name = getshortestimatename(est)
-    dict = if size(est) == ()
-        Dict(name => getestimate(est))
+    very_short_name = replace(getshortbaseestimatename(est), " " => "_")
+    store = if size(est) == ()
+        NamedTuple(Symbol(very_short_name) => getestimate(est) for _ in 1:1)
     else
-        Dict(name * "[$i$j]" => getestimate(est[i, j]) for i in 1:size(est)[1]
-        for j in 1:size(est)[2] if i <= j)
+        NamedTuple(Symbol(very_short_name * "[$i$j]") => getestimate(est[i, j])
+        for i in 1:size(est)[1] for j in 1:size(est)[2] if i <= j)
     end
-    default_name = size(est) == () ? name : name * "[12]"
-    dict["r"] = radii
-    labels = collect(keys(dict))
+    desc = if size(est) == ()
+        [name * " between $proc_names_1 and $proc_names_2"]
+    else
+        [name * " between $(proc_names_1[i]) and $(proc_names_2[j])" for i in 1:size(est)[1]
+         for j in 1:size(est)[2] if i <= j]
+    end
 
-    r = protect(sexp(dict))
+    default_name = size(est) == () ? very_short_name : very_short_name * "[12]"
+    store = (r = radii, store...)
+    labels = string.(collect(keys(store)))
+    desc = ["distance r"; desc]
+
+    r = protect(sexp(store))
     setattrib!(r, "argu", "r")
     setattrib!(r, "valu", default_name)
-    setattrib!(r, "ylab", getshortestimatename(est) * "(r)")
-    setattrib!(r, "yexp", getshortestimatename(est) * "(r)")
+    setattrib!(r, "ylab", name * "(r)")
+    setattrib!(r, "yexp", name * "(r)")
     setattrib!(r, "fmla", ".~r")
     setattrib!(r, "alim", [extrema(radii)...])
     setattrib!(r, "labl", labels)
     setattrib!(r, "dotnames", setdiff(labels, ["r"]))
     setattrib!(r, "names", labels)
-    setattrib!(r, "desc", labels)
+    setattrib!(r, "desc", desc)
     setattrib!(r, "fname", labels)
     # setattrib!(r, "units", "NULL")
     # setattrib!(r, "shade", "NULL")

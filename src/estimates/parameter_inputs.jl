@@ -28,7 +28,7 @@ function _validate_nk(nk, ::Val{D}) where {D}
     if !all(@. nk == _nk)
         @warn "Non-integer nk rounded down to nearest integer."
     end
-    if any(@. _nk >= 1_000)
+    if D > 1 && any(@. _nk >= 1_000)
         @warn "Number of wavenumbers `nk` >= 1000, probably means you misspecified kmax, may want to ctrl-c and check."
     end
     @argcheck all(@. _nk > 0)

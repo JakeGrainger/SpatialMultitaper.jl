@@ -38,12 +38,6 @@ MakieExt = "Makie"
 RCallExt = "RCall"
 
 [compat]
-Aqua = "0.8.14"
-ArgCheck = "2.5.0"
-CircularArrays = "1.4.0"
-DataAPI = "1.16.0"
-Makie = "0.24.6"
-RCall = "0.14.9"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"

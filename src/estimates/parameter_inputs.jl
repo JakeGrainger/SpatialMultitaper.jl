@@ -28,7 +28,7 @@ function _validate_nk(nk, ::Val{D}) where {D}
     if !all(@. nk == _nk)
         @warn "Non-integer nk rounded down to nearest integer."
     end
-    if D > 1 && any(@. _nk >= 1_000)
+    if D > 1 && any(@. _nk >= 1000)
         @warn "Number of wavenumbers `nk` >= 1000, probably means you misspecified kmax, may want to ctrl-c and check."
     end
     @argcheck all(@. _nk > 0)
@@ -66,17 +66,22 @@ function _validate_wavenumber_params(::Nothing, kmax, dk, ::SpatialData{T, D}) w
     return _nk, _kmax
 end
 
-function _validate_wavenumber_params(nk::Nothing, kmax::Nothing, dk::Nothing, dim)
+function _validate_wavenumber_params(nk::Nothing, kmax, ::Nothing, data::SpatialData)
+    dk = default_dk(data, nk, kmax)
+    return _validate_wavenumber_params(nk, kmax, dk, data)
+end
+
+function _validate_wavenumber_params(nk, kmax::Nothing, ::Nothing, data::SpatialData)
+    dk = default_dk(data, nk, kmax)
+    return _validate_wavenumber_params(nk, kmax, dk, data)
+end
+
+function _validate_wavenumber_params(
+        nk::Nothing, kmax::Nothing, dk::Nothing, data::SpatialData)
     error("Must specify at least two of nk, kmax, or dk.")
 end
-function _validate_wavenumber_params(nk::Nothing, kmax::Nothing, dk, dim)
+function _validate_wavenumber_params(nk::Nothing, kmax::Nothing, dk, data::SpatialData)
     error("Must specify at least two of nk, kmax, or dk, not just dk.")
-end
-function _validate_wavenumber_params(nk::Nothing, kmax, dk::Nothing, dim)
-    error("Must specify at least two of nk, kmax, or dk, not just kmax.")
-end
-function _validate_wavenumber_params(nk, kmax::Nothing, dk::Nothing, dim)
-    error("Must specify at least two of nk, kmax, or dk, not just nk.")
 end
 
 # default tapers
@@ -85,7 +90,7 @@ function _validate_tapers(tapers::TaperFamily, region, nw)
 end
 function _validate_tapers(::Nothing, region::Box, nw)
     @argcheck all(nw .> 0)
-    M = floor(Int, 2 .* nw .+ 1)
+    M = floor(Int, 2 .* nw .- 1)
     M = _validate_dims(M, Val{embeddim(region)}())
     return sin_taper_family(M, region)
 end
@@ -94,4 +99,21 @@ function _validate_tapers(::Nothing, region, nw)
     @argcheck nw > 0
     bandwidth = nw / Meshes.ustrip(minimum(sides(boundingbox(region))))
     return make_tapers(region, bandwidth = bandwidth)[1]
+end
+
+function default_radii(data::SpatialData)
+    region = getregion(data)
+    short_side = Meshes.ustrip(minimum(sides(region)))
+    return range(0, short_side / 3, length = 100)
+end
+
+function _validate_radii(::Nothing, data::SpatialData)
+    return default_radii(data)
+end
+
+function _validate_radii(radii, data::SpatialData)
+    @argcheck all(radii .>= 0)
+    side_length = sides(boundingbox(getregion(data)))
+    @argcheck all(radii .<= Meshes.ustrip(minimum(side_length)))
+    return radii
 end

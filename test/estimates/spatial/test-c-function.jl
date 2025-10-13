@@ -307,11 +307,10 @@ end
         points_data, radii = small_radii, nk = (8, 8), kmax = (0.5, 0.5), tapers = tapers)
     @test all(x -> all(isfinite.(x)), getestimate(result))
 
-    # Test large radii
-    large_radii = [2.0, 5.0]
-    result_large = c_function(
+    # radii outside region size should error
+    large_radii = [2.0, 100.0]
+    @test_throws ArgumentError c_function(
         points_data, radii = large_radii, nk = (8, 8), kmax = (0.5, 0.5), tapers = tapers)
-    @test all(x -> all(isfinite.(x)), getestimate(result_large))
 end
 
 @testset "isotropic transformation in 2d" begin

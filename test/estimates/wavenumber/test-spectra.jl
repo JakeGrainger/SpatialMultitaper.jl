@@ -4,10 +4,10 @@ using .TestData
 
 import SpatialMultitaper: Spectra, getargument, getestimate, _dft_to_spectral_matrix,
                           _compute_spectral_matrix, _make_wavenumber_grid,
-                          getestimationinformation,
-                          ProcessInformation, EstimationInformation, MarginalTrait,
-                          MultipleVectorTrait, SingleProcessTrait, MultipleTupleTrait,
-                          _compute_spectral_matrix!
+                          getestimationinformation, ProcessInformation,
+                          EstimationInformation, MarginalTrait, MultipleVectorTrait,
+                          SingleProcessTrait, MultipleTupleTrait, _compute_spectral_matrix!,
+                          _validate_tapers
 
 @testset "Spectra Construction" begin
     rng = StableRNG(123)
@@ -223,8 +223,8 @@ end
     nk = (6, 6)
     kmax = (0.3, 0.3)
     region = getregion(data)
-    tapers = sin_taper_family((2, 2), region)
-    spec = spectra(data, nk = nk, kmax = kmax, nw = 2)
+    tapers = sin_taper_family((3, 3), region)
+    spec = spectra(data, nk = nk, kmax = kmax, nw = 2) # so number of tapers = 2*2-1=3
     spec2 = spectra(data, nk = nk, kmax = kmax, tapers = tapers)
     @test spec == spec2
 end

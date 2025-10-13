@@ -17,28 +17,6 @@ getargument(est::Spectra) = est.wavenumber
 getestimate(est::Spectra) = est.power
 
 """
-    rotational_spectra(args...; kwargs...)
-
-Computes a rotationally averaged spectrum.
-
-See `spectra` for argument details.
-"""
-function rotational_spectra(args...; kwargs...)
-    real(rotational_estimate(spectra(args...; kwargs...))) # real valued as isotropic
-end
-
-"""
-    rotational_coherence(args...; kwargs...)
-
-Computes a rotationally averaged coherence.
-
-See `spectra` for argument details.
-"""
-function rotational_coherence(args...; kwargs...)
-    real(rotational_estimate(coherence(args...; kwargs...))) # real valued as isotropic
-end
-
-"""
     spectra(data; nk, kmax, tapers, mean_method = DefaultMean())
 
 Compute the multitaper spectral estimate from a tapered DFT.
@@ -92,7 +70,7 @@ function spectra(data, region::Meshes.Geometry; kwargs...)::Spectra
     return spectra(spatial_data(data, region); kwargs...)
 end
 
-function spectra(data::SpatialData; nk = nothing, kmax, dk = default_dk(data, nk, kmax),
+function spectra(data::SpatialData; nk = nothing, kmax, dk = nothing,
         tapers = nothing, nw = 3, mean_method::MeanEstimationMethod = DefaultMean())::Spectra
     tapers = _validate_tapers(tapers, getregion(data), nw)
     all_mem = preallocate_spectra(data; nk = nk, kmax = kmax, dk = dk, tapers = tapers)
@@ -101,7 +79,7 @@ function spectra(data::SpatialData; nk = nothing, kmax, dk = default_dk(data, nk
 end
 
 function preallocate_spectra(
-        data::SpatialData; nk = nothing, kmax, dk = default_dk(data, nk, kmax), tapers = nothing, nw = 3)
+        data::SpatialData; nk = nothing, kmax, dk = nothing, tapers = nothing, nw = 3)
     _nk, _kmax = _validate_wavenumber_params(nk, kmax, dk, data)
     tapers = _validate_tapers(tapers, getregion(data), nw)
     mem = preallocate_tapered_dft(data, tapers, _nk, _kmax)
@@ -110,7 +88,7 @@ function preallocate_spectra(
 end
 
 function spectra!(
-        all_mem, data::SpatialData; nk = nothing, kmax, dk = default_dk(data, nk, kmax),
+        all_mem, data::SpatialData; nk = nothing, kmax, dk = nothing,
         tapers = nothing, nw = 3, mean_method::MeanEstimationMethod = DefaultMean())::Spectra
     _nk, _kmax = _validate_wavenumber_params(nk, kmax, dk, data)
     wavenumber = _make_wavenumber_grid(_nk, _kmax)

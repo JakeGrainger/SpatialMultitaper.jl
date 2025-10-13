@@ -25,7 +25,6 @@ include("utils.jl")
 include("tapers/tapers.jl")
 include("mean.jl")
 include("tapered_dft.jl")
-include("input_checking.jl") # to remove
 include("covariance_zero_atom.jl")
 
 include("estimates/process_traits.jl")

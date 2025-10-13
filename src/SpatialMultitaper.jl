@@ -14,14 +14,13 @@ import BSplineKit
 include("SlepianSolver/SlepianSolver.jl")
 using .SlepianSolver
 
-include("tapers/general_tapers.jl")
+include("utils.jl")
 
 include("dft_interface/wavenumbers.jl")
 include("dft_interface/nufft_interface.jl")
 include("dft_interface/fft_interface.jl")
 
 include("input_data.jl")
-include("utils.jl")
 include("tapers/tapers.jl")
 include("mean.jl")
 include("tapered_dft.jl")

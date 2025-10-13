@@ -102,7 +102,7 @@ end
 
 function default_radii(data::SpatialData)
     region = getregion(data)
-    short_side = Meshes.ustrip(minimum(sides(region)))
+    short_side = Meshes.ustrip(minimum(sides(boundingbox(region))))
     return range(0, short_side / 3, length = 100)
 end
 

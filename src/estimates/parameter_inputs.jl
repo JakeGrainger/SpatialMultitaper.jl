@@ -85,8 +85,9 @@ function _validate_tapers(tapers::TaperFamily, region, nw)
 end
 function _validate_tapers(::Nothing, region::Box, nw)
     @argcheck all(nw .> 0)
-    _nw = _validate_dims(nw, Val{embeddim(region)}())
-    return sin_taper_family(_nw, region)
+    M = floor(Int, 2 .* nw .+ 1)
+    M = _validate_dims(M, Val{embeddim(region)}())
+    return sin_taper_family(M, region)
 end
 function _validate_tapers(::Nothing, region, nw)
     @argcheck nw isa Int

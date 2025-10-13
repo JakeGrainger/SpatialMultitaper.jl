@@ -55,6 +55,12 @@ end
 function getestimatename(T::Type{<:MarginallyTransformedEstimate})::String
     return "$(gettransformname(T))($(getestimatename(getoriginaltype(T))))"
 end
+function getshortestimatename(T::Type{<:MarginallyTransformedEstimate})::String
+    return "$(gettransformname(T))($(getshortestimatename(getoriginaltype(T))))"
+end
+function getshortbaseestimatename(T::Type{<:MarginallyTransformedEstimate})::String
+    return "$(gettransformname(T))($(getshortbaseestimatename(getoriginaltype(T))))"
+end
 function getestimate(est::MarginallyTransformedEstimate)
     return est.estimate
 end

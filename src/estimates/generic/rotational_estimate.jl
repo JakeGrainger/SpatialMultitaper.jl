@@ -128,6 +128,37 @@ function getestimatename(::Type{<:RotationalEstimate{E, D, S}}) where {E, D, S}
         end
     end
 end
+function getshortestimatename(::Type{<:RotationalEstimate{E, D, S}}) where {E, D, S}
+    original_name = getshortbaseestimatename(S)
+
+    if E === MarginalTrait
+        return "rotational " * original_name
+    elseif E === PartialTrait
+        # Check if original was marginal or partial to determine order
+        original_trait = _extract_estimate_trait(S)
+        if original_trait === MarginalTrait
+            return "partial rotational " * original_name  # Partial applied after rotational
+        else
+            return "rotational partial " * original_name  # Rotational applied after partial
+        end
+    end
+end
+function getshortbaseestimatename(::Type{<:RotationalEstimate{E, D, S}}) where {E, D, S}
+    original_name = getshortbaseestimatename(S)
+
+    if E === MarginalTrait
+        return "rotational " * original_name
+    elseif E === PartialTrait
+        # Check if original was marginal or partial to determine order
+        original_trait = _extract_estimate_trait(S)
+        if original_trait === MarginalTrait
+            return "partial rotational " * original_name  # Partial applied after rotational
+        else
+            return "rotational partial " * original_name  # Rotational applied after partial
+        end
+    end
+end
+
 # Helper function to extract trait from type
 _extract_estimate_trait(::Type{<:AbstractEstimate{T}}) where {T} = T
 

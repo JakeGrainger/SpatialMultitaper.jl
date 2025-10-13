@@ -129,14 +129,26 @@ import SpatialMultitaper: _validate_nk, _validate_dk, _validate_kmax, _validate_
         @testset "Error cases - insufficient parameters" begin
             # No parameters
             @test_throws ErrorException _validate_wavenumber_params(
-                nothing, nothing, nothing, 2)
+                nothing, nothing, nothing, test_data)
 
-            # Only one parameter
-            @test_throws ErrorException _validate_wavenumber_params(32, nothing, nothing, 2)
+            # Only dk parameter (not enough)
             @test_throws ErrorException _validate_wavenumber_params(
-                nothing, 1.0, nothing, 2)
-            @test_throws ErrorException _validate_wavenumber_params(
-                nothing, nothing, 0.1, 2)
+                nothing, nothing, 0.1, test_data)
+        end
+
+        @testset "Single parameter with default_dk" begin
+            # Only nk provided - should work with default dk
+            nk, kmax = _validate_wavenumber_params(64, nothing, nothing, test_data)
+            @test nk == (64, 64)
+            @test kmax isa NTuple{2}
+            @test all(kmax .> 0)
+
+            # Only kmax provided - should work with default dk
+            nk, kmax = _validate_wavenumber_params(nothing, 1.0, nothing, test_data)
+            @test kmax == (1.0, 1.0)
+            @test nk isa NTuple{2}
+            @test all(nk .> 0)
+            @test eltype(nk) == Int
         end
 
         @testset "Consistency checks" begin
@@ -201,8 +213,9 @@ import SpatialMultitaper: _validate_nk, _validate_dk, _validate_kmax, _validate_
 
     @testset "Edge cases and type stability" begin
         @testset "Large numbers" begin
-            msg = "Value of nk >= 10,000, probably means you misspecified kmax, may want to ctrl-c and check."
-            @test_logs (:warn, msg) _validate_nk(1000000, Val{1}())==(1000000,)
+            msg = "Number of wavenumbers `nk` >= 1000, probably means you misspecified kmax, may want to ctrl-c and check."
+            @test_logs (:warn, msg) _validate_nk(1000000, Val{2}())
+            @test _validate_nk(1000000, Val{1}()) == (1000000,)
             @test _validate_kmax(1e6, Val{1}()) == (1e6,)
             @test _validate_dk(1e-10, Val{1}()) == (1e-10,)
         end

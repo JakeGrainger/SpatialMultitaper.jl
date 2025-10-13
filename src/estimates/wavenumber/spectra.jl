@@ -16,33 +16,27 @@ getshortestimatename(::Type{<:Spectra}) = "f"
 getargument(est::Spectra) = est.wavenumber
 getestimate(est::Spectra) = est.power
 
-function rotational_spectra(args...; kwargs...)
-    real(rotational_estimate(spectra(args...; kwargs...))) # real valued as isotropic
-end
-function rotational_coherence(args...; kwargs...)
-    real(rotational_estimate(coherence(args...; kwargs...))) # real valued as isotropic
-end
-
 """
-    spectra(data, region; nk, kmax, tapers, mean_method = DefaultMean())
+    spectra(data; nk, kmax, tapers, mean_method = DefaultMean())
 
 Compute the multitaper spectral estimate from a tapered DFT.
 
 # Arguments
-- `data`: The data to estimate the spectrum from
-- `region`: The region to estimate the spectrum from
+- `data`: The data to estimate the spectrum from, of type `SpatialData`
 - `nk`: The number of wavenumbers in each dimension
 - `kmax`: The maximum wavenumber in each dimension
 - `dk`: The wavenumber spacing in each dimension
 - `tapers`: A tuple of taper functions
-- `mean_method::MeanEstimationMethod`: The method to estimate the mean (default: `DefaultMean()`)
+- `nw`: The space-bandwidth product for generating tapers, used if `tapers` is not provided
+- `mean_method`: The method to estimate the mean (default: `DefaultMean()`)
 
 If one of `nk` and `kmax` is specified, `dk` will be set to a default based on the region.
 Otherwise, you only need to specify two of the three parameters `nk`, `kmax`, and `dk`. They
 can either be scalars (applied uniformly across all dimensions) or tuples specifying each
 dimension. You can mix the two styles, e.g. `nk=100` and `kmax=(0.5, 1.0)` for 2D data.
-`nk` must be an `Int` or tuple of `Int`s and should be positive, `kmax` and `dk` must be
-`Real` or tuples of `Real`s and also positive.
+`nk` should be an `Int` or tuple of `Int`s and must be positive, `kmax` and `dk` must be
+`Real` or tuples of `Real`s and also positive. Real `nk` values will be rounded up to the
+nearest integer.
 
 # Returns
 A `Spectra` object with `wavenumber` and `power` fields:
@@ -53,19 +47,30 @@ A `Spectra` object with `wavenumber` and `power` fields:
   - Vector of P processes: `P × P × n_1 × ... × n_D` array
 
 # Notes
-- Indexing into a `Spectra` object returns a subset with the same `wavenumber`
+- Indexing into a `Spectra` object with two indices indexes into the process dimensions, e.g
+    `S[1, 2]` gives the cross-spectrum between processes 1 and 2.
 - Use `KnownMean(x)` to specify a known mean value
+- You can also pass a `data` and `region` as arguments which will first be passed to
+`spatial_data` to construct a `SpatialData` object.
+
+# Tapers
+- The notion of `nw` used here is taken to mean the side length times the half-bandwidth,
+i.e. `nw = L * W`, where `L` the length of the bounding box in the dimension of interest
+and `W` is the half-bandwidth. In the case of an irregular region, this should be a single
+number, which is used to represent the radius of a circle in wavenumber space on which the
+tapers are concentrated. For more fine control, you should construct your own tapers and
+pass them in.
 
 # Examples
 ```julia
-spec = spectra(data, region, kmax=(0.5, 0.5), tapers=tapers)
+spec = spectra(data, kmax=0.5, nw = 3)
 ```
 """
 function spectra(data, region::Meshes.Geometry; kwargs...)::Spectra
     return spectra(spatial_data(data, region); kwargs...)
 end
 
-function spectra(data::SpatialData; nk = nothing, kmax, dk = default_dk(data, nk, kmax),
+function spectra(data::SpatialData; nk = nothing, kmax, dk = nothing,
         tapers = nothing, nw = 3, mean_method::MeanEstimationMethod = DefaultMean())::Spectra
     tapers = _validate_tapers(tapers, getregion(data), nw)
     all_mem = preallocate_spectra(data; nk = nk, kmax = kmax, dk = dk, tapers = tapers)
@@ -74,7 +79,7 @@ function spectra(data::SpatialData; nk = nothing, kmax, dk = default_dk(data, nk
 end
 
 function preallocate_spectra(
-        data::SpatialData; nk = nothing, kmax, dk = default_dk(data, nk, kmax), tapers = nothing, nw = 3)
+        data::SpatialData; nk = nothing, kmax, dk = nothing, tapers = nothing, nw = 3)
     _nk, _kmax = _validate_wavenumber_params(nk, kmax, dk, data)
     tapers = _validate_tapers(tapers, getregion(data), nw)
     mem = preallocate_tapered_dft(data, tapers, _nk, _kmax)
@@ -83,7 +88,7 @@ function preallocate_spectra(
 end
 
 function spectra!(
-        all_mem, data::SpatialData; nk = nothing, kmax, dk = default_dk(data, nk, kmax),
+        all_mem, data::SpatialData; nk = nothing, kmax, dk = nothing,
         tapers = nothing, nw = 3, mean_method::MeanEstimationMethod = DefaultMean())::Spectra
     _nk, _kmax = _validate_wavenumber_params(nk, kmax, dk, data)
     wavenumber = _make_wavenumber_grid(_nk, _kmax)

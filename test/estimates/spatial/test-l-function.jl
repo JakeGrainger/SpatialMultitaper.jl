@@ -403,10 +403,9 @@ end
     @test all(x -> all(isfinite.(x)), getestimate(result))
 
     # Test large radii
-    large_radii = [2.0, 5.0]
-    result_large = l_function(
+    large_radii = [2.0, 100.0]
+    @test_throws ArgumentError l_function(
         points_data, radii = large_radii, nk = (8, 8), kmax = (0.5, 0.5), tapers = tapers)
-    @test all(x -> all(isfinite.(x)), getestimate(result_large))
 
     # Test L function at zero (should be zero or near zero)
     zero_radius = [0.0]

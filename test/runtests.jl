@@ -79,6 +79,10 @@ if run_all
         include("estimates/wavenumber/test-coherence.jl")
     end
 
+    @safetestset "Rotational functions" begin
+        include("estimates/wavenumber/test-rotational-functions.jl")
+    end
+
     @safetestset "Rotational estimate" begin
         include("estimates/generic/test-rotational-estimate.jl")
     end

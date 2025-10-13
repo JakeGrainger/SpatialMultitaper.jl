@@ -12,13 +12,13 @@ function rotational_spectra(args...; radii = nothing, kwargs...)
 end
 
 """
-    partial_rotational_spectra(args...; radii = nothing, kwargs...)
+    rotational_partial_spectra(args...; radii = nothing, kwargs...)
 
 Computes a rotationally averaged partial spectrum.
 
 See `partial_spectra` for argument details.
 """
-function partial_rotational_spectra(args...; radii = nothing, kwargs...)
+function rotational_partial_spectra(args...; radii = nothing, kwargs...)
     spectrum = partial_spectra(args...; kwargs...)
     radii = _process_rotational_radii(spectrum, radii)
     real(rotational_estimate(spectrum; radii = radii)) # real valued as isotropic

@@ -1,12 +1,12 @@
 # Sin taper family construction utilities.
 
 """
-	make_sin_tapers(lbw, region::Box, gridsize)
+    sin_taper_family(ntapers, region::Box)
 
-Construct the sin tapers for a given region and gridsize.
+Construct the sin tapers for a given region.
 
 # Arguments:
-- `ntapers`: The number of tapers.
+- `ntapers`: The number of tapers per dimension (Int or Tuple of Ints).
 - `region`: The region to construct the tapers on. Must be a box.
 
 # Background:
@@ -15,28 +15,20 @@ The sin tapers on a unit interval are defined as:
 h_m(x) = \\sqrt{2} * \\sin(πxm)
 ```
 """
-function sin_taper_family(ntapers, region::Box)
-    tapers = [make_sin_taper(d, region)
-              for d in Iterators.ProductIterator(range.(1, ntapers))]
-    TaperFamily(tapers[:])
+function sin_taper_family(ntapers::NTuple{D, Int}, region::Box) where {D}
+    @assert embeddim(region)==D "Region dimension must match ntapers dimension"
+    tapers = [SinTaper(modes, region)
+              for modes in Iterators.product(ntuple(d -> 1:ntapers[d], D)...)]
+    TaperFamily(vec(tapers))
 end
 
-function make_sin_taper(m, region)
-    region_sides = getfield.(sides(region), :val)
-    region_start = unitless_coords(minimum(region))
-    phase = exp(-2π * 1im * sum(region_start))
-    function _single_sin_taper(x)
-        prod(
-            sin_taper(x[d] - region_start[d], m[d], region_sides[d])
-        for
-        d in 1:embeddim(region)
-        )
-    end
-    function _single_sin_taper_ft(k)
-        prod(sin_ft(k[d], m[d], region_sides[d]) for d in 1:embeddim(region)) * phase
-    end
-    return Taper(_single_sin_taper, _single_sin_taper_ft)
+# Convenience method for uniform ntapers across all dimensions
+function sin_taper_family(ntapers::Int, region::Box{D}) where {D}
+    sin_taper_family(ntuple(_ -> ntapers, D), region)
 end
+
+# Legacy method name for backward compatibility
+make_sin_taper(modes, region) = SinTaper(modes, region)
 
 sin_taper_base(x, m) = sqrt(2) * sin(π * x * m) * (0 ≤ x ≤ 1)
 sin_taper(x, m, l) = sin_taper_base(x / l, m) / sqrt(l)

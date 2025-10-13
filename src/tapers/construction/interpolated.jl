@@ -36,9 +36,14 @@ function interpolate_tapers(raw_tapers, grid; wavenumber_res = size(grid))
         scaled_taper,
         extrapolation_bc = zero(eltype(raw_tapers))
     )
-    Taper(
+    fourier_transform = InterpolatedTaperFT(
+        DiscreteTaperFT(scaled_taper, grid, wavenumber_res),
+        grid
+    )
+    InterpolatedTaper(
         InterpolatedTaperFunc(taper_interp),
-        InterpolatedTaperFT(DiscreteTaperFT(scaled_taper, grid, wavenumber_res), grid)
+        fourier_transform,
+        grid
     )
 end
 

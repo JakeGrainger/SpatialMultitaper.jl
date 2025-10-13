@@ -30,6 +30,16 @@ function single_taper_on_grid(
         taper::ContinuousTaper, grid::CartesianGrid; wavenumber_res = 500)
     taper_evaluated = reshape(
         map(i -> taper(centroid(grid, i)), eachindex(grid)), size(grid))
-    return discretetaper(
+    return gridtaper(
         taper_evaluated, grid, wavenumber_res = wavenumber_res, rescale = false) # don't rescale as taper transform gets rescaled later and we account for this in the norm
+end
+
+# For GridTaper, return as-is if grids match, otherwise error
+function single_taper_on_grid(
+        taper::GridTaper, grid::CartesianGrid; wavenumber_res = 500)
+    if taper.grid == grid
+        return taper
+    else
+        throw(ArgumentError("GridTaper grid does not match target grid. Convert to InterpolatedTaper first."))
+    end
 end

@@ -1,5 +1,11 @@
-# Core taper type definitions.
+# Core taper type definitions with clear discrete/continuous hierarchy.
 
+# Abstract base types to establish the hierarchy
+abstract type AbstractTaper end
+abstract type DiscreteTaper <: AbstractTaper end
+abstract type ContinuousTaper <: AbstractTaper end
+
+# Helper types for discrete tapers
 struct DiscreteTaperSeq{T <: AbstractArray, G <: CartesianGrid}
     taper::T
     grid::G
@@ -32,15 +38,36 @@ struct InterpolatedTaperFT{H, G <: CartesianGrid}
     grid::G
 end
 
-struct Taper{F, H}
-    taper::F
-    taper_ft::H
+# Discrete space tapers (defined on grids)
+struct GridTaper{T <: AbstractArray, G <: CartesianGrid, H} <: DiscreteTaper
+    values::T           # taper values on grid
+    grid::G            # the grid
+    fourier_transform::H   # precomputed FT for efficiency
+
+    function GridTaper(values::T, grid::G, fourier_transform::H) where {T, G, H}
+        @assert size(values)==size(grid) "Taper values must match grid size"
+        new{T, G, H}(values, grid, fourier_transform)
+    end
 end
 
-# Type aliases for clarity
-const DiscreteTaper = Taper{<:DiscreteTaperSeq, <:DiscreteTaperFT}
-const InterpolatedTaper = Taper{<:InterpolatedTaperFunc, <:InterpolatedTaperFT}
-const ContinuousTaper = Union{InterpolatedTaper, Taper{<:Function, <:Function}}
+# Continuous space tapers derived from interpolation
+struct InterpolatedTaper{I, H, G} <: ContinuousTaper
+    interpolator::I         # interpolation object
+    fourier_transform::H    # FT (may be discrete-based)
+    source_grid::G         # original grid (for FT computation)
+end
+
+# Sin tapers
+struct SinTaper{D} <: ContinuousTaper
+    modes::NTuple{D, Int}    # (m1, m2, ...) mode numbers
+    region::Box             # the region
+
+    function SinTaper(modes::NTuple{D, Int}, region::Box) where {D}
+        @assert all(m -> m > 0, modes) "All mode numbers must be positive"
+        @assert embeddim(region)==D "Region dimension must match modes dimension"
+        new{D}(modes, region)
+    end
+end
 
 # Collection type
 struct TaperFamily{T}

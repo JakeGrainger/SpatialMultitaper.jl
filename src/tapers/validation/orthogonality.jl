@@ -46,7 +46,7 @@ However, when using interpolated tapers, you may also need to increase the resol
 - `min_concentration`: The minimum concentration of the tapers before they are considered invalid and an error is thrown.
 """
 function check_tapers_for_data(
-        data,
+        data::SpatialData,
         tapers,
         bandwidth;
         wavenumber_res = 1000,
@@ -73,10 +73,10 @@ end
 function taper_checks(data, tapers, bandwidth; wavenumber_res = 500)
     @assert bandwidth>0 "Bandwidth must be positive"
 
-    observational_types = unique(get_grid.(data))
+    observational_types = get_unique_grids(data)
     tapers_on_grids = [tapers_on_grid(tapers, grid; wavenumber_res = wavenumber_res)
                        for grid in observational_types]
-    concentration_region = Ball(Point(ntuple(i -> 0.0, _getdims(data[1]))), bandwidth)
+    concentration_region = Ball(Point(ntuple(i -> 0.0, embeddim(data))), bandwidth)
     conc_res = choose_concentration_resolution(tapers_on_grids, concentration_region)
     normalisations = tapers_normalisations(tapers_on_grids) # checks on each family
     concentrations = taper_concentrations(
@@ -84,4 +84,7 @@ function taper_checks(data, tapers, bandwidth; wavenumber_res = 500)
     return normalisations, concentrations
 end
 
-_getdims(x) = x isa PointSet ? embeddim(x) : embeddim(domain(x))
+get_unique_grids(data::SingleProcessData) = [get_grid(observations(data))]
+function get_unique_grids(data::Union{MultipleSpatialDataTuple, MultipleSpatialDataVec})
+    unique(get_grid.(observations(data)))
+end

@@ -69,15 +69,37 @@ struct SinTaper{D} <: ContinuousTaper
     end
 end
 
-# Collection type
-struct TaperFamily{T}
+# Collection type with optional concentration region
+struct TaperFamily{T, C}
     tapers::T
+    concentration_region::C
+
+    # Constructor with optional concentration region
+    function TaperFamily(tapers::T, concentration_region::C = nothing) where {T, C}
+        new{T, C}(tapers, concentration_region)
+    end
 end
 
 # Collection interface
 Base.eachindex(taper::TaperFamily) = eachindex(taper.tapers)
 Base.length(taper::TaperFamily) = length(taper.tapers)
 Base.getindex(taper::TaperFamily, i) = taper.tapers[i]
+
+# Concentration region accessor
+concentration_region(family::TaperFamily) = family.concentration_region
+
+# Backward compatibility: bandwidth accessor that extracts from concentration region
+function bandwidth(family::TaperFamily)
+    if family.concentration_region isa Ball
+        return family.concentration_region.radius
+    elseif family.concentration_region isa Box
+        # For box regions, return half the diagonal as a rough bandwidth measure
+        box = family.concentration_region
+        return norm(maximum(box) - minimum(box)) / 2
+    else
+        return nothing
+    end
+end
 
 # Grid utilities
 struct NoGrid end

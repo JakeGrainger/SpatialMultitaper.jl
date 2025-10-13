@@ -23,6 +23,17 @@ function Base.show(io::IO, ::MIME"text/plain", taper::DiscreteTaper)
     print(io, "A discrete taper function.")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", taper::TaperFamily)
-    print(io, "A family of $(length(taper)) taper functions.")
+function Base.show(io::IO, ::MIME"text/plain", family::TaperFamily)
+    region_str = if family.concentration_region !== nothing
+        if family.concentration_region isa Ball
+            " (concentration region: Ball, radius=$(family.concentration_region.radius))"
+        elseif family.concentration_region isa Box
+            " (concentration region: Box)"
+        else
+            " (concentration region: $(typeof(family.concentration_region)))"
+        end
+    else
+        ""
+    end
+    print(io, "A family of $(length(family)) taper functions$region_str")
 end

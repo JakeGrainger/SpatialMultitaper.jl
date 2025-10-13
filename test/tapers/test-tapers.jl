@@ -26,7 +26,7 @@ end
 
     taper_family = interpolated_taper_family(
         [[zeros(5, 10); ones(5, 10)], [ones(5, 10); zeros(5, 10)]],
-        grid
+        grid, nothing
     )
     @test taper_family[1](0.6, 3.4) ≈ 0.0
     @test taper_family[2](8, 3.4) ≈ 0.0

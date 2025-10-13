@@ -42,6 +42,7 @@ include("estimates/wavenumber/spectra.jl")
 include("estimates/wavenumber/partial_spectra.jl")
 include("estimates/wavenumber/spectral_matrix_transforms.jl")
 include("estimates/wavenumber/coherence.jl")
+include("estimates/wavenumber/rotational_functions.jl")
 
 include("estimates/spatial/c_function.jl")
 include("estimates/spatial/k_function.jl")
@@ -75,7 +76,9 @@ export spectra,
        phase,
        rotational_estimate,
        rotational_spectra,
+       rotational_partial_spectra,
        rotational_coherence,
+       rotational_partial_coherence,
        partial_spectra,
        partial_coherence,
        partial_magnitude_coherence,

@@ -140,5 +140,5 @@ function make_tapers(
         h[1:ntapers], grid, wavenumber_res = wavenumber_res_processed)
     @info "...made Fourier transform."
 
-    return tapers, λ[1:ntapers]
+    return tapers
 end

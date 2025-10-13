@@ -97,7 +97,7 @@ end
 function _validate_tapers(::Nothing, region, nw)
     @argcheck nw > 0
     bandwidth = nw / Meshes.ustrip(minimum(sides(boundingbox(region))))
-    return make_tapers(region, bandwidth = bandwidth)[1]
+    return make_tapers(region, bandwidth = bandwidth)
 end
 
 function default_radii(data::SpatialData)

@@ -95,7 +95,6 @@ function _validate_tapers(::Nothing, region::Box, nw)
     return sin_taper_family(M, region)
 end
 function _validate_tapers(::Nothing, region, nw)
-    @argcheck nw isa Int
     @argcheck nw > 0
     bandwidth = nw / Meshes.ustrip(minimum(sides(boundingbox(region))))
     return make_tapers(region, bandwidth = bandwidth)[1]

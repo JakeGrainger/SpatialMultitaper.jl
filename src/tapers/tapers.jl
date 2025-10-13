@@ -338,6 +338,8 @@ function taper_checks(data, tapers, bandwidth; wavenumber_res = 500)
     return normalisations, concentrations
 end
 
+_getdims(x) = x isa PointSet ? embeddim(x) : embeddim(domain(x))
+
 ## specific taper families
 """
 	interpolated_taper_family(raw_tapers, grid; wavenumber_res=size(grid))

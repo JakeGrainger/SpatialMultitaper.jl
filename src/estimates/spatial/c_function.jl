@@ -124,7 +124,7 @@ function c_function(spectrum::Spectra; radii,
     return _c_function(rot_spec, radii)
 end
 
-function c_function(spectrum::RotationalSpectra; radii = default_radii(data))
+function c_function(spectrum::RotationalSpectra; radii)
     _c_function(spectrum, radii)
 end
 
@@ -134,6 +134,7 @@ end
 
 function partial_c_function(
         data::SpatialData; radii = nothing, spectra_kwargs...)::CFunction{PartialTrait}
+    radii = _validate_radii(radii, data)
     f_mt = partial_spectra(data; spectra_kwargs...)
     return c_function(f_mt; radii = radii)
 end

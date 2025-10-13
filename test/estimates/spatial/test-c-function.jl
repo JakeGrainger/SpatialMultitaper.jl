@@ -295,6 +295,12 @@ end
     end
 end
 
+@testset "No radii given" begin
+    points_data = make_points_example(rng, n_processes = 1, dim = 2,
+        return_type = :single, point_number = 20)
+    @test c_function(points_data, kmax = 0.5) isa CFunction
+end
+
 @testset "Edge cases and robustness" begin
     # Test very small radii
     points_data = make_points_example(rng, n_processes = 1, dim = 2,

@@ -1,4 +1,78 @@
 """
+    coherence(spectrum::NormalOrRotationalSpectra{E}) where {E} -> Coherence{E}
+    coherence(data, region; kwargs...) -> Coherence
+    coherence(data::SpatialData; kwargs...) -> Coherence
+
+Compute coherence from a spectral estimate or directly from spatial data.
+
+The coherence function computes the normalized cross-spectral density, providing a measure
+of linear dependence between processes as a function of wavenumber. For a cross-spectral
+matrix S, the coherence γᵢⱼ is computed as γᵢⱼ = Sᵢⱼ / √(Sᵢᵢ * Sⱼⱼ).
+
+# Arguments
+- `spectrum::NormalOrRotationalSpectra{E}`: A `Spectra` or `RotationalSpectra` estimate
+    with multiple processes
+- `data`: Spatial data for direct coherence computation
+- `region::Meshes.Geometry`: Spatial region for direct computation
+
+# Keywords
+When computing directly from data, all keywords from [`spectra`](@ref) are supported:
+- `nk`: Number of wavenumbers in each dimension
+- `kmax`: Maximum wavenumber in each dimension
+- `dk`: Wavenumber spacing in each dimension
+- `tapers`: Taper functions to use
+- `nw = 3`: Space-bandwidth product for taper generation
+- `mean_method = DefaultMean()`: Method for mean estimation
+
+# Returns
+- `Coherence{E}`: A coherence estimate object containing:
+  - `wavenumber`: Wavenumber grid matching the input spectrum
+  - `coherence`: Coherence estimates with the same spatial dimensions as input
+  - `processinformation`: Information about the analyzed processes
+  - `estimationinformation`: Details about the estimation procedure
+
+# Throws
+- `ArgumentError`: If the spectrum does not have equal input and output process sets
+    (i.e., the spectral matrix is not square)
+
+# Notes
+- Coherence values are complex numbers with magnitude ≤ 1
+- Diagonal elements are always 1 (perfect self-coherence)
+- For single-process data, returns scalar coherence of 1
+- Use [`magnitude_coherence`](@ref) or [`magnitude_squared_coherence`](@ref) for
+    magnitude-only results
+
+# Examples
+```julia
+# Compute coherence from existing spectral estimate
+spec = spectra(data; kmax = 0.5, nw = 3)
+coh = coherence(spec)
+
+# Direct computation from data and region
+coh = coherence(data, region; nk = (32, 32), kmax = (0.5, 0.5), nw = 4)
+
+# Direct computation from SpatialData object
+spatial_data_obj = spatial_data(data, region)
+coh = coherence(spatial_data_obj; kmax = 0.3, tapers = my_tapers)
+
+# Access coherence between processes 1 and 2
+cross_coherence = coh[1, 2]
+```
+"""
+coherence
+
+"""
+    partial_coherence(spectrum) -> Coherence{PartialTrait}
+    partial_coherence(data, region; kwargs...) -> Coherence{PartialTrait}
+    partial_coherence(data::SpatialData; kwargs...) -> Coherence{PartialTrait}
+
+Compute partial coherence from a spectral estimate or directly from spatial data.
+
+See [`coherence`](@ref) for details on arguments, keywords, and return types.
+"""
+partial_coherence
+
+"""
     Coherence{E, D, N, A, T, IP, IE} <: AbstractEstimate{E, D, N}
 
 A coherence estimate structure containing wavenumber information and coherence values.
@@ -45,20 +119,6 @@ const RotationalCoherence{E, D, S <: Coherence} = RotationalEstimate{E, D, S}
 getargument(est::Coherence) = est.wavenumber
 getestimate(est::Coherence) = est.coherence
 
-"""
-    coherence(x::AbstractMatrix)
-
-Compute coherence from a spectral matrix by normalizing with diagonal elements.
-
-The coherence γᵢⱼ between processes i and j is computed as:
-γᵢⱼ = Sᵢⱼ / √(Sᵢᵢ * Sⱼⱼ)
-
-# Arguments
-- `x::AbstractMatrix`: Spectral matrix
-
-# Returns
-Coherence matrix with values bounded between 0 and 1 for the magnitude.
-"""
 function coherence(x::SMatrix)
     d = diagm(sqrt.(inv.(diag(x))))
     return d * x * d
@@ -80,36 +140,8 @@ function coherence!(x::AbstractMatrix)
     return x
 end
 
-"""
-    coherence(x::Number)
-
-Coherence for a single process (always returns 1).
-"""
 coherence(x::Number) = one(typeof(x))
 
-"""
-    coherence(spectrum::NormalOrRotationalSpectra{E}) where {E}
-
-Compute coherence from a spectral estimate.
-
-# Arguments
-- `spectrum`: A `Spectra` or `RotationalSpectra` estimate
-
-# Returns
-A `Coherence` object containing the coherence estimates.
-
-# Throws
-- `ArgumentError`: If the spectrum does not have equal input and output process sets
-
-# Examples
-```julia
-# Compute coherence from spectral estimate
-coh = coherence(spec)
-
-# Direct computation from data
-coh = coherence(data, region, nk=(32, 32), kmax=(0.5, 0.5), tapers=tapers)
-```
-"""
 function coherence(spectrum::NormalOrRotationalSpectra{E})::Coherence{E} where {E}
     mem = deepcopy(spectrum)
     return coherence!(mem)
@@ -127,31 +159,14 @@ end
 _coherence_noalloc!(x::Union{Number, SMatrix}) = coherence(x)
 _coherence_noalloc!(x::AbstractMatrix) = coherence!(x)
 
-"""
-    coherence(data, region; kwargs...)
-
-Compute coherence estimate directly from data and region.
-"""
 function coherence(data, region; kwargs...)::Coherence
     return coherence(spatial_data(data, region); kwargs...)
 end
 
-"""
-    coherence(data::SpatialData; kwargs...)
-
-Compute coherence estimate from spatial data.
-"""
 function coherence(data::SpatialData; kwargs...)::Coherence
     return coherence(spectra(data; kwargs...))
 end
 
-"""
-    partial_coherence(x::AbstractMatrix)
-
-Compute partial coherence from a spectral matrix.
-
-Partial coherence removes the linear effects of all other processes.
-"""
 function partial_coherence(x::SMatrix)
     return -coherence(inv(x)) + 2I # add 2I to set diagonals to 1
 end
@@ -167,27 +182,8 @@ function partial_coherence!(x::AbstractMatrix)
     return x
 end
 
-"""
-    partial_coherence(x::Number)
-
-Partial coherence for a single process (always returns 1).
-"""
 partial_coherence(x::Number) = one(typeof(x))
 
-"""
-    partial_coherence(spectrum::NormalOrRotationalSpectra)
-
-Compute partial coherence from marginal spectral estimates.
-
-# Arguments
-- `spectrum`: A marginal spectral estimate
-
-# Returns
-A `Coherence{PartialTrait}` object containing partial coherence estimates.
-
-# Throws
-- `ArgumentError`: If the spectrum does not have equal input and output process sets
-"""
 function partial_coherence(spectrum::NormalOrRotationalSpectra)::Coherence{PartialTrait}
     mem = deepcopy(spectrum)
     return partial_coherence!(mem)
@@ -210,20 +206,10 @@ end
 _partial_coherence_noalloc!(x::Union{Number, SMatrix}) = partial_coherence(x)
 _partial_coherence_noalloc!(x::AbstractMatrix) = partial_coherence!(x)
 
-"""
-    partial_coherence(data, region; kwargs...)
-
-Compute partial coherence estimate directly from data and region.
-"""
 function partial_coherence(data, region; kwargs...)::Coherence{PartialTrait}
     return partial_coherence(spatial_data(data, region); kwargs...)
 end
 
-"""
-    partial_coherence(data::SpatialData; kwargs...)
-
-Compute partial coherence estimate from spatial data.
-"""
 function partial_coherence(data::SpatialData; kwargs...)::Coherence{PartialTrait}
     return partial_coherence(spectra(data; kwargs...))
 end

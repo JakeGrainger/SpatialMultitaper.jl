@@ -26,7 +26,7 @@ end
 
     taper_family = interpolated_taper_family(
         [[zeros(5, 10); ones(5, 10)], [ones(5, 10); zeros(5, 10)]],
-        grid
+        grid, nothing
     )
     @test taper_family[1](0.6, 3.4) ≈ 0.0
     @test taper_family[2](8, 3.4) ≈ 0.0
@@ -34,6 +34,7 @@ end
     int_taper = taper_family[1]
     @test int_taper isa InterpolatedTaper
     @test int_taper isa ContinuousTaper
+    @test int_taper((20, 31.2)) ≈ 0.0
     @test int_taper(20, 31.2) ≈ 0.0
     @test taper_ft(int_taper, (0.6, 3.4)) ≈ 0.0
 end

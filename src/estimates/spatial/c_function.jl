@@ -1,39 +1,129 @@
 """
+    c_function(spectrum::Spectra; radii, wavenumber_radii, rotational_method) -> CFunction
+    c_function(spectrum::RotationalSpectra; radii) -> CFunction
+    c_function(data, region; kwargs...) -> CFunction
+    c_function(data::SpatialData; kwargs...) -> CFunction
+
+Compute spatial C function from spectral estimates or directly from spatial data.
+
+The C function is the reduced covariance measure evaluated on punctured balls as a
+function of distance. For a stationary process at radius `r`, it represents
+C(r) = C̆({x : 0 < ||x|| ≤ r}), where C̆ is the reduced covariance measure. The C function
+is computed via inverse Fourier transform of the power spectral density with appropriate
+spatial weighting functions that depend on the dimension.
+
+# Arguments
+- `spectrum::Spectra`: Input power spectral density estimate
+- `spectrum::RotationalSpectra`: Rotationally averaged spectral estimate
+- `data`: Spatial data for direct C function computation
+- `region::Meshes.Geometry`: Spatial region for direct computation
+
+# Keywords
+- `radii::AbstractVector`: Distances at which to evaluate the C function (required)
+- `wavenumber_radii::Union{Nothing, AbstractVector} = nothing`: Radial wavenumbers for
+    rotational averaging. If `nothing`, defaults are computed from the spectrum grid.
+- `rotational_method = nothing`: Smoothing kernel for rotational averaging. If `nothing`,
+    uses `NoRotational()` (no smoothing).
+
+When computing directly from data, all keywords from [`spectra`](@ref) are also supported:
+- `nk`: Number of wavenumbers in each dimension
+- `kmax`: Maximum wavenumber in each dimension
+- `dk`: Wavenumber spacing in each dimension
+- `tapers`: Taper functions to use
+- `nw = 3`: Space-bandwidth product for taper generation
+- `mean_method = DefaultMean()`: Method for mean estimation
+
+# Returns
+- `CFunction`: A C function estimate containing:
+  - `radii`: Distance values where C function is evaluated
+  - `value`: C function values (real-valued)
+  - `processinformation`: Information about the analyzed processes
+  - `estimationinformation`: Details about the estimation procedure
+
+# Mathematical Details
+For a stationary process with power spectral density f(k), the C function is computed as:
+
+C(r) = ∫ f(k) W(r,k) dk
+
+where W(r,k) is the spatial weighting function that depends on dimension D:
+- **1D**: W(r,k) = 2r sinc(2r|k|)
+- **2D**: W(r,k) = (r/|k|) J₁(2πr|k|) for |k| > 0, πr² for k = 0
+- **3D**: W(r,k) = (r/|k|)^(3/2) J₃/₂(2πr|k|) for |k| > 0, (4π/3)r³ for k = 0
+
+where J_ν is the Bessel function of the first kind of order ν, and sinc(x) = sin(πx)/(πx).
+
+# Notes
+- The C function measures spatial correlation as a function of distance
+- Results are always real-valued due to the spatial integration
+- For anisotropic spectra, rotational averaging is performed first
+- Zero-atom corrections are automatically applied when available
+- Use [`partial_c_function`](@ref) for partial C functions from partial spectra
+
+# Examples
+```julia
+# Compute C function from existing spectral estimate
+spec = spectra(data; kmax = 0.5, nw = 3)
+radii = 0.1:0.1:2.0
+cf = c_function(spec; radii = radii)
+
+# Direct computation from data and region
+cf = c_function(data, region; radii = 0.1:0.1:2.0, nk = (64, 64), kmax = (0.5, 0.5))
+
+# With custom rotational averaging parameters
+wavenumber_radii = 0.05:0.05:0.5
+cf = c_function(spec; radii = radii, wavenumber_radii = wavenumber_radii)
+
+# From rotational spectrum (no additional averaging needed)
+rot_spec = rotational_spectra(data; kmax = 0.5, nw = 3)
+cf = c_function(rot_spec; radii = radii)
+
+# Access C function values
+correlation_at_1km = cf.value[findfirst(r -> r ≈ 1.0, cf.radii)]
+```
+
+See also: [`spectra`](@ref), [`partial_c_function`](@ref), [`rotational_spectra`](@ref)
+"""
+c_function
+
+"""
     CFunction{E, D, A, T, IP, IE} <: IsotropicEstimate{E, D}
 
 Spatial C function estimate derived from spectral estimates.
 
-The C function is the reduced covariance measure of a process evaluated on a punctured ball,
-of a function of distance. So at radius `r` it is C(r) = C̆({x : 0 < ||x|| ≤ r}), where C̆ is
-the reduced covariance measure.
+The C function represents the reduced covariance measure of a stationary process evaluated
+on punctured balls as a function of distance. At radius `r`, it computes
+C(r) = C̆({x : 0 < ||x|| ≤ r}), where C̆ is the reduced covariance measure. This provides
+a spatial domain representation of correlation structure complementary to spectral estimates.
 
 # Type Parameters
-- `E`: Estimate trait (e.g., `MarginalTrait`, `PartialTrait`)
-- `D`: Spatial dimension
-- `A`: Type of radii array
-- `T`: Type of C function values
-- `IP`: Type of process information
-- `IE`: Type of estimation information
+- `E <: EstimateTrait`: Estimate trait (e.g., `MarginalTrait`, `PartialTrait`)
+- `D`: Spatial dimension of the underlying process
+- `A`: Type of the radii array
+- `T`: Type of the C function values (typically `Vector{Float64}` or similar)
+- `IP`: Type of process information structure
+- `IE`: Type of estimation information structure
 
 # Fields
-- `radii::A`: Distances at which the C function is evaluated
-- `value::T`: C function values
-- `processinformation::IP`: Information about the processes
-- `estimationinformation::IE`: Information about the estimation procedure
+- `radii::A`: Distance values at which the C function is evaluated
+- `value::T`: C function values corresponding to each radius
+- `processinformation::IP`: Information about the analyzed processes
+- `estimationinformation::IE`: Details about the estimation procedure
 
 # Mathematical Background
-For a stationary process with power spectral density f(k), the C function is:
+For a stationary process with power spectral density f(k), the C function is computed as:
+
 C(r) = ∫ f(k) W(r,k) dk
-where W(r,k) is a spatial weighting function depending on the dimension.
 
-# Examples
-```julia
-# Compute C function from spectral estimate
-cf = c_function(spectrum, radii=0.1:0.1:2.0)
+where W(r,k) is the spatial weighting function determined by the dimension D and represents
+the Fourier transform of the characteristic function of a ball of radius r.
 
-# Direct computation from data
-cf = c_function(data, region, radii=0.1:0.1:2.0, nk=(32,32), kmax=(0.5,0.5), tapers=tapers)
-```
+# Notes
+- C function values are always real-valued due to spatial integration
+- The function measures cumulative spatial correlation within distance r
+- Supports both marginal and partial variants via the trait system
+- Integrates over punctured balls (excluding the origin) to avoid singularities
+
+See also: [`c_function`](@ref), [`partial_c_function`](@ref)
 """
 struct CFunction{E, D, A, T, IP, IE} <: IsotropicEstimate{E, D}
     radii::A
@@ -54,33 +144,10 @@ getestimate(f::CFunction) = f.value
 
 # Public API
 
-"""
-    c_function(data, region; kwargs...)
-
-Compute spatial C function directly from data and region.
-"""
 function c_function(data, region; kwargs...)::CFunction
     return c_function(spatial_data(data, region); kwargs...)
 end
 
-"""
-    c_function(data::SpatialData; radii, nk, kmax, wavenumber_radii, rotational_method, spectra_kwargs...)
-
-Compute spatial C function from spatial data.
-
-First computes the power spectral density, then transforms to the C function
-via inverse Fourier transform with appropriate spatial weighting.
-
-# Arguments
-- `data::SpatialData`: Input spatial data
-- `radii`: Distances at which to evaluate the C function
-- `wavenumber_radii`: Radial wavenumbers for rotational averaging (default: from nk, kmax)
-- `rotational_method`: Kernel for rotational averaging (default: from nk, kmax)
-- `spectra_kwargs...`: Additional arguments passed to `spectra`
-
-# Returns
-A `CFunction` object containing the spatial C function.
-"""
 function c_function(data::SpatialData; radii = nothing,
         rotational_wavenumber_radii = nothing,
         rotational_method = nothing, kwargs...)::CFunction
@@ -102,20 +169,6 @@ process_c_rotational_radii(spectrum, radii) = radii
 default_c_rotational_kernel(spectrum) = NoRotational()
 default_c_rotational_radii(spectrum) = default_rotational_radii(spectrum)
 
-"""
-    c_function(spectrum::Spectra; radii, wavenumber_radii, rotational_method)
-
-Compute spatial C function from a spectral estimate.
-
-# Arguments
-- `spectrum::Spectra`: Input power spectral density estimate
-- `radii`: Distances for C function evaluation
-- `wavenumber_radii`: Radial wavenumbers for rotational averaging (default: from spectrum)
-- `rotational_method`: Smoothing kernel for rotational averaging (default: from spectrum)
-
-# Returns
-A `CFunction` object with the C function values.
-"""
 function c_function(spectrum::Spectra; radii,
         wavenumber_radii = process_c_rotational_kernel(spectrum, nothing),
         rotational_method = process_c_rotational_kernel(spectrum, nothing))
@@ -128,6 +181,55 @@ function c_function(spectrum::RotationalSpectra; radii)
     _c_function(spectrum, radii)
 end
 
+"""
+    partial_c_function(data, region; kwargs...) -> CFunction{PartialTrait}
+    partial_c_function(data::SpatialData; kwargs...) -> CFunction{PartialTrait}
+    partial_c_function(spectrum::NormalOrRotationalSpectra{PartialTrait}; kwargs...) -> CFunction{PartialTrait}
+    partial_c_function(spectrum::NormalOrRotationalSpectra{MarginalTrait}; kwargs...) -> CFunction{PartialTrait}
+
+Compute spatial partial C function from spectral estimates or directly from spatial data.
+
+The partial C function represents the direct spatial correlation structure after removing
+the linear influence of all other processes. It is computed from partial spectral estimates
+using the same inverse Fourier transform approach as the regular C function, but applied
+to partial spectra rather than marginal spectra.
+
+# Arguments
+- `data`: Spatial data for direct partial C function computation
+- `region::Meshes.Geometry`: Spatial region for direct computation
+- `spectrum`: Spectral estimate (partial or marginal trait)
+
+# Keywords
+- `radii::AbstractVector`: Distances at which to evaluate the partial C function (required)
+- Additional keywords: All keywords from [`partial_spectra`](@ref) and [`c_function`](@ref)
+
+# Returns
+- `CFunction{PartialTrait}`: A partial C function estimate with the same structure as
+    regular C functions but representing direct spatial relationships.
+
+# Notes
+- Automatically converts marginal spectra to partial spectra when needed
+- Uses the same spatial weighting functions as regular C functions
+- Results represent direct spatial correlations after removing indirect effects
+- For partial trait inputs, applies C function transformation directly
+
+# Examples
+```julia
+# Direct computation from data
+radii = 0.1:0.1:2.0
+partial_cf = partial_c_function(data, region; radii = radii, kmax = 0.5, nw = 3)
+
+# From existing partial spectral estimate
+partial_spec = partial_spectra(data; kmax = 0.5, nw = 3)
+partial_cf = partial_c_function(partial_spec; radii = radii)
+
+# From marginal spectrum (automatically converts to partial)
+marginal_spec = spectra(data; kmax = 0.5, nw = 3)
+partial_cf = partial_c_function(marginal_spec; radii = radii)
+```
+
+See also: [`c_function`](@ref), [`partial_spectra`](@ref)
+"""
 function partial_c_function(data, region; kwargs...)::CFunction{PartialTrait}
     return partial_c_function(spatial_data(data, region); kwargs...)
 end
@@ -252,9 +354,19 @@ end
 """
     _anisotropic_c_weight(r, u, ::Val{D})
 
-Compute spatial weighting function for D-dimensional c function.
+Compute spatial weighting function for D-dimensional C function computation.
 
-These functions represent the Fourier transform of spherical/circular domains.
+These functions represent the Fourier transform of the characteristic function of a
+D-dimensional ball of radius r, evaluated at wavenumber u. They are the fundamental
+building blocks for transforming spectral estimates to spatial C functions.
+
+# Mathematical Details
+- **1D**: W(r,|u|) = 2r sinc(2r|u|)
+- **2D**: W(r,|u|) = (r/|u|) J₁(2πr|u|) for |u| > 0, πr² for u = 0
+- **3D**: W(r,|u|) = (r/|u|)^(3/2) J₃/₂(2πr|u|) for |u| > 0, (4π/3)r³ for u = 0
+- **General D**: Uses Bessel functions J_{D/2} with appropriate normalization
+
+where J_ν denotes the Bessel function of the first kind of order ν.
 """
 function _anisotropic_c_weight(r, u, ::Val{1})
     x = norm(u)
@@ -288,10 +400,21 @@ end
 """
     _isotropic_c_weight(r, k, spacing, ::Val{D})
 
-Compute weighting function for isotropic C functions.
+Compute weighting function for isotropic C functions from rotational spectra.
 
-For isotropic estimates, the weighting accounts for the radial integration
-that has already been performed.
+For rotationally averaged spectral estimates, this function computes the appropriate
+weights that account for the radial integration already performed in the spectral
+domain. The spacing parameter accounts for the discrete wavenumber grid integration.
+
+# Arguments
+- `r`: Spatial radius for C function evaluation
+- `k`: Radial wavenumber coordinate
+- `spacing`: Wavenumber spacing for integration
+- `::Val{D}`: Spatial dimension
+
+# Mathematical Details
+The weights integrate the anisotropic weights over annular regions in wavenumber space,
+accounting for the discrete grid spacing used in the rotational averaging process.
 """
 function _isotropic_c_weight(r, k, spacing, ::Val{1})
     half_spacing = spacing / 2

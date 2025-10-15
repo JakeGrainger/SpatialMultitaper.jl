@@ -1,36 +1,95 @@
 """
-    partial_spectra(spectrum::Spectra{MarginalTrait})
+    partial_spectra(spectrum::Spectra{MarginalTrait}) -> Spectra{PartialTrait}
+    partial_spectra(spectrum::RotationalSpectra{MarginalTrait}) -> RotationalEstimate{PartialTrait}
+    partial_spectra(data, region; kwargs...) -> Spectra{PartialTrait}
+    partial_spectra(data::SpatialData; kwargs...) -> Spectra{PartialTrait}
 
-Compute partial spectral estimates from marginal spectral estimates.
+Compute partial spectral estimates from marginal spectral estimates or directly from data.
 
-Partial spectra remove the linear influence of all other processes, providing
-a measure of the direct relationship between process pairs. The computation
-involves matrix inversion and bias correction based on the number of tapers.
+Partial spectra remove the linear influence of all other processes, providing a measure of
+the direct relationship between process pairs. Unlike marginal spectra which show total
+power including indirect effects, partial spectra reveal only the direct linear
+relationships after removing the influence of all other processes. The computation involves
+matrix inversion of the spectral matrix and finite-sample bias correction based on the
+number of tapers used in the original estimation.
 
 # Arguments
-- `spectrum::Spectra{MarginalTrait}`: A marginal spectral estimate
+- `spectrum::Spectra{MarginalTrait}`: A marginal spectral estimate to convert
+- `spectrum::RotationalSpectra{MarginalTrait}`: A rotational marginal spectral estimate
+- `data`: Spatial data for direct partial spectra computation
+- `region::Meshes.Geometry`: Spatial region for direct computation
+
+# Keywords
+When computing directly from data, all keywords from [`spectra`](@ref) are supported:
+- `nk`: Number of wavenumbers in each dimension
+- `kmax`: Maximum wavenumber in each dimension
+- `dk`: Wavenumber spacing in each dimension
+- `tapers`: Taper functions to use
+- `nw = 3`: Space-bandwidth product for taper generation
+- `mean_method = DefaultMean()`: Method for mean estimation
 
 # Returns
-A `Spectra{PartialTrait}` object containing the partial spectral estimates.
+- `Spectra{PartialTrait}`: Partial spectral estimate with same wavenumber grid as input
+- `RotationalEstimate{PartialTrait}`: For rotational input spectra
+
+The returned partial spectra have the same spatial dimensions and wavenumber grid as the
+input, but represent direct relationships between processes rather than total power.
 
 # Throws
 - `ArgumentError`: If the spectrum does not have equal input and output process sets
+    (i.e., the spectral matrix is not square). Partial spectra require square spectral
+    matrices, so you shouldn't have subsetted before calling partial spectra.
 
 # Mathematical Details
-For a spectral matrix S, the partial spectrum P is computed as:
-- Pᵢᵢ = 1/Gᵢᵢ (diagonal elements)
-- Pᵢⱼ = -Gᵢⱼ/(GᵢᵢGⱼⱼ - |Gᵢⱼ|²) (off-diagonal elements)
-where G = S⁻¹ is the inverse spectral matrix.
+For a spectral matrix `f`, the partial spectrum `P` is computed through matrix inversion:
+
+**Basic Formula:**
+- Diagonal elements: `Pᵢᵢ = 1/Gᵢᵢ`
+- Off-diagonal elements: `Pᵢⱼ = -Gᵢⱼ/(GᵢᵢGⱼⱼ - |Gᵢⱼ|²)`
+
+where `G = f⁻¹` is the inverse spectral matrix.
+
+**Bias Correction:**
+Finite-sample bias correction is automatically applied using the number of tapers:
+- Correction factor: `M/(M - Q + xᵢⱼ)` where:
+  -`M = number of tapers from the original spectral estimate
+  - `Q` = number of processes
+  - `xᵢⱼ` = 1 if i=j (diagonal), 2 if i≠j (off-diagonal)
+
+**Special Cases:**
+- Single process: Returns the original spectral value unchanged
+- Rotational spectra: Bias correction is handled differently (not fully implemented)
+
+# Notes
+- Partial spectra are the spectral domain equivalent of partial correlation
+- Values can be complex and may have larger magnitudes than marginal spectra
+- Diagonal elements represent the "partial power" of each process
+- Off-diagonal elements show direct cross-relationships
+- Use [`partial_spectra_uncorrected`](@ref) to skip bias correction
+- For rotational estimates, bias correction is not currently fully implemented
 
 # Examples
 ```julia
-# Compute partial spectra from marginal estimates
+# Compute partial spectra from existing marginal estimates
+marginal_spec = spectra(data; kmax = 0.5, nw = 3)
 partial_spec = partial_spectra(marginal_spec)
 
-# Direct computation from data::SpatialData
-partial_spec = partial_spectra(data; nk=nk, kmax=kmax, tapers=tapers)
+# Direct computation from data and region
+partial_spec = partial_spectra(data, region; nk = (32, 32), kmax = (0.5, 0.5), nw = 4)
+
+# Direct computation from SpatialData object
+spatial_data_obj = spatial_data(data, region)
+partial_spec = partial_spectra(spatial_data_obj; kmax = 0.3, tapers = my_tapers)
+
+# Access partial relationships between processes
+direct_coupling = partial_spec[1, 2]  # Direct coupling between processes 1 and 2
+partial_power = partial_spec[1, 1]    # Partial power of process 1
 ```
+
+See also: [`spectra`](@ref), [`partial_coherence`](@ref), [`partial_spectra_uncorrected`](@ref)
 """
+partial_spectra
+
 function partial_spectra(spectrum::NormalOrRotationalSpectra{MarginalTrait})
     mem = deepcopy(spectrum)
     partial_spectra!(mem)
@@ -56,56 +115,14 @@ function partial_spectra!(spectrum::Spectra{MarginalTrait})::Spectra{PartialTrai
         getargument(spectrum), transformed, process_info, estimation_info)
 end
 
-"""
-    partial_spectra(data, region; kwargs...)
-
-Compute partial spectral estimates directly from data and region.
-"""
 function partial_spectra(data, region::Meshes.Geometry; kwargs...)::Spectra{PartialTrait}
     return partial_spectra(spatial_data(data, region); kwargs...)
 end
 
-"""
-    partial_spectra(data::SpatialData; kwargs...)
-
-Compute partial spectral estimates from spatial data.
-
-First computes marginal spectra, then converts to partial spectra.
-"""
 function partial_spectra(data::SpatialData; kwargs...)::Spectra{PartialTrait}
     return partial_spectra!(spectra(data; kwargs...))
 end
 
-"""
-    partial_spectra_uncorrected(spectrum::Spectra{MarginalTrait})
-
-Compute partial spectra without bias correction from the number of tapers.
-
-This function computes partial spectra using the raw inverse relationship
-without the finite-sample bias correction that accounts for the number of tapers.
-Use with caution as results may be biased for small numbers of tapers.
-
-# Arguments
-- `spectrum::Spectra{MarginalTrait}`: A marginal spectral estimate
-
-# Returns
-A `Spectra{PartialTrait}` object with uncorrected partial spectral estimates.
-"""
-function partial_spectra_uncorrected(spectrum::Spectra{MarginalTrait})::Spectra{PartialTrait}
-    # Create a modified spectrum with no taper information for uncorrected computation
-    new_spectrum = Spectra{MarginalTrait}(getargument(spectrum), getestimate(spectrum),
-        getprocessinformation(spectrum), EstimationInformation(nothing))
-    return partial_spectra(new_spectrum)
-end
-
-"""
-    partial_spectra(spectrum::RotationalSpectra{MarginalTrait})
-
-Compute partial spectral estimates from rotational marginal spectral estimates.
-
-For rotational estimates, the bias correction is handled differently and is
-not currently fully implemented.
-"""
 function partial_spectra!(spectrum::RotationalSpectra{MarginalTrait})::RotationalEstimate{PartialTrait}
     if !is_same_process_sets(spectrum)
         throw(ArgumentError(
@@ -126,19 +143,6 @@ function partial_spectra!(spectrum::RotationalSpectra{MarginalTrait})::Rotationa
         wavenumber, value, processinfo, estimationinfo)
 end
 
-"""
-    partial_spectra(x::SMatrix, ::Nothing)
-
-Compute uncorrected partial spectra from a static matrix.
-
-This is the core mathematical transformation that converts a spectral matrix
-to partial spectral matrix through matrix inversion and element-wise operations.
-
-# Mathematical Formula
-For spectral matrix S with inverse G = S⁻¹:
-- Diagonal: Pᵢᵢ = 1/Gᵢᵢ
-- Off-diagonal: Pᵢⱼ = -Gᵢⱼ/(GᵢᵢGⱼⱼ - |Gᵢⱼ|²)
-"""
 function partial_spectra(x::SMatrix, ::Nothing)
     g = inv(x)
     A = diagm(diag(g))
@@ -148,13 +152,6 @@ function partial_spectra(x::SMatrix, ::Nothing)
     return (g ./ denom) .* (2I - ones(typeof(x)))
 end
 
-"""
-    partial_spectra(x::AbstractMatrix, ::Nothing)
-
-Compute uncorrected partial spectra from a general matrix.
-
-Uses explicit indexing for maximum clarity and type stability.
-"""
 function partial_spectra!(x::AbstractMatrix, ::Nothing)
     C = LinearAlgebra.inv!(cholesky!(x))
     for i in axes(C, 1), j in axes(C, 2)
@@ -170,14 +167,6 @@ function partial_spectra!(x::AbstractMatrix, ::Nothing)
     return C
 end
 
-"""
-    partial_spectra(x::SMatrix{2, 2, T, 4}, ::Nothing) where {T}
-
-Optimized partial spectra computation for 2×2 static matrices.
-
-This specialized method provides optimized computation for the common case
-of two-process analysis with explicit element-wise calculations.
-"""
 function partial_spectra(x::SMatrix{2, 2, T, 4}, ::Nothing) where {T}
     g = inv(x)
 
@@ -192,24 +181,6 @@ function partial_spectra(x::SMatrix{2, 2, T, 4}, ::Nothing) where {T}
     )
 end
 
-"""
-    partial_spectra(x::SMatrix{Q, Q, T, N}, ntapers::Int) where {Q, T, N}
-
-Compute bias-corrected partial spectra from a static matrix.
-
-Applies finite-sample bias correction based on the number of tapers used
-in the original spectral estimation.
-
-# Arguments
-- `x`: Square spectral matrix
-- `ntapers`: Number of tapers used in original estimation
-
-# Mathematical Details
-The bias correction factor is (M)/(M - Q + δᵢⱼ) where:
-- M = number of tapers
-- Q = number of processes
-- δᵢⱼ = 1 if i=j (diagonal), 2 if i≠j (off-diagonal)
-"""
 function partial_spectra(x::SMatrix{Q, Q, T, N}, ntapers::Int) where {Q, T, N}
     p = partial_spectra(x, nothing)
     # Bias correction: M-Q+1 for diagonal, M-Q+2 for off-diagonal
@@ -217,15 +188,6 @@ function partial_spectra(x::SMatrix{Q, Q, T, N}, ntapers::Int) where {Q, T, N}
     return ntapers ./ denom .* p
 end
 
-"""
-    partial_spectra(x::AbstractMatrix{T}, ntapers::Int) where {T}
-
-Compute bias-corrected partial spectra from a general matrix.
-
-# Arguments
-- `x`: Square spectral matrix
-- `ntapers`: Number of tapers used in original estimation
-"""
 function partial_spectra!(x::AbstractMatrix{T}, ntapers::Int) where {T}
     Q = size(x, 1)
     p = partial_spectra!(x, nothing)
@@ -238,17 +200,46 @@ function partial_spectra!(x::AbstractMatrix{T}, ntapers::Int) where {T}
     return p
 end
 
-"""
-    partial_spectra(x::Number, ntapers)
-
-Partial spectra for a single process (identity operation).
-
-For a single process, the partial spectrum is identical to the original spectrum
-since there are no other processes to partial out.
-"""
 function partial_spectra(x::Number, ntapers)
     return x
 end
 
 _partial_spectra_noalloc!(x::Union{Number, SMatrix}, ntapers) = partial_spectra(x, ntapers)
 _partial_spectra_noalloc!(x::AbstractMatrix, ntapers) = partial_spectra!(x, ntapers)
+
+"""
+    partial_spectra_uncorrected(spectrum::Spectra{MarginalTrait}) -> Spectra{PartialTrait}
+
+Compute partial spectra without finite-sample bias correction.
+
+This function computes partial spectra using the raw inverse relationship without the
+finite-sample bias correction that accounts for the number of tapers. Results may be
+biased for small numbers of tapers, so use with caution. Prefer [`partial_spectra`](@ref)
+for most applications.
+
+# Arguments
+- `spectrum::Spectra{MarginalTrait}`: A marginal spectral estimate
+
+# Returns
+- `Spectra{PartialTrait}`: Uncorrected partial spectral estimates
+
+# Notes
+- Equivalent to calling `partial_spectra(x, nothing)` on the spectral matrices
+- Useful for theoretical analysis or when bias correction is undesired
+- Results will differ from corrected partial spectra, especially with few tapers
+
+# Examples
+```julia
+marginal_spec = spectra(data; kmax = 0.5, nw = 3)
+uncorrected_partial = partial_spectra_uncorrected(marginal_spec)
+corrected_partial = partial_spectra(marginal_spec)
+```
+
+See also: [`partial_spectra`](@ref)
+"""
+function partial_spectra_uncorrected(spectrum::Spectra{MarginalTrait})::Spectra{PartialTrait}
+    # Create a modified spectrum with no taper information for uncorrected computation
+    new_spectrum = Spectra{MarginalTrait}(getargument(spectrum), getestimate(spectrum),
+        getprocessinformation(spectrum), EstimationInformation(nothing))
+    return partial_spectra(new_spectrum)
+end

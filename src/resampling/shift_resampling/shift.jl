@@ -91,42 +91,46 @@ function marginal_shift(pp::PointPattern, shift_method)
     spatial_data(marginal_shift(observations(pp), shift_method), getregion(pp))
 end
 
-function shift_resample(
-        data::MultipleSpatialDataTuple{P},
-        statistic,
-        shift_method::ShiftMethod,
-        groups = 1:P;
-        kwargs...
-) where {P}
-    shift_resample(
-        Random.default_rng(),
-        data,
-        statistic,
-        shift_method,
-        groups;
-        kwargs...
-    )
-end
+findgroup(p, groups) = groups[findfirst(g -> p ∈ g, groups)]
 
-function shift_resample(
-        rng::AbstractRNG,
-        data::MultipleSpatialDataTuple{P},
-        statistic,
-        shift_method::ShiftMethod,
-        groups = 1:P;
-        kwargs...
-) where {P}
-    @assert sort(reduce(vcat, groups))==1:P "groups of shifts should partition the space"
-    group_shifts = Dict{eltype(groups), ShiftMethod}(
-        group => rand(rng, shift_method) for group in groups
-    )
-    shifted_processes = spatial_data(
-        ntuple(
-            p -> observations(
-                marginal_shift(data[p], group_shifts[findgroup(p, groups)])),
+function apply_shifts(data::MultipleSpatialDataTuple{P}, shifts, groups)
+    return spatial_data(
+        ntuple(p -> observations(marginal_shift(data[p], shifts[findgroup(p, groups)])),
             Val{P}()),
         getregion(data))
-    statistic(shifted_processes; kwargs...)
 end
 
-findgroup(p, groups) = groups[findfirst(g -> p ∈ g, groups)]
+function apply_shifts(data::MultipleSpatialDataVec, shifts, groups)
+    return spatial_data(
+        [observations(marginal_shift(data[p], shifts[findgroup(p, groups)]))
+         for p in 1:ncols(data)],
+        getregion(data))
+end
+
+function apply_shifts(data::SingleProcessData, shifts, groups)
+    return spatial_data(
+        marginal_shift(observations(data), shifts[groups[1]]), getregion(data))
+end
+
+##
+struct ShiftResampler{T, S, R, G, M}
+    data::T
+    shift_method::S
+    statistic!::R
+    groups::G
+    mem::M
+end
+
+function ShiftResampler(
+        data::SpatialData, statistic!, shift_method::ShiftMethod, groups = 1:P; kwargs...)
+    mem = create_storage(statistic!, data; kwargs...)
+    ShiftResampler(data, shift_method, statistic, groups, mem)
+end
+
+function shift_resample!(rng::AbstractRNG, data::ShiftResampler)
+    @assert sort(reduce(vcat, data.groups))==1:P "groups of shifts should partition the space"
+    group_shifts = Dict(group => rand(rng, data.shift_method) for group in data.groups)
+    shifted_data = apply_shifts(data.data, group_shifts, data.groups)
+    result = data.statistic!(data.mem, shifted_data; kwargs...)
+    return deepcopy(result) # ensure no references to mem
+end

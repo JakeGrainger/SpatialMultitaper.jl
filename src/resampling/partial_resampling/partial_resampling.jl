@@ -246,3 +246,20 @@ function partial_from_resampled_cross(
     for m in axes(J_cross, ndims(J_cross)))
     return f_pq
 end
+
+"""
+    partial_shift_resample(rng::AbstractRNG, statistic, resampler; kwargs...)
+
+Assumes that `statistic` is of the form
+    statistic(partialspectra::PartialSpectra; kwargs...)
+
+The `resampler` should be able to generate resamples of the partial spectra.
+"""
+function partial_shift_resample(rng::AbstractRNG, statistic, resampler; kwargs...)
+    partial_spec = rand(rng, resampler)
+    return statistic(partial_spec; kwargs...)
+end
+function partial_shift_resample(statistic, resampler; kwargs...)
+    partial_shift_resample(Random.default_rng(), statistic, resampler; kwargs...)
+end
+# TODO: currently we rotationally average K function in usual but not in the resampling, should think about the best way to handle this

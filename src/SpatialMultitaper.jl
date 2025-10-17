@@ -27,12 +27,12 @@ include("scalar_statistics/covariance_zero_atom.jl")
 
 include("tapered_dft.jl")
 
-include("functional_statistics/process_traits.jl")
-include("functional_statistics/processinfo.jl")
-include("functional_statistics/estimate_types.jl")
-include("functional_statistics/printing.jl")
-include("functional_statistics/errors.jl")
-include("functional_statistics/parameter_inputs.jl")
+include("functional_statistics/infrastructure/process_traits.jl")
+include("functional_statistics/infrastructure/processinfo.jl")
+include("functional_statistics/infrastructure/estimate_types.jl")
+include("functional_statistics/infrastructure/printing.jl")
+include("functional_statistics/infrastructure/errors.jl")
+include("functional_statistics/infrastructure/parameter_inputs.jl")
 
 include("functional_statistics/generic/rotational_estimate.jl")
 include("functional_statistics/generic/marginal_transform.jl")

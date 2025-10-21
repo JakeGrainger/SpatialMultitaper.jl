@@ -150,7 +150,7 @@ function Base.getindex(
         E,
         get_evaluation_points_index(estimate, i...),
         get_estimates_index(estimate, p, q, i...),
-        getprocessinformationindex(estimate, p, q),
+        get_process_information_index(estimate, p, q),
         get_estimation_information(estimate),
         getextrainformation(estimate)...
     )
@@ -163,7 +163,7 @@ function Base.getindex(estimate::AbstractEstimate{E}, p, q) where {E}
         E,
         get_evaluation_points(estimate),
         get_estimates_index(estimate, p, q),
-        getprocessinformationindex(estimate, p, q),
+        get_process_information_index(estimate, p, q),
         get_estimation_information(estimate),
         getextrainformation(estimate)...
     )

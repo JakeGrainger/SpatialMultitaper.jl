@@ -39,7 +39,7 @@ function process_trait(estimate::AbstractEstimate)
     _process_trait_from_info(process_info)
 end
 
-function getprocessinformationindex(est::AbstractEstimate, p, q)
+function get_process_information_index(est::AbstractEstimate, p, q)
     processinformation = get_process_information(est)
     processtrait = index_process_trait(est, p, q)
     return _getprocessinformationindex(processinformation, processtrait, p, q)

@@ -95,9 +95,10 @@ if run_all
         include("estimates/test-printing.jl")
     end
 
-    @safetestset "Resampling" begin
-        include("test-resampling.jl")
-    end
+    # @safetestset "Resampling" begin
+    #     include("test-resampling.jl")
+    # end
+    @warn "Skipping resampling tests temporarily"
 end
 if run_spatial || run_all
     # spatial

@@ -148,8 +148,8 @@ function Base.getindex(
     return _construct_estimate_subset(
         typeof(estimate),
         E,
-        getargumentindex(estimate, i...),
-        getestimateindex(estimate, p, q, i...),
+        getevaluationpointsindex(estimate, i...),
+        getestimatesindex(estimate, p, q, i...),
         getprocessinformationindex(estimate, p, q),
         getestimationinformation(estimate),
         getextrainformation(estimate)...
@@ -162,7 +162,7 @@ function Base.getindex(estimate::AbstractEstimate{E}, p, q) where {E}
         typeof(estimate),
         E,
         getevaluationpoints(estimate),
-        getestimateindex(estimate, p, q),
+        getestimatesindex(estimate, p, q),
         getprocessinformationindex(estimate, p, q),
         getestimationinformation(estimate),
         getextrainformation(estimate)...
@@ -178,7 +178,7 @@ function _construct_estimate_subset(
 end
 
 ## get argument index
-function getargumentindex(
+function getevaluationpointsindex(
         estimate::AbstractEstimate{E, D, N}, i::Vararg{Any, N}) where {E, D, N}
     _getargumentindex(getevaluationpoints(estimate), i...)
 end
@@ -190,12 +190,12 @@ function _getargumentindex(argument, i)
 end
 
 ## get estimate index
-function getestimateindex(
+function getestimatesindex(
         estimate::AbstractEstimate{E, D, N}, p, q, i::Vararg{Any, N}) where {E, D, N}
     return _getestimateindex(process_trait(estimate), getestimates(estimate), p, q, i...)
 end
 
-function getestimateindex(
+function getestimatesindex(
         estimate::AbstractEstimate{E, D, N}, p, q) where {E, D, N}
     return _getestimateindex(process_trait(estimate), getestimates(estimate), p, q)
 end

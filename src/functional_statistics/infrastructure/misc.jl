@@ -92,12 +92,12 @@ end
 Produces a Tuple containing the arguments and the estimate.
 """
 function Base.collect(estimate::AbstractEstimate)
-    tuple(getargumenttuple(estimate)..., getestimates(estimate))
+    tuple(getevaluationpointstuple(estimate)..., getestimates(estimate))
 end
-function getargumenttuple(estimate::AbstractEstimate)
+function getevaluationpointstuple(estimate::AbstractEstimate)
     getevaluationpoints(estimate)::Tuple
 end
-function getargumenttuple(estimate::IsotropicEstimate)
+function getevaluationpointstuple(estimate::IsotropicEstimate)
     _argument2tuple(getevaluationpoints(estimate))
 end
 _argument2tuple(x::Tuple) = x

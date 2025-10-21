@@ -64,8 +64,8 @@ end
 getshortbaseestimatename(::Type{<:KFunction}) = "K"
 getbaseestimatename(::Type{<:KFunction}) = "K function"
 
-getevaluationpoints(f::KFunction) = f.radii
-getestimates(f::KFunction) = f.value
+get_evaluation_points(f::KFunction) = f.radii
+get_estimates(f::KFunction) = f.value
 
 """
     k_function(data, region; kwargs...) -> KFunction
@@ -161,12 +161,12 @@ function k_function(est::AbstractEstimate; kwargs...)::KFunction
     return k_function!(mem; kwargs...)
 end
 function k_function!(c::CFunction{E, D})::KFunction{E, D} where {E, D}
-    mean_prod = getprocessinformation(c).mean_product
-    radii = getevaluationpoints(c)
+    mean_prod = get_process_information(c).mean_product
+    radii = get_evaluation_points(c)
     value = _c_to_k_transform!(
-        radii, getestimates(c), process_trait(c), mean_prod, Val{D}())
-    processinfo = getprocessinformation(c)
-    estimationinfo = getestimationinformation(c)
+        radii, get_estimates(c), process_trait(c), mean_prod, Val{D}())
+    processinfo = get_process_information(c)
+    estimationinfo = get_estimation_information(c)
     return KFunction{E}(radii, value, processinfo, estimationinfo)
 end
 

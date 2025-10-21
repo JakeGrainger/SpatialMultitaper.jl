@@ -50,18 +50,18 @@ struct RotationalEstimate{E, D, S, A, T, IP, IE} <: IsotropicEstimate{E, D}
 end
 
 """
-    getevaluationpoints(f::RotationalEstimate)
+    get_evaluation_points(f::RotationalEstimate)
 
 Get the radii at which the rotational estimate is evaluated.
 """
-getevaluationpoints(f::RotationalEstimate) = f.radii
+get_evaluation_points(f::RotationalEstimate) = f.radii
 
 """
-    getestimates(f::RotationalEstimate)
+    get_estimates(f::RotationalEstimate)
 
 Get the rotationally averaged estimate values.
 """
-getestimates(f::RotationalEstimate) = f.estimate
+get_estimates(f::RotationalEstimate) = f.estimate
 
 """
     getoriginaltype(::Type{<:RotationalEstimate{E, D, S}}) where {E, D, S}
@@ -257,9 +257,9 @@ Internal function to compute rotational averaging with a given kernel.
 """
 function _rotational_estimate(est::AbstractEstimate{E}, radii, kernel) where {E}
     rot_est = _smoothed_rotational(
-        getevaluationpoints(est), getestimates(est), process_trait(est), radii, kernel)
-    processinfo = getprocessinformation(est)
-    estimationinfo = getestimationinformation(est)
+        get_evaluation_points(est), get_estimates(est), process_trait(est), radii, kernel)
+    processinfo = get_process_information(est)
+    estimationinfo = get_estimation_information(est)
     return RotationalEstimate{E, typeof(est)}(radii, rot_est, processinfo, estimationinfo)
 end
 
@@ -342,7 +342,7 @@ function default_rotational_radii(nk, kmax)
 end
 
 function default_rotational_radii(s::AbstractEstimate)
-    return default_rotational_radii(getevaluationpoints(s))
+    return default_rotational_radii(get_evaluation_points(s))
 end
 
 function default_rotational_radii(wavenumber::NTuple{D, AbstractVector{<:Real}}) where {D}
@@ -370,7 +370,7 @@ while preserving wavenumber resolution.
 A `RectKernel` with bandwidth = 2 * max(wavenumber_steps)
 """
 function default_rotational_kernel(est::AbstractEstimate)
-    return default_rotational_kernel(getevaluationpoints(est))
+    return default_rotational_kernel(get_evaluation_points(est))
 end
 
 function default_rotational_kernel(nk, kmax)

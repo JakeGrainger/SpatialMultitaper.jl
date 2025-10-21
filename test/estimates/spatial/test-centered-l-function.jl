@@ -2,7 +2,7 @@ using Test, SpatialMultitaper, StableRNGs, StaticArrays, LinearAlgebra, Benchmar
 include("../../test_utilities/TestData.jl")
 using .TestData
 
-import SpatialMultitaper: getestimates, getevaluationpoints, CenteredLFunction,
+import SpatialMultitaper: get_estimates, get_evaluation_points, CenteredLFunction,
                           centered_l_function!
 
 #
@@ -31,8 +31,8 @@ rng = StableRNG(123)
         spatial_result = centered_l_function(
             points_spatial, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
-        @test getevaluationpoints(raw_result) ≈ getevaluationpoints(spatial_result)
-        @test getestimates(raw_result) ≈ getestimates(spatial_result)
+        @test get_evaluation_points(raw_result) ≈ get_evaluation_points(spatial_result)
+        @test get_estimates(raw_result) ≈ get_estimates(spatial_result)
     end
 
     # - loop over single, tuple and vector
@@ -57,14 +57,14 @@ rng = StableRNG(123)
                 points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
             @test result isa CenteredLFunction
-            @test getevaluationpoints(result) ≈ radii
+            @test get_evaluation_points(result) ≈ radii
             if return_type == :vector
-                @test size(getestimates(result)) ==
+                @test size(get_estimates(result)) ==
                       (n_processes, n_processes, length(radii))
             else
-                @test length(getestimates(result)) == length(radii)
+                @test length(get_estimates(result)) == length(radii)
             end
-            @test all(x -> all(isfinite.(x)), getestimates(result))
+            @test all(x -> all(isfinite.(x)), get_estimates(result))
         end
 
         # - - centered l function from spectra
@@ -90,9 +90,9 @@ rng = StableRNG(123)
             centered_l_direct = centered_l_function(
                 points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
-            @test getevaluationpoints(centered_l_from_spectra) ≈
-                  getevaluationpoints(centered_l_direct)
-            @test getestimates(centered_l_from_spectra) ≈ getestimates(centered_l_direct)
+            @test get_evaluation_points(centered_l_from_spectra) ≈
+                  get_evaluation_points(centered_l_direct)
+            @test get_estimates(centered_l_from_spectra) ≈ get_estimates(centered_l_direct)
         end
 
         # - - centered l function from c function
@@ -119,9 +119,9 @@ rng = StableRNG(123)
             centered_l_direct = centered_l_function(
                 points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
-            @test getevaluationpoints(centered_l_from_c) ≈
-                  getevaluationpoints(centered_l_direct)
-            @test getestimates(centered_l_from_c) ≈ getestimates(centered_l_direct)
+            @test get_evaluation_points(centered_l_from_c) ≈
+                  get_evaluation_points(centered_l_direct)
+            @test get_estimates(centered_l_from_c) ≈ get_estimates(centered_l_direct)
         end
 
         # - - centered l function from k function
@@ -148,9 +148,9 @@ rng = StableRNG(123)
             centered_l_direct = centered_l_function(
                 points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
-            @test getevaluationpoints(centered_l_from_k) ≈
-                  getevaluationpoints(centered_l_direct)
-            @test getestimates(centered_l_from_k) ≈ getestimates(centered_l_direct)
+            @test get_evaluation_points(centered_l_from_k) ≈
+                  get_evaluation_points(centered_l_direct)
+            @test get_estimates(centered_l_from_k) ≈ get_estimates(centered_l_direct)
         end
 
         # - - centered l function from l function
@@ -177,9 +177,9 @@ rng = StableRNG(123)
             centered_l_direct = centered_l_function(
                 points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
-            @test getevaluationpoints(centered_l_from_l) ≈
-                  getevaluationpoints(centered_l_direct)
-            @test getestimates(centered_l_from_l) ≈ getestimates(centered_l_direct)
+            @test get_evaluation_points(centered_l_from_l) ≈
+                  get_evaluation_points(centered_l_direct)
+            @test get_estimates(centered_l_from_l) ≈ get_estimates(centered_l_direct)
         end
 
         # - - partial centered l function from SpatialData
@@ -201,12 +201,12 @@ rng = StableRNG(123)
                     nk = nk, kmax = kmax, tapers = tapers)
 
                 @test partial_result isa CenteredLFunction
-                @test getevaluationpoints(partial_result) ≈ radii
+                @test get_evaluation_points(partial_result) ≈ radii
                 if return_type == :vector
-                    @test size(getestimates(partial_result)) ==
+                    @test size(get_estimates(partial_result)) ==
                           (n_processes, n_processes, length(radii))
                 else
-                    @test length(getestimates(partial_result)) == length(radii)
+                    @test length(get_estimates(partial_result)) == length(radii)
                 end
             end
         end
@@ -243,14 +243,14 @@ rng = StableRNG(123)
                 @test centered_l_from_partial_l isa CenteredLFunction
 
                 # All should give same result
-                @test getevaluationpoints(centered_l_from_partial_c) ≈
-                      getevaluationpoints(centered_l_from_partial_k)
-                @test getevaluationpoints(centered_l_from_partial_c) ≈
-                      getevaluationpoints(centered_l_from_partial_l)
-                @test getestimates(centered_l_from_partial_c) ≈
-                      getestimates(centered_l_from_partial_k)
-                @test getestimates(centered_l_from_partial_c) ≈
-                      getestimates(centered_l_from_partial_l)
+                @test get_evaluation_points(centered_l_from_partial_c) ≈
+                      get_evaluation_points(centered_l_from_partial_k)
+                @test get_evaluation_points(centered_l_from_partial_c) ≈
+                      get_evaluation_points(centered_l_from_partial_l)
+                @test get_estimates(centered_l_from_partial_c) ≈
+                      get_estimates(centered_l_from_partial_k)
+                @test get_estimates(centered_l_from_partial_c) ≈
+                      get_estimates(centered_l_from_partial_l)
             end
         end
 
@@ -271,27 +271,27 @@ rng = StableRNG(123)
                 points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
             @test result isa CenteredLFunction
-            @test getevaluationpoints(result) isa AbstractVector
-            @test length(getevaluationpoints(result)) == length(radii)
+            @test get_evaluation_points(result) isa AbstractVector
+            @test length(get_evaluation_points(result)) == length(radii)
             if return_type == :vector
-                @test getestimates(result) isa AbstractArray
-                @test size(getestimates(result)) ==
+                @test get_estimates(result) isa AbstractArray
+                @test size(get_estimates(result)) ==
                       (n_processes, n_processes, length(radii))
             elseif return_type == :tuple
-                @test getestimates(result) isa AbstractVector
-                @test length(getestimates(result)) == length(radii)
-                @test eltype(getestimates(result)) <: SMatrix{n_processes, n_processes}
+                @test get_estimates(result) isa AbstractVector
+                @test length(get_estimates(result)) == length(radii)
+                @test eltype(get_estimates(result)) <: SMatrix{n_processes, n_processes}
             else # return_type == :single
-                @test getestimates(result) isa AbstractVector
-                @test length(getestimates(result)) == length(radii)
+                @test get_estimates(result) isa AbstractVector
+                @test length(get_estimates(result)) == length(radii)
             end
 
             # Check element types
-            @test eltype(getevaluationpoints(result)) <: Number
+            @test eltype(get_evaluation_points(result)) <: Number
             if return_type == :tuple
-                @test eltype(getestimates(result)) <: SMatrix
+                @test eltype(get_estimates(result)) <: SMatrix
             else
-                @test eltype(getestimates(result)) <: Number
+                @test eltype(get_estimates(result)) <: Number
             end
         end
 
@@ -312,8 +312,8 @@ rng = StableRNG(123)
                 points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
             # Test indexing into results
-            radii_result = getevaluationpoints(result)
-            values_result = getestimates(result)
+            radii_result = get_evaluation_points(result)
+            values_result = get_estimates(result)
 
             @test radii_result[1] ≈ radii[1]
             @test radii_result[end] ≈ radii[end]
@@ -358,18 +358,18 @@ rng = StableRNG(123)
             l_result = l_function(
                 points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
-            @test getevaluationpoints(centered_l_result) ≈ getevaluationpoints(l_result)
+            @test get_evaluation_points(centered_l_result) ≈ get_evaluation_points(l_result)
 
             # Test that centered L function computed from L function gives same result
             centered_l_from_l = centered_l_function(l_result)
-            @test getevaluationpoints(centered_l_from_l) ≈
-                  getevaluationpoints(centered_l_result)
-            @test getestimates(centered_l_from_l) ≈ getestimates(centered_l_result)
+            @test get_evaluation_points(centered_l_from_l) ≈
+                  get_evaluation_points(centered_l_result)
+            @test get_estimates(centered_l_from_l) ≈ get_estimates(centered_l_result)
 
             # Verify the centering relationship: centered_L = L - r
             if return_type == :single
-                l_values = getestimates(l_result)
-                centered_l_values = getestimates(centered_l_result)
+                l_values = get_estimates(l_result)
+                centered_l_values = get_estimates(centered_l_result)
                 expected_centered = l_values .- radii
                 @test centered_l_values ≈ expected_centered
             end
@@ -387,7 +387,7 @@ end
     tapers = sin_taper_family(bw, region)
     result = centered_l_function(
         points_data, radii = small_radii, nk = (8, 8), kmax = (0.5, 0.5), tapers = tapers)
-    @test all(x -> all(isfinite.(x)), getestimates(result))
+    @test all(x -> all(isfinite.(x)), get_estimates(result))
 
     # Test large radii
     large_radii = [2.0, 100.0]
@@ -398,7 +398,7 @@ end
     zero_radius = [0.0]
     result_zero = centered_l_function(
         points_data, radii = zero_radius, nk = (8, 8), kmax = (0.5, 0.5), tapers = tapers)
-    @test abs(getestimates(result_zero)[1]) < 1e-6  # centered_L(0) should be approximately 0
+    @test abs(get_estimates(result_zero)[1]) < 1e-6  # centered_L(0) should be approximately 0
 end
 
 @testset "in place tests $return_type" for return_type in [:single, :tuple, :vector]

@@ -2,8 +2,8 @@ using Test, SpatialMultitaper, StableRNGs, StaticArrays, LinearAlgebra, Benchmar
 include("../../test_utilities/TestData.jl")
 using .TestData
 
-import SpatialMultitaper: getestimates, getevaluationpoints, KFunction, k_function!,
-                          getprocessinformation, process_trait, _c_to_k_transform!
+import SpatialMultitaper: get_estimates, get_evaluation_points, KFunction, k_function!,
+                          get_process_information, process_trait, _c_to_k_transform!
 rng = StableRNG(123)
 
 # loop over 1d, 2d, 3d
@@ -29,8 +29,8 @@ rng = StableRNG(123)
         spatial_result = k_function(
             points_spatial, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
-        @test getevaluationpoints(raw_result) ≈ getevaluationpoints(spatial_result)
-        @test getestimates(raw_result) ≈ getestimates(spatial_result)
+        @test get_evaluation_points(raw_result) ≈ get_evaluation_points(spatial_result)
+        @test get_estimates(raw_result) ≈ get_estimates(spatial_result)
     end
 
     # - loop over single, tuple and vector
@@ -55,14 +55,14 @@ rng = StableRNG(123)
                 points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
             @test result isa KFunction
-            @test getevaluationpoints(result) ≈ radii
+            @test get_evaluation_points(result) ≈ radii
             if return_type == :vector
-                @test size(getestimates(result)) ==
+                @test size(get_estimates(result)) ==
                       (n_processes, n_processes, length(radii))
             else
-                @test length(getestimates(result)) == length(radii)
+                @test length(get_estimates(result)) == length(radii)
             end
-            @test all(x -> all(isfinite.(x)), getestimates(result))
+            @test all(x -> all(isfinite.(x)), get_estimates(result))
         end
 
         # - - k function from spectra
@@ -88,8 +88,8 @@ rng = StableRNG(123)
             k_direct = k_function(
                 points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
-            @test getevaluationpoints(k_from_spectra) ≈ getevaluationpoints(k_direct)
-            @test getestimates(k_from_spectra) ≈ getestimates(k_direct)
+            @test get_evaluation_points(k_from_spectra) ≈ get_evaluation_points(k_direct)
+            @test get_estimates(k_from_spectra) ≈ get_estimates(k_direct)
         end
 
         # - - k function from c function
@@ -116,8 +116,8 @@ rng = StableRNG(123)
             k_direct = k_function(
                 points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
-            @test getevaluationpoints(k_from_c) ≈ getevaluationpoints(k_direct)
-            @test getestimates(k_from_c) ≈ getestimates(k_direct)
+            @test get_evaluation_points(k_from_c) ≈ get_evaluation_points(k_direct)
+            @test get_estimates(k_from_c) ≈ get_estimates(k_direct)
         end
 
         # - - partial k function from SpatialData
@@ -138,12 +138,12 @@ rng = StableRNG(123)
                     nk = nk, kmax = kmax, tapers = tapers)
 
                 @test partial_result isa KFunction
-                @test getevaluationpoints(partial_result) ≈ radii
+                @test get_evaluation_points(partial_result) ≈ radii
                 if return_type == :vector
-                    @test size(getestimates(partial_result)) ==
+                    @test size(get_estimates(partial_result)) ==
                           (n_processes, n_processes, length(radii))
                 else
-                    @test length(getestimates(partial_result)) == length(radii)
+                    @test length(get_estimates(partial_result)) == length(radii)
                 end
             end
         end
@@ -170,7 +170,7 @@ rng = StableRNG(123)
                 k_from_partial = k_function(partial_spec, radii = radii)
 
                 @test k_from_partial isa KFunction
-                @test getevaluationpoints(k_from_partial) ≈ radii
+                @test get_evaluation_points(k_from_partial) ≈ radii
             end
         end
 
@@ -196,15 +196,15 @@ rng = StableRNG(123)
                 k_from_partial_c = k_function(partial_c)
 
                 @test k_from_partial_c isa KFunction
-                @test getevaluationpoints(k_from_partial_c) ≈ radii
+                @test get_evaluation_points(k_from_partial_c) ≈ radii
 
                 # Compare with direct partial K function computation
                 k_partial_direct = partial_k_function(
                     points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
-                @test getevaluationpoints(k_from_partial_c) ≈
-                      getevaluationpoints(k_partial_direct)
-                @test getestimates(k_from_partial_c) ≈ getestimates(k_partial_direct)
+                @test get_evaluation_points(k_from_partial_c) ≈
+                      get_evaluation_points(k_partial_direct)
+                @test get_estimates(k_from_partial_c) ≈ get_estimates(k_partial_direct)
             end
         end
 
@@ -225,27 +225,27 @@ rng = StableRNG(123)
                 points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
             @test result isa KFunction
-            @test getevaluationpoints(result) isa AbstractVector
-            @test length(getevaluationpoints(result)) == length(radii)
+            @test get_evaluation_points(result) isa AbstractVector
+            @test length(get_evaluation_points(result)) == length(radii)
             if return_type == :vector
-                @test getestimates(result) isa AbstractArray
-                @test size(getestimates(result)) ==
+                @test get_estimates(result) isa AbstractArray
+                @test size(get_estimates(result)) ==
                       (n_processes, n_processes, length(radii))
             elseif return_type == :tuple
-                @test getestimates(result) isa AbstractVector
-                @test length(getestimates(result)) == length(radii)
-                @test eltype(getestimates(result)) <: SMatrix{n_processes, n_processes}
+                @test get_estimates(result) isa AbstractVector
+                @test length(get_estimates(result)) == length(radii)
+                @test eltype(get_estimates(result)) <: SMatrix{n_processes, n_processes}
             else # return_type == :single
-                @test getestimates(result) isa AbstractVector
-                @test length(getestimates(result)) == length(radii)
+                @test get_estimates(result) isa AbstractVector
+                @test length(get_estimates(result)) == length(radii)
             end
 
             # Check element types
-            @test eltype(getevaluationpoints(result)) <: Number
+            @test eltype(get_evaluation_points(result)) <: Number
             if return_type == :tuple
-                @test eltype(getestimates(result)) <: SMatrix
+                @test eltype(get_estimates(result)) <: SMatrix
             else
-                @test eltype(getestimates(result)) <: Number
+                @test eltype(get_estimates(result)) <: Number
             end
         end
 
@@ -266,8 +266,8 @@ rng = StableRNG(123)
                 points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
             # Test indexing into results
-            radii_result = getevaluationpoints(result)
-            values_result = getestimates(result)
+            radii_result = get_evaluation_points(result)
+            values_result = get_estimates(result)
 
             @test radii_result[1] ≈ radii[1]
             @test radii_result[end] ≈ radii[end]
@@ -312,16 +312,16 @@ rng = StableRNG(123)
             c_result = c_function(
                 points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
-            @test getevaluationpoints(k_result) ≈ getevaluationpoints(c_result)
+            @test get_evaluation_points(k_result) ≈ get_evaluation_points(c_result)
 
             # Test that K function computed from C function gives same result
             k_from_c = k_function(c_result)
-            @test getevaluationpoints(k_from_c) ≈ getevaluationpoints(k_result)
-            @test getestimates(k_from_c) ≈ getestimates(k_result)
+            @test get_evaluation_points(k_from_c) ≈ get_evaluation_points(k_result)
+            @test get_estimates(k_from_c) ≈ get_estimates(k_result)
 
             # K function should be non-negative for positive radii and single process
             if return_type == :single
-                k_values = getestimates(k_result)
+                k_values = get_estimates(k_result)
                 @test all(k_values .>= 0) ||
                       length(findall(x -> x < 0, k_values)) / length(k_values) < 0.1  # Allow small numerical errors
             end
@@ -339,7 +339,7 @@ end
     tapers = sin_taper_family(bw, region)
     result = k_function(
         points_data, radii = small_radii, nk = (8, 8), kmax = (0.5, 0.5), tapers = tapers)
-    @test all(x -> all(isfinite.(x)), getestimates(result))
+    @test all(x -> all(isfinite.(x)), get_estimates(result))
 
     # Test large radii
     large_radii = [2.0, 100.0]
@@ -350,7 +350,7 @@ end
     zero_radius = [0.0]
     result_zero = k_function(
         points_data, radii = zero_radius, nk = (8, 8), kmax = (0.5, 0.5), tapers = tapers)
-    @test abs(getestimates(result_zero)[1]) < 1e-6  # K(0) should be approximately 0
+    @test abs(get_estimates(result_zero)[1]) < 1e-6  # K(0) should be approximately 0
 end
 
 @testset "in place tests $return_type" for return_type in [:single, :tuple, :vector]
@@ -361,9 +361,9 @@ end
     spectrum = spectra(points_data, nk = (16, 16), kmax = (0.5, 0.5), tapers = tapers)
     c_fun = c_function(spectrum, radii = radii)
 
-    mean_prod = getprocessinformation(c_fun).mean_product
+    mean_prod = get_process_information(c_fun).mean_product
     alloc = @ballocated _c_to_k_transform!(
-        $radii, getestimates($c_fun), process_trait($spectrum), $mean_prod, Val{2}()) samples=1
+        $radii, get_estimates($c_fun), process_trait($spectrum), $mean_prod, Val{2}()) samples=1
     @test alloc == 0
 
     # from spatial data

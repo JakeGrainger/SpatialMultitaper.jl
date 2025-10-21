@@ -17,7 +17,7 @@ end
 
 ## checking process bounds
 function checkprocessbounds(estimate::AbstractEstimate, p, q)
-    _checkprocessbounds(getestimates(estimate), p, q)
+    _checkprocessbounds(get_estimates(estimate), p, q)
     nothing
 end
 
@@ -72,7 +72,7 @@ end
 ## checking index bounds
 function checkindexbounds(
         estimate::AbstractEstimate{E, D, N}, i::Vararg{Any, N}) where {E, D, N}
-    _checkindexbounds(getestimates(estimate), i...)
+    _checkindexbounds(get_estimates(estimate), i...)
 end
 
 function _checkindexbounds(
@@ -148,10 +148,10 @@ function Base.getindex(
     return _construct_estimate_subset(
         typeof(estimate),
         E,
-        getevaluationpointsindex(estimate, i...),
-        getestimatesindex(estimate, p, q, i...),
+        get_evaluation_points_index(estimate, i...),
+        get_estimates_index(estimate, p, q, i...),
         getprocessinformationindex(estimate, p, q),
-        getestimationinformation(estimate),
+        get_estimation_information(estimate),
         getextrainformation(estimate)...
     )
 end
@@ -161,10 +161,10 @@ function Base.getindex(estimate::AbstractEstimate{E}, p, q) where {E}
     return _construct_estimate_subset(
         typeof(estimate),
         E,
-        getevaluationpoints(estimate),
-        getestimatesindex(estimate, p, q),
+        get_evaluation_points(estimate),
+        get_estimates_index(estimate, p, q),
         getprocessinformationindex(estimate, p, q),
-        getestimationinformation(estimate),
+        get_estimation_information(estimate),
         getextrainformation(estimate)...
     )
 end
@@ -178,9 +178,9 @@ function _construct_estimate_subset(
 end
 
 ## get argument index
-function getevaluationpointsindex(
+function get_evaluation_points_index(
         estimate::AbstractEstimate{E, D, N}, i::Vararg{Any, N}) where {E, D, N}
-    _getargumentindex(getevaluationpoints(estimate), i...)
+    _getargumentindex(get_evaluation_points(estimate), i...)
 end
 function _getargumentindex(argument::NTuple{N}, i::Vararg{Any, N}) where {N}
     getindex.(argument, tuple(i...))
@@ -190,14 +190,14 @@ function _getargumentindex(argument, i)
 end
 
 ## get estimate index
-function getestimatesindex(
+function get_estimates_index(
         estimate::AbstractEstimate{E, D, N}, p, q, i::Vararg{Any, N}) where {E, D, N}
-    return _getestimateindex(process_trait(estimate), getestimates(estimate), p, q, i...)
+    return _getestimateindex(process_trait(estimate), get_estimates(estimate), p, q, i...)
 end
 
-function getestimatesindex(
+function get_estimates_index(
         estimate::AbstractEstimate{E, D, N}, p, q) where {E, D, N}
-    return _getestimateindex(process_trait(estimate), getestimates(estimate), p, q)
+    return _getestimateindex(process_trait(estimate), get_estimates(estimate), p, q)
 end
 
 function _getestimateindex(::SingleProcessTrait, estimate::AbstractArray{<:Number, N},

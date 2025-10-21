@@ -5,9 +5,9 @@ using .TestData
 import SpatialMultitaper: RotationalEstimate, MarginallyTransformedEstimate, Coherence,
                           rotational_estimate, default_rotational_radii, is_partial,
                           default_rotational_kernel, GaussKernel, RectKernel,
-                          _smoothed_rotational, getestimates, getevaluationpoints,
+                          _smoothed_rotational, get_estimates, get_evaluation_points,
                           getestimatename,
-                          getestimationinformation, getprocessinformation,
+                          get_estimation_information, get_process_information,
                           SingleProcessTrait
 
 @testset "Rotational Kernels" begin
@@ -151,11 +151,11 @@ end
         @test rot_spec isa RotationalEstimate
         @test embeddim(rot_spec) == 2  # Same as original
         @test size(rot_spec) == size(spec)  # Same processes
-        @test getprocessinformation(rot_spec) == getprocessinformation(spec)
-        @test getestimationinformation(rot_spec) == getestimationinformation(spec)
+        @test get_process_information(rot_spec) == get_process_information(spec)
+        @test get_estimation_information(rot_spec) == get_estimation_information(spec)
 
         # Should be isotropic now (1D argument)
-        radii = getevaluationpoints(rot_spec)
+        radii = get_evaluation_points(rot_spec)
         @test radii isa AbstractVector
         @test all(radii .≥ 0)  # Radii should be non-negative
     end
@@ -173,8 +173,8 @@ end
 
         rot_spec = rotational_estimate(spec, radii = custom_radii, kernel = custom_kernel)
 
-        @test getevaluationpoints(rot_spec) == custom_radii
-        @test length(getestimates(rot_spec)) == length(custom_radii)
+        @test get_evaluation_points(rot_spec) == custom_radii
+        @test length(get_estimates(rot_spec)) == length(custom_radii)
     end
 
     @testset "Default parameters" begin
@@ -187,7 +187,7 @@ end
 
         rot_spec = rotational_estimate(spec)  # Use defaults
 
-        radii = getevaluationpoints(rot_spec)
+        radii = get_evaluation_points(rot_spec)
         @test radii isa AbstractVector
         @test length(radii) > 0
         @test maximum(radii) ≤ minimum([0.3, 0.3])  # Bounded by kmax
@@ -239,7 +239,7 @@ end
 
         @test partial_rot_spec isa RotationalEstimate
         @test is_partial(partial_rot_spec) == true
-        @test getevaluationpoints(partial_rot_spec) == getevaluationpoints(rot_spec)  # Same radii
+        @test get_evaluation_points(partial_rot_spec) == get_evaluation_points(rot_spec)  # Same radii
         @test size(partial_rot_spec) == size(rot_spec)
 
         # Name should indicate both partial and rotational
@@ -264,8 +264,8 @@ end
         rot_spec_smooth = rotational_estimate(spec, kernel = GaussKernel(0.1))
         rot_spec_sharp = rotational_estimate(spec, kernel = RectKernel(0.02))
 
-        estimate_smooth = getestimates(rot_spec_smooth)
-        estimate_sharp = getestimates(rot_spec_sharp)
+        estimate_smooth = get_estimates(rot_spec_smooth)
+        estimate_sharp = get_estimates(rot_spec_sharp)
 
         # Smoother kernel should produce less variation
         # (This is hard to test rigorously without knowing the exact spectral structure)
@@ -285,8 +285,8 @@ end
             tapers = sin_taper_family((3, 3), region))
 
         rot_spec = rotational_estimate(spec)
-        estimate = getestimates(rot_spec)
-        radii = getevaluationpoints(rot_spec)
+        estimate = get_estimates(rot_spec)
+        radii = get_evaluation_points(rot_spec)
 
         @test length(estimate) == length(radii)
         @test all(isfinite, estimate)
@@ -334,12 +334,12 @@ end
         rot_sub = rot_spec[1, 2]
         @test rot_sub isa RotationalEstimate
         @test size(rot_sub) == ()
-        @test getevaluationpoints(rot_sub) == getevaluationpoints(rot_spec)  # Same radii
+        @test get_evaluation_points(rot_sub) == get_evaluation_points(rot_spec)  # Same radii
     end
 
     @testset "Radial indexing" begin
         # For isotropic estimates, should be able to index by radius
-        radii = getevaluationpoints(rot_spec)
+        radii = get_evaluation_points(rot_spec)
 
         # Index specific radius
         if length(radii) > 2
@@ -347,7 +347,7 @@ end
             @test rot_radius isa RotationalEstimate
             @test size(rot_radius) == ()
 
-            radius_arg = getevaluationpoints(rot_radius)
+            radius_arg = get_evaluation_points(rot_radius)
             @test length(radius_arg) == 1
             @test radius_arg[1] ≈ radii[3]
         end
@@ -368,7 +368,7 @@ end
 
         rot_spec = rotational_estimate(spec)
         @test rot_spec isa RotationalEstimate
-        @test all(isfinite, stack(getestimates(rot_spec)))
+        @test all(isfinite, stack(get_estimates(rot_spec)))
     end
 
     @testset "Single radius" begin
@@ -380,8 +380,8 @@ end
             tapers = sin_taper_family((2, 2), region))
 
         rot_spec = rotational_estimate(spec, radii = [0.1], kernel = RectKernel(0.1))
-        @test length(getevaluationpoints(rot_spec)) == 1
-        @test length(getestimates(rot_spec)) == 1
+        @test length(get_evaluation_points(rot_spec)) == 1
+        @test length(get_estimates(rot_spec)) == 1
     end
 
     @testset "Zero radius" begin
@@ -393,10 +393,10 @@ end
             tapers = sin_taper_family((2, 2), region))
 
         rot_spec = rotational_estimate(spec, radii = [0.0], kernel = RectKernel(0.1)) # TODO: need to change the behaviour of the Kernel default to not use the radii
-        @test getevaluationpoints(rot_spec)[1] ≈ 0.0
+        @test get_evaluation_points(rot_spec)[1] ≈ 0.0
 
         # At zero radius, should equal center value of original spectrum
-        estimate = getestimates(rot_spec)[1]
+        estimate = get_estimates(rot_spec)[1]
         @test all(isfinite, estimate)
     end
 end
@@ -412,15 +412,15 @@ end
     @testset "Type stability" begin
         rot_spec = rotational_estimate(spec)
         @test rot_spec isa RotationalEstimate
-        @test getevaluationpoints(rot_spec) isa AbstractVector
-        @test getestimates(rot_spec) isa AbstractVector
+        @test get_evaluation_points(rot_spec) isa AbstractVector
+        @test get_estimates(rot_spec) isa AbstractVector
     end
 
     @testset "Consistent dimensions" begin
         custom_radii = collect(range(0, 0.2, length = 10))
         rot_spec = rotational_estimate(spec, radii = custom_radii)
 
-        @test length(getevaluationpoints(rot_spec)) == 10
-        @test length(getestimates(rot_spec)) == 10
+        @test length(get_evaluation_points(rot_spec)) == 10
+        @test length(get_estimates(rot_spec)) == 10
     end
 end

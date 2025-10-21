@@ -3,10 +3,11 @@ using LinearAlgebra: SingularException, LAPACKException
 include("../../test_utilities/TestUtils.jl")
 using .TestUtils
 
-import SpatialMultitaper: partial_spectra, partial_spectra_uncorrected, getestimates,
-                          getevaluationpoints, is_partial, MarginallyTransformedEstimate,
+import SpatialMultitaper: partial_spectra, partial_spectra_uncorrected, get_estimates,
+                          get_evaluation_points, is_partial, MarginallyTransformedEstimate,
                           Spectra,
-                          getprocessinformation, getestimationinformation, partial_spectra!
+                          get_process_information, get_estimation_information,
+                          partial_spectra!
 
 @testset "partial_spectra matrix function" begin
     @testset "2x2 SMatrix" begin
@@ -86,9 +87,9 @@ end
         @test is_partial(partial_spec) == true  # Should have PartialTrait
         @test size(partial_spec) == size(spec)
         @test embeddim(partial_spec) == embeddim(spec)
-        @test getevaluationpoints(partial_spec) == getevaluationpoints(spec)  # Same wavenumbers
-        @test getprocessinformation(partial_spec) == getprocessinformation(spec)
-        @test getestimationinformation(partial_spec) == getestimationinformation(spec)
+        @test get_evaluation_points(partial_spec) == get_evaluation_points(spec)  # Same wavenumbers
+        @test get_process_information(partial_spec) == get_process_information(spec)
+        @test get_estimation_information(partial_spec) == get_estimation_information(spec)
     end
 
     @testset "Direct from data" begin
@@ -120,7 +121,7 @@ end
         @test is_partial(partial_uncorrected) == true
 
         # Results should be different (uncorrected should be smaller in magnitude typically)
-        @test getestimates(partial_corrected) ≢ getestimates(partial_uncorrected)
+        @test get_estimates(partial_corrected) ≢ get_estimates(partial_uncorrected)
     end
 end
 
@@ -313,8 +314,8 @@ end
         @test is_partial(partial_spec) == true
 
         # For single process, partial spectrum should equal to the original
-        estimate = getestimates(partial_spec)
-        original_estimate = getestimates(spec)
+        estimate = get_estimates(partial_spec)
+        original_estimate = get_estimates(spec)
         @test original_estimate ≈ estimate
     end
 end

@@ -104,15 +104,15 @@ function partial_spectra!(spectrum::Spectra{MarginalTrait})::Spectra{PartialTrai
     end
 
     trait = process_trait(spectrum)
-    est = getestimates(spectrum)
-    process_info = getprocessinformation(spectrum)
-    estimation_info = getestimationinformation(spectrum)
+    est = get_estimates(spectrum)
+    process_info = get_process_information(spectrum)
+    estimation_info = get_estimation_information(spectrum)
 
     transformed = apply_transform!(
         _partial_spectra_noalloc!, est, trait, estimation_info.ntapers)
 
     return Spectra{PartialTrait}(
-        getevaluationpoints(spectrum), transformed, process_info, estimation_info)
+        get_evaluation_points(spectrum), transformed, process_info, estimation_info)
 end
 
 function partial_spectra(data, region::Meshes.Geometry; kwargs...)::Spectra{PartialTrait}
@@ -131,13 +131,13 @@ function partial_spectra!(spectrum::RotationalSpectra{MarginalTrait})::Rotationa
         ))
     end
 
-    wavenumber = getevaluationpoints(spectrum)
-    power = getestimates(spectrum)
+    wavenumber = get_evaluation_points(spectrum)
+    power = get_estimates(spectrum)
     trait = process_trait(spectrum)
     # Note: Debiasing is different for rotational estimates (not currently implemented)
     value = apply_transform!(_partial_spectra_noalloc!, power, trait, nothing)
-    processinfo = getprocessinformation(spectrum)
-    estimationinfo = getestimationinformation(spectrum)
+    processinfo = get_process_information(spectrum)
+    estimationinfo = get_estimation_information(spectrum)
 
     return RotationalEstimate{PartialTrait, typeof(spectrum)}(
         wavenumber, value, processinfo, estimationinfo)
@@ -240,7 +240,7 @@ See also: [`partial_spectra`](@ref)
 function partial_spectra_uncorrected(spectrum::Spectra{MarginalTrait})::Spectra{PartialTrait}
     # Create a modified spectrum with no taper information for uncorrected computation
     new_spectrum = Spectra{MarginalTrait}(
-        getevaluationpoints(spectrum), getestimates(spectrum),
-        getprocessinformation(spectrum), EstimationInformation(nothing))
+        get_evaluation_points(spectrum), get_estimates(spectrum),
+        get_process_information(spectrum), EstimationInformation(nothing))
     return partial_spectra(new_spectrum)
 end

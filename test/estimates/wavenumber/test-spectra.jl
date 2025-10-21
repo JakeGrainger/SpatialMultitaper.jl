@@ -2,10 +2,10 @@ using SpatialMultitaper, Test, StableRNGs, StaticArrays
 include("../../test_utilities/TestData.jl")
 using .TestData
 
-import SpatialMultitaper: Spectra, getevaluationpoints, getestimates,
+import SpatialMultitaper: Spectra, get_evaluation_points, get_estimates,
                           _dft_to_spectral_matrix,
                           _compute_spectral_matrix, _make_wavenumber_grid,
-                          getestimationinformation, ProcessInformation,
+                          get_estimation_information, ProcessInformation,
                           EstimationInformation, MarginalTrait, MultipleVectorTrait,
                           SingleProcessTrait, MultipleTupleTrait, _compute_spectral_matrix!,
                           _validate_tapers
@@ -22,8 +22,8 @@ import SpatialMultitaper: Spectra, getevaluationpoints, getestimates,
         estimationinfo = EstimationInformation(5)
 
         spec = Spectra{MarginalTrait}(wavenumber, power, processinfo, estimationinfo)
-        @test getevaluationpoints(spec) == wavenumber
-        @test getestimates(spec) == power
+        @test get_evaluation_points(spec) == wavenumber
+        @test get_estimates(spec) == power
         @test embeddim(spec) == 2
         @test size(spec) == (2, 2)
     end
@@ -54,12 +54,12 @@ end
 
         spec = spectra(data, nk = nk, kmax = kmax, tapers = tapers)
 
-        @test getevaluationpoints(spec) isa Tuple{AbstractVector, AbstractVector}
-        @test length(getevaluationpoints(spec)[1]) == 8
-        @test length(getevaluationpoints(spec)[2]) == 8
+        @test get_evaluation_points(spec) isa Tuple{AbstractVector, AbstractVector}
+        @test length(get_evaluation_points(spec)[1]) == 8
+        @test length(get_evaluation_points(spec)[2]) == 8
         @test embeddim(spec) == 2
         @test size(spec) == (2, 2)
-        @test getestimationinformation(spec).ntapers == length(tapers)
+        @test get_estimation_information(spec).ntapers == length(tapers)
     end
 
     @testset "Grid data" begin
@@ -189,13 +189,13 @@ end
     @testset "Process indexing" begin
         spec_sub = spec[1, 2]
         @test size(spec_sub) == ()  # Single process pair
-        @test getevaluationpoints(spec_sub) == getevaluationpoints(spec)  # Same wavenumbers
+        @test get_evaluation_points(spec_sub) == get_evaluation_points(spec)  # Same wavenumbers
     end
 
     @testset "Wavenumber indexing" begin
         spec_wavenumber = spec[1, 1, 3, 4]  # specific wavenumber bin
         @test size(spec_wavenumber) == ()
-        wavenumber_arg = getevaluationpoints(spec_wavenumber)
+        wavenumber_arg = get_evaluation_points(spec_wavenumber)
         @test length(wavenumber_arg[1]) == 1  # Single wavenumber
         @test length(wavenumber_arg[2]) == 1
     end

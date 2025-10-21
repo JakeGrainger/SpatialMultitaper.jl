@@ -1,5 +1,5 @@
 function is_same_process_sets(est::AbstractEstimate)
-    is_same_process_sets(getprocessinformation(est))
+    is_same_process_sets(get_process_information(est))
 end
 
 getestimatename(T::Type{<:MarginalAbstractEstimate}) = getbaseestimatename(T)
@@ -15,17 +15,17 @@ end
 getshortestimatename(est::AbstractEstimate) = getshortestimatename(typeof(est))
 
 function Base.:(==)(a::AbstractEstimate, b::AbstractEstimate)
-    getestimates(a) == getestimates(b) &&
-        getevaluationpoints(a) == getevaluationpoints(b) &&
-        getprocessinformation(a) == getprocessinformation(b) &&
-        getestimationinformation(a) == getestimationinformation(b) &&
+    get_estimates(a) == get_estimates(b) &&
+        get_evaluation_points(a) == get_evaluation_points(b) &&
+        get_process_information(a) == get_process_information(b) &&
+        get_estimation_information(a) == get_estimation_information(b) &&
         getextrainformation(a) == getextrainformation(b)
 end
 
 Meshes.embeddim(::AbstractEstimate{E, D}) where {E, D} = D
-Base.size(est::AbstractEstimate) = size(getprocessinformation(est).mean_product)
+Base.size(est::AbstractEstimate) = size(get_process_information(est).mean_product)
 function processnames(estimate::AbstractEstimate)
-    processinfo = getprocessinformation(estimate)
+    processinfo = get_process_information(estimate)
     (processinfo.process_indices_1, processinfo.process_indices_2)
 end
 
@@ -35,12 +35,12 @@ end
 Determine the trait for an estimate based on its process information.
 """
 function process_trait(estimate::AbstractEstimate)
-    process_info = getprocessinformation(estimate)
+    process_info = get_process_information(estimate)
     _process_trait_from_info(process_info)
 end
 
 function getprocessinformationindex(est::AbstractEstimate, p, q)
-    processinformation = getprocessinformation(est)
+    processinformation = get_process_information(est)
     processtrait = index_process_trait(est, p, q)
     return _getprocessinformationindex(processinformation, processtrait, p, q)
 end
@@ -92,13 +92,13 @@ end
 Produces a Tuple containing the arguments and the estimate.
 """
 function Base.collect(estimate::AbstractEstimate)
-    tuple(getevaluationpointstuple(estimate)..., getestimates(estimate))
+    tuple(getevaluationpointstuple(estimate)..., get_estimates(estimate))
 end
 function getevaluationpointstuple(estimate::AbstractEstimate)
-    getevaluationpoints(estimate)::Tuple
+    get_evaluation_points(estimate)::Tuple
 end
 function getevaluationpointstuple(estimate::IsotropicEstimate)
-    _argument2tuple(getevaluationpoints(estimate))
+    _argument2tuple(get_evaluation_points(estimate))
 end
 _argument2tuple(x::Tuple) = x
 _argument2tuple(x) = (x,)

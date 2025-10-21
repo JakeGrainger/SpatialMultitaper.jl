@@ -116,8 +116,8 @@ struct Coherence{E, D, N, A, T, IP, IE} <: AbstractEstimate{E, D, N}
     end
 end
 const RotationalCoherence{E, D, S <: Coherence} = RotationalEstimate{E, D, S}
-getevaluationpoints(est::Coherence) = est.wavenumber
-getestimates(est::Coherence) = est.coherence
+get_evaluation_points(est::Coherence) = est.wavenumber
+get_estimates(est::Coherence) = est.coherence
 
 function coherence(x::SMatrix)
     d = diagm(sqrt.(inv.(diag(x))))
@@ -327,12 +327,12 @@ Internal helper to compute coherence estimates with proper error handling.
 """
 function _compute_coherence_estimate!(spectrum, transform_func, trait_type)
     trait = process_trait(spectrum)
-    est = getestimates(spectrum)
-    process_info = getprocessinformation(spectrum)
-    estimation_info = getestimationinformation(spectrum)
+    est = get_estimates(spectrum)
+    process_info = get_process_information(spectrum)
+    estimation_info = get_estimation_information(spectrum)
     transformed = apply_transform!(transform_func, est, trait)
     return Coherence{trait_type}(
-        getevaluationpoints(spectrum), transformed, process_info, estimation_info)
+        get_evaluation_points(spectrum), transformed, process_info, estimation_info)
 end
 
 """

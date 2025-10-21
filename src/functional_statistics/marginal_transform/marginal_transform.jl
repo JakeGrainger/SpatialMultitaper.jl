@@ -61,10 +61,10 @@ end
 function getshortbaseestimatename(T::Type{<:MarginallyTransformedEstimate})::String
     return "$(gettransformname(T))($(getshortbaseestimatename(getoriginaltype(T))))"
 end
-function getestimates(est::MarginallyTransformedEstimate)
+function get_estimates(est::MarginallyTransformedEstimate)
     return est.estimate
 end
-function getevaluationpoints(est::MarginallyTransformedEstimate)
+function get_evaluation_points(est::MarginallyTransformedEstimate)
     return est.argument
 end
 
@@ -146,17 +146,17 @@ log_est = apply_marginal_transform(x -> log(x + 1e-10), spectrum)
 function apply_marginal_transform(transform::F,
         est::AbstractEstimate{E, D, N})::MarginallyTransformedEstimate{
         E, D, N} where {F, E, D, N}
-    x = getestimates(est)
+    x = get_estimates(est)
     mem = zeros(typeof(transform.(first(x))), size(x))
     return apply_marginal_transform!(transform, mem, est)
 end
 function apply_marginal_transform!(transform::F, mem,
         est::AbstractEstimate{E, D, N})::MarginallyTransformedEstimate{
         E, D, N} where {F, E, D, N}
-    argument = getevaluationpoints(est)
-    estimate = apply_marginal_transform!(transform, mem, getestimates(est))
-    processinfo = getprocessinformation(est)
-    estimationinfo = getestimationinformation(est)
+    argument = get_evaluation_points(est)
+    estimate = apply_marginal_transform!(transform, mem, get_estimates(est))
+    processinfo = get_process_information(est)
+    estimationinfo = get_estimation_information(est)
     S = typeof(est)
     return MarginallyTransformedEstimate{E, S, N, F}(
         argument, estimate, processinfo, estimationinfo)

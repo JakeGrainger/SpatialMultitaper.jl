@@ -2,6 +2,20 @@
 # if the estimate is anisotropic, then the argument should be a tuple of length D
 # if the estimate is isotropic, then the argument can either be a single `AbstractVector` or a tuple of length 1
 # it is a good idea to use checkinputs when constructing these
+# you will need to define the following:
+# function computed_from end
+# function allocate_estimate_memory end
+# function extract_allocation_memory end
+# function validate_core_parameters end
+# function validate_memory_compatibility end
+# function resolve_missing_parameters end
+# function apply_parameter_defaults end
+# function compute_estimate! end
+# function get_evaluation_points end
+# function get_estimates end
+#
+# see also the docstrings below
+
 abstract type EstimateTrait end
 struct MarginalTrait <: EstimateTrait end
 struct PartialTrait <: EstimateTrait end
@@ -44,7 +58,7 @@ computed_from(::Type{Spectra}) = SpatialData  # Base case
 function computed_from end
 
 """
-    allocate_estimate_memory(::Type{T}, ::Type{S}; kwargs...) where {T, S}
+    allocate_estimate_memory(::Type{T}, ::Type{S}, previous_memory; kwargs...) where {T, S}
 
 Allocate memory structures needed for computing estimate of type T from type S.
 This function should create all necessary arrays, buffers, and intermediate
@@ -53,6 +67,7 @@ storage required for the computation.
 # Arguments
 - `::Type{T}`: The target estimate type to allocate memory for
 - `::Type{S}`: The source type that T will be computed from
+- `previous_memory`: Memory structure from the previous computation step (of type S)
 - `kwargs...`: Parameters that determine memory sizes (e.g., nk, grid dimensions)
 
 # Returns
@@ -61,20 +76,23 @@ storage required for the computation.
 function allocate_estimate_memory end
 
 """
-    extract_allocation_parameters(estimate::AbstractEstimate)
+    extract_allocation_memory(estimate::AbstractEstimate)
 
-Extract parameters from an existing estimate that are needed for memory allocation
-of dependent estimates. For example, when computing coherence from spectra, this
-extracts parameters like `nk` (number of wavenumbers) from the spectra object
-rather than requiring them as keyword arguments.
+Extract the memory structure that was used to compute an existing estimate. This
+allows reusing the allocated memory and accessing structural information (like
+number of processes, array dimensions) when computing dependent estimates.
+
+For example, when computing coherence from an existing spectra estimate, this
+extracts the `EstimateMemory` that was used for the spectra computation, enabling
+both memory reuse and access to sizing information.
 
 # Arguments
-- `estimate::AbstractEstimate`: The source estimate to extract parameters from
+- `estimate::AbstractEstimate`: The source estimate to extract memory from
 
 # Returns
-- `NamedTuple`: Parameters needed for allocating memory for dependent estimates
+- `EstimateMemory`: The memory structure used to compute this estimate
 """
-function extract_allocation_parameters end
+function extract_allocation_memory end
 
 """
     validate_core_parameters(::Type{T}; kwargs...)
@@ -175,9 +193,7 @@ or a tuple of length 1.
 - For anisotropic estimates: Tuple of length D with evaluation points per dimension
 - For isotropic estimates: AbstractVector or tuple of length 1 with evaluation points
 """
-function get_evaluation_points(est::AbstractEstimate)
-    throw(ArgumentError("no get_evaluation_points method defined for $(typeof(est))"))
-end
+function get_evaluation_points end
 
 """
     get_estimates(est::AbstractEstimate)
@@ -190,9 +206,7 @@ Get the estimated values of the functional statistic.
 # Returns
 - The estimated values as computed by the statistical method
 """
-function get_estimates(est::AbstractEstimate)
-    throw(ArgumentError("no get_estimates method defined for $(typeof(est))"))
-end
+function get_estimates end
 
 """
     get_extra_information(est::AbstractEstimate) -> Tuple

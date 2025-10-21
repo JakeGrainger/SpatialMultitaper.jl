@@ -256,7 +256,7 @@ end
 # Internal implementation
 
 function _c_function(spectrum::NormalOrRotationalSpectra{E}, radii) where {E}
-    out = preallocate_c_output(spectrum, radii)
+    out = preallocate_spatial_output(spectrum, radii)
     store = precompute_c_weights(spectrum, radii)
 
     value = _sdf2C!(out, store, spectrum, radii)
@@ -307,17 +307,6 @@ end
 function _sdf2C_sum(store, power, ::Nothing)
     c = sum(p * s for (p, s) in zip(power, store))
     return real(c)
-end
-
-function preallocate_c_output(spectrum::NormalOrRotationalSpectra, radii)
-    return _preallocate_c_output(get_estimates(spectrum), process_trait(spectrum), radii)
-end
-function _preallocate_c_output(
-        power, ::Union{SingleProcessTrait, MultipleTupleTrait}, radii)
-    return zeros(real(eltype(power)), length(radii))
-end
-function _preallocate_c_output(power, ::MultipleVectorTrait, radii)
-    return zeros(real(eltype(power)), size(power, 1), size(power, 2), length(radii))
 end
 
 function precompute_c_weights(spectra::Spectra{E, D}, radii::AbstractVector) where {E, D}

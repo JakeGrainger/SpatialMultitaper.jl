@@ -37,15 +37,15 @@ function preallocate_memory(::Type{T}, arg; kwargs...) where {T <: AbstractEstim
 end
 
 function _preallocate_memory(::Type{T}, ::Type{S}, arg; kwargs...) where {T, S}
-    memory_data = allocate_estimate_memory(T, S; kwargs...)
     previous_memory = _preallocate_memory(S, computed_from(S), arg; kwargs...)
+    memory_data = allocate_estimate_memory(T, S, previous_memory; kwargs...)
     return EstimateMemory(T, memory_data, previous_memory)
 end
 function _preallocate_memory(::Type{T}, ::Type{S}, arg::S; kwargs...) where {T, S}
-    # Extract allocation parameters from the existing estimate (e.g., nk from spectra)
-    inherited_params = extract_allocation_parameters(arg)
-    memory_data = allocate_estimate_memory(T, S; kwargs..., inherited_params...)
-    return EstimateMemory(T, memory_data, nothing)
+    # Extract the memory structure that was used to compute this existing estimate
+    previous_memory = extract_allocation_memory(arg)
+    memory_data = allocate_estimate_memory(T, S, previous_memory; kwargs...)
+    return EstimateMemory(T, memory_data, previous_memory)
 end
 
 function validate_computation_chain(T, arg)

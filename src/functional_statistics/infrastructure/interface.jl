@@ -20,23 +20,5 @@ is_partial(::PartialAbstractEstimate) = true
 getestimationinformation(est::AbstractEstimate) = est.estimationinformation
 getprocessinformation(est::AbstractEstimate) = est.processinformation
 
-function is_same_process_sets(est::AbstractEstimate)
-    is_same_process_sets(getprocessinformation(est))
-end
-
-function getargument(est::AbstractEstimate)
-    throw(ArgumentError("no getargument method defined for $(typeof(est))"))
-end
-function getestimate(est::AbstractEstimate)
-    throw(ArgumentError("no getestimate method defined for $(typeof(est))"))
-end
-getextrainformation(::AbstractEstimate) = () # if you need additional information, override this method
-getbaseestimatename(est) = getbaseestimatename(typeof(est))
-function getbaseestimatename(T::Type{<:AbstractEstimate}) # please override this if you want a different name, you should call `getestimatename` when using this as some types may overload that in certain cases
-    typename = string(nameof(T))
-    # Convert CamelCase to lowercase words with spaces
-    lowercase(join(split(typename, r"(?=[A-Z])"), " "))
-end
-function getshortbaseestimatename(T::Type{<:AbstractEstimate})
-    getbaseestimatename(T::Type{<:AbstractEstimate})
-end
+getargument(est::AbstractEstimate)
+getestimate(est::AbstractEstimate)

@@ -1,3 +1,6 @@
+function is_same_process_sets(est::AbstractEstimate)
+    is_same_process_sets(getprocessinformation(est))
+end
 
 getestimatename(T::Type{<:MarginalAbstractEstimate}) = getbaseestimatename(T)
 

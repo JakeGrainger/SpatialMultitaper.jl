@@ -52,14 +52,14 @@ struct MarginallyTransformedEstimate{E, D, N, S, A, T, IP, IE, F} <:
     end
 end
 
-function getestimatename(T::Type{<:MarginallyTransformedEstimate})::String
-    return "$(gettransformname(T))($(getestimatename(getoriginaltype(T))))"
+function get_estimate_name(T::Type{<:MarginallyTransformedEstimate})::String
+    return "$(gettransformname(T))($(get_estimate_name(getoriginaltype(T))))"
 end
-function getshortestimatename(T::Type{<:MarginallyTransformedEstimate})::String
-    return "$(gettransformname(T))($(getshortestimatename(getoriginaltype(T))))"
+function get_short_estimate_name(T::Type{<:MarginallyTransformedEstimate})::String
+    return "$(gettransformname(T))($(get_short_estimate_name(getoriginaltype(T))))"
 end
-function getshortbaseestimatename(T::Type{<:MarginallyTransformedEstimate})::String
-    return "$(gettransformname(T))($(getshortbaseestimatename(getoriginaltype(T))))"
+function get_short_base_estimate_name(T::Type{<:MarginallyTransformedEstimate})::String
+    return "$(gettransformname(T))($(get_short_base_estimate_name(getoriginaltype(T))))"
 end
 function get_estimates(est::MarginallyTransformedEstimate)
     return est.estimate

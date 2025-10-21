@@ -44,8 +44,8 @@ struct CenteredLFunction{E, D, A, T, IP, IE} <: IsotropicEstimate{E, D}
         return new{E, D, A, T, IP, IE}(radii, value, processinfo, estimationinfo)
     end
 end
-getshortbaseestimatename(::Type{<:CenteredLFunction}) = "centered L"
-getbaseestimatename(::Type{<:CenteredLFunction}) = "centered L function (L(r)-r)"
+get_short_base_estimate_name(::Type{<:CenteredLFunction}) = "centered L"
+get_base_estimate_name(::Type{<:CenteredLFunction}) = "centered L function (L(r)-r)"
 
 """
     get_evaluation_points(f::CenteredLFunction)

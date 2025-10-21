@@ -11,7 +11,7 @@ struct PairCorrelationFunction{E, D, A, T, IP, IE} <: IsotropicEstimate{E, D}
         new{E, D, A, T, IP, IE}(radii, value, processinfo, estimationinfo)
     end
 end
-getshortbaseestimatename(::Type{<:PairCorrelationFunction}) = "pcf"
+get_short_base_estimate_name(::Type{<:PairCorrelationFunction}) = "pcf"
 get_evaluation_points(f::PairCorrelationFunction) = f.radii
 get_estimates(f::PairCorrelationFunction) = f.value
 

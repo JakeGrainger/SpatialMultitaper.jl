@@ -61,8 +61,8 @@ struct KFunction{E, D, A, T, IP, IE} <: IsotropicEstimate{E, D}
         return new{E, D, A, T, IP, IE}(radii, value, processinfo, estimationinfo)
     end
 end
-getshortbaseestimatename(::Type{<:KFunction}) = "K"
-getbaseestimatename(::Type{<:KFunction}) = "K function"
+get_short_base_estimate_name(::Type{<:KFunction}) = "K"
+get_base_estimate_name(::Type{<:KFunction}) = "K function"
 
 get_evaluation_points(f::KFunction) = f.radii
 get_estimates(f::KFunction) = f.value

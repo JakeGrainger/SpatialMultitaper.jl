@@ -54,3 +54,18 @@ Get the estimated values of the functional statistic.
 function get_estimates(est::AbstractEstimate)
     throw(ArgumentError("no get_estimates method defined for $(typeof(est))"))
 end
+
+"""
+    get_extra_information(est::AbstractEstimate) -> Tuple
+
+Get additional information from an estimate object. Default implementation returns
+an empty tuple. Override this method if your estimate type needs to provide
+additional information beyond the standard interface.
+
+# Arguments
+- `est::AbstractEstimate`: The estimate object
+
+# Returns
+- `Tuple`: Additional information (empty by default)
+"""
+get_extra_information(::AbstractEstimate) = ()

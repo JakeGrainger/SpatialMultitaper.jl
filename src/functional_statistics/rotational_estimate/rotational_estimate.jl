@@ -107,14 +107,14 @@ function rotational_estimate(
 end
 
 """
-    getestimatename(::Type{<:RotationalEstimate{E, D, S}}) where {E, D, S}
+    get_estimate_name(::Type{<:RotationalEstimate{E, D, S}}) where {E, D, S}
 
 Get the name of the estimate, reflecting its rotational and original traits.
 
 The name indicates the order of application of rotational and partial traits.
 """
-function getestimatename(::Type{<:RotationalEstimate{E, D, S}}) where {E, D, S}
-    original_name = getbaseestimatename(S)
+function get_estimate_name(::Type{<:RotationalEstimate{E, D, S}}) where {E, D, S}
+    original_name = get_base_estimate_name(S)
 
     if E === MarginalTrait
         return "rotational " * original_name
@@ -128,8 +128,8 @@ function getestimatename(::Type{<:RotationalEstimate{E, D, S}}) where {E, D, S}
         end
     end
 end
-function getshortestimatename(::Type{<:RotationalEstimate{E, D, S}}) where {E, D, S}
-    original_name = getshortbaseestimatename(S)
+function get_short_estimate_name(::Type{<:RotationalEstimate{E, D, S}}) where {E, D, S}
+    original_name = get_short_base_estimate_name(S)
 
     if E === MarginalTrait
         return "rotational " * original_name
@@ -143,8 +143,8 @@ function getshortestimatename(::Type{<:RotationalEstimate{E, D, S}}) where {E, D
         end
     end
 end
-function getshortbaseestimatename(::Type{<:RotationalEstimate{E, D, S}}) where {E, D, S}
-    original_name = getshortbaseestimatename(S)
+function get_short_base_estimate_name(::Type{<:RotationalEstimate{E, D, S}}) where {E, D, S}
+    original_name = get_short_base_estimate_name(S)
 
     if E === MarginalTrait
         return "rotational " * original_name

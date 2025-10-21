@@ -1,25 +1,25 @@
+"""
+    is_same_process_sets(est::AbstractEstimate) -> Bool
+
+Check if an estimate uses the same process sets by delegating to the
+process information.
+
+# Arguments
+- `est::AbstractEstimate`: The estimate object
+
+# Returns
+- `Bool`: Whether the estimate uses same process sets
+"""
 function is_same_process_sets(est::AbstractEstimate)
     is_same_process_sets(get_process_information(est))
 end
-
-getestimatename(T::Type{<:MarginalAbstractEstimate}) = getbaseestimatename(T)
-
-getestimatename(T::Type{<:PartialAbstractEstimate}) = "partial " * getbaseestimatename(T)
-getestimatename(est::AbstractEstimate) = getestimatename(typeof(est))
-
-getshortbaseestimatename(est::AbstractEstimate) = getshortbaseestimatename(typeof(est))
-getshortestimatename(T::Type{<:MarginalAbstractEstimate}) = getshortbaseestimatename(T)
-function getshortestimatename(T::Type{<:PartialAbstractEstimate})
-    "partial " * getshortbaseestimatename(T)
-end
-getshortestimatename(est::AbstractEstimate) = getshortestimatename(typeof(est))
 
 function Base.:(==)(a::AbstractEstimate, b::AbstractEstimate)
     get_estimates(a) == get_estimates(b) &&
         get_evaluation_points(a) == get_evaluation_points(b) &&
         get_process_information(a) == get_process_information(b) &&
         get_estimation_information(a) == get_estimation_information(b) &&
-        getextrainformation(a) == getextrainformation(b)
+        get_extra_information(a) == get_extra_information(b)
 end
 
 Meshes.embeddim(::AbstractEstimate{E, D}) where {E, D} = D
@@ -92,16 +92,18 @@ end
 Produces a Tuple containing the arguments and the estimate.
 """
 function Base.collect(estimate::AbstractEstimate)
-    tuple(getevaluationpointstuple(estimate)..., get_estimates(estimate))
+    tuple(get_evaluation_points_tuple(estimate)..., get_estimates(estimate))
 end
-function getevaluationpointstuple(estimate::AbstractEstimate)
+
+function get_evaluation_points_tuple(estimate::AbstractEstimate)
     get_evaluation_points(estimate)::Tuple
 end
-function getevaluationpointstuple(estimate::IsotropicEstimate)
-    _argument2tuple(get_evaluation_points(estimate))
+
+function get_evaluation_points_tuple(estimate::IsotropicEstimate)
+    _argument_to_tuple(get_evaluation_points(estimate))
 end
-_argument2tuple(x::Tuple) = x
-_argument2tuple(x) = (x,)
+_argument_to_tuple(x::Tuple) = x
+_argument_to_tuple(x) = (x,)
 
 ## constructor input checking
 function checkinputs(

@@ -5,7 +5,8 @@ using RCall
 
 import SpatialMultitaper: IsotropicEstimate, SpatialData, get_evaluation_points,
                           get_estimates,
-                          getestimatename, getshortestimatename, getshortbaseestimatename,
+                          get_estimate_name, get_short_estimate_name,
+                          get_short_base_estimate_name,
                           processnames
 import RCall.CategoricalArrays: CategoricalArray, levels
 import RCall: rcopy, RClass, rcopytype, sexp, protect, unprotect, setclass!, sexpclass,
@@ -17,8 +18,8 @@ sexpclass(::IsotropicEstimate) = RClass{:fv}
 function sexp(::Type{RClass{:fv}}, est::IsotropicEstimate)
     radii = collect(get_evaluation_points(est))
     proc_names_1, proc_names_2 = processnames(est)
-    name = getshortestimatename(est)
-    very_short_name = replace(getshortbaseestimatename(est), " " => "_")
+    name = get_short_estimate_name(est)
+    very_short_name = replace(get_short_base_estimate_name(est), " " => "_")
     store = if size(est) == ()
         NamedTuple(Symbol(very_short_name) => get_estimates(est) for _ in 1:1)
     else

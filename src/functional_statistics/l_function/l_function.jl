@@ -57,8 +57,8 @@ struct LFunction{E, D, A, T, IP, IE} <: IsotropicEstimate{E, D}
         return new{E, D, A, T, IP, IE}(radii, value, processinfo, estimationinfo)
     end
 end
-getshortbaseestimatename(::Type{<:LFunction}) = "L"
-getbaseestimatename(::Type{<:LFunction}) = "L function"
+get_short_base_estimate_name(::Type{<:LFunction}) = "L"
+get_base_estimate_name(::Type{<:LFunction}) = "L function"
 
 get_evaluation_points(f::LFunction) = f.radii
 get_estimates(f::LFunction) = f.value

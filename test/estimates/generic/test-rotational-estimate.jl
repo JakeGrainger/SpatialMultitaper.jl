@@ -6,7 +6,7 @@ import SpatialMultitaper: RotationalEstimate, MarginallyTransformedEstimate, Coh
                           rotational_estimate, default_rotational_radii, is_partial,
                           default_rotational_kernel, GaussKernel, RectKernel,
                           _smoothed_rotational, get_estimates, get_evaluation_points,
-                          getestimatename,
+                          get_estimate_name,
                           get_estimation_information, get_process_information,
                           SingleProcessTrait
 
@@ -205,7 +205,7 @@ end
             tapers = sin_taper_family((2, 2), region))
         rot_spec = rotational_estimate(spec)
 
-        name = getestimatename(rot_spec)
+        name = get_estimate_name(rot_spec)
         @test occursin("rotational", lowercase(name))
         @test occursin("spectra", lowercase(name))
     end
@@ -217,7 +217,7 @@ end
         partial_spec = partial_spectra(spec)
         rot_partial_spec = rotational_estimate(partial_spec)
 
-        name = getestimatename(rot_partial_spec)
+        name = get_estimate_name(rot_partial_spec)
         @test occursin("rotational", lowercase(name))
         @test occursin("partial", lowercase(name))
     end
@@ -243,7 +243,7 @@ end
         @test size(partial_rot_spec) == size(rot_spec)
 
         # Name should indicate both partial and rotational
-        name = getestimatename(partial_rot_spec)
+        name = get_estimate_name(partial_rot_spec)
         @test occursin("partial", lowercase(name))
         @test occursin("rotational", lowercase(name))
     end

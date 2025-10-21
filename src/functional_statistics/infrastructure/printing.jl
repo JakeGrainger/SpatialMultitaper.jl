@@ -2,7 +2,7 @@
 function Base.show(io::IO, estimate::AbstractEstimate)
     D = embeddim(estimate)
     proc_names_1, proc_names_2 = processnames(estimate)
-    print(io, getestimatename(estimate), "(", D, "D, ", proc_names_1,
+    print(io, get_estimate_name(estimate), "(", D, "D, ", proc_names_1,
         "↔", proc_names_2, ", ", _printargument(estimate), ")")
 end
 
@@ -10,7 +10,7 @@ end
 function Base.show(io::IO, ::MIME"text/plain", estimate::AbstractEstimate)
     D = embeddim(estimate)
     proc_names_1, proc_names_2 = processnames(estimate)
-    println(io, getestimatename(estimate), " of a ", D, " dimensional process")
+    println(io, get_estimate_name(estimate), " of a ", D, " dimensional process")
     println(io, "  between processes: ", proc_names_1, " and ", proc_names_2)
     println(io, "  evaluated at ", _printargument(estimate))
     println(io, "  with values of type ", typeof(get_estimates(estimate)))

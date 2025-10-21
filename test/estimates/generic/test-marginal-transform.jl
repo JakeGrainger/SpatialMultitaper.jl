@@ -3,7 +3,8 @@ include("../../test_utilities/TestUtils.jl")
 using .TestUtils
 
 import SpatialMultitaper: MarginallyTransformedEstimate, apply_marginal_transform!,
-                          getestimatename, getoriginaltype, gettransformname, get_estimates,
+                          get_estimate_name, getoriginaltype, gettransformname,
+                          get_estimates,
                           get_evaluation_points, Spectra, get_process_information,
                           get_estimation_information
 
@@ -171,7 +172,7 @@ end
 
     @testset "Estimate naming" begin
         real_spec = real(spec)
-        name = getestimatename(real_spec)
+        name = get_estimate_name(real_spec)
 
         # Should combine transform name with original estimate name
         @test occursin("real", lowercase(name))

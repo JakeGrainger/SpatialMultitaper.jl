@@ -93,7 +93,7 @@ end
 
 findgroup(p, groups) = groups[findfirst(g -> p ∈ g, groups)]
 
-function apply_shifts(data::MultipleSpatialDataTuple{P}, shifts, groups)
+function apply_shifts(data::MultipleSpatialDataTuple{P}, shifts, groups) where {P}
     return spatial_data(
         ntuple(p -> observations(marginal_shift(data[p], shifts[findgroup(p, groups)])),
             Val{P}()),

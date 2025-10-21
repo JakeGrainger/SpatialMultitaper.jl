@@ -140,7 +140,7 @@ end
 getshortbaseestimatename(::Type{<:CFunction}) = "C"
 getbaseestimatename(::Type{<:CFunction}) = "C function"
 getevaluationpoints(f::CFunction) = f.radii
-getestimate(f::CFunction) = f.value
+getestimates(f::CFunction) = f.value
 
 # Public API
 
@@ -267,7 +267,7 @@ end
 # Core transformation functions
 
 function _sdf2C!(out, store, spectrum::NormalOrRotationalSpectra, radii)
-    power = getestimate(spectrum)
+    power = getestimates(spectrum)
     zero_atom = getprocessinformation(spectrum).atoms
     trait = process_trait(spectrum)
     return _sdf2C_internal!(out, store, power, trait, zero_atom, radii)
@@ -310,7 +310,7 @@ function _sdf2C_sum(store, power, ::Nothing)
 end
 
 function preallocate_c_output(spectrum::NormalOrRotationalSpectra, radii)
-    return _preallocate_c_output(getestimate(spectrum), process_trait(spectrum), radii)
+    return _preallocate_c_output(getestimates(spectrum), process_trait(spectrum), radii)
 end
 function _preallocate_c_output(
         power, ::Union{SingleProcessTrait, MultipleTupleTrait}, radii)
@@ -322,7 +322,7 @@ end
 
 function precompute_c_weights(spectra::Spectra{E, D}, radii::AbstractVector) where {E, D}
     wavenumber = getevaluationpoints(spectra)
-    power_size = size(getestimate(spectra))
+    power_size = size(getestimates(spectra))
     wavenumber_spacing = prod(step, wavenumber)
     T = promote_type(float(eltype(radii)), float(typeof(wavenumber_spacing)))
     store = zeros(T, power_size..., length(radii))
@@ -337,7 +337,7 @@ end
 function precompute_c_weights(
         spectra::RotationalSpectra{E, D}, radii::AbstractVector) where {E, D}
     wavenumber = getevaluationpoints(spectra)
-    power_size = size(getestimate(spectra))
+    power_size = size(getestimates(spectra))
     spacing = step(wavenumber)
     T = promote_type(float(eltype(radii)), float(typeof(spacing)))
     store = zeros(T, power_size..., length(radii))

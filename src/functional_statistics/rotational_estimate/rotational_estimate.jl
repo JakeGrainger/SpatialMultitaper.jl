@@ -57,11 +57,11 @@ Get the radii at which the rotational estimate is evaluated.
 getevaluationpoints(f::RotationalEstimate) = f.radii
 
 """
-    getestimate(f::RotationalEstimate)
+    getestimates(f::RotationalEstimate)
 
 Get the rotationally averaged estimate values.
 """
-getestimate(f::RotationalEstimate) = f.estimate
+getestimates(f::RotationalEstimate) = f.estimate
 
 """
     getoriginaltype(::Type{<:RotationalEstimate{E, D, S}}) where {E, D, S}
@@ -257,7 +257,7 @@ Internal function to compute rotational averaging with a given kernel.
 """
 function _rotational_estimate(est::AbstractEstimate{E}, radii, kernel) where {E}
     rot_est = _smoothed_rotational(
-        getevaluationpoints(est), getestimate(est), process_trait(est), radii, kernel)
+        getevaluationpoints(est), getestimates(est), process_trait(est), radii, kernel)
     processinfo = getprocessinformation(est)
     estimationinfo = getestimationinformation(est)
     return RotationalEstimate{E, typeof(est)}(radii, rot_est, processinfo, estimationinfo)

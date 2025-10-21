@@ -3,7 +3,7 @@ using LinearAlgebra: SingularException, LAPACKException
 include("../../test_utilities/TestUtils.jl")
 using .TestUtils
 
-import SpatialMultitaper: partial_spectra, partial_spectra_uncorrected, getestimate,
+import SpatialMultitaper: partial_spectra, partial_spectra_uncorrected, getestimates,
                           getevaluationpoints, is_partial, MarginallyTransformedEstimate,
                           Spectra,
                           getprocessinformation, getestimationinformation, partial_spectra!
@@ -120,7 +120,7 @@ end
         @test is_partial(partial_uncorrected) == true
 
         # Results should be different (uncorrected should be smaller in magnitude typically)
-        @test getestimate(partial_corrected) ≢ getestimate(partial_uncorrected)
+        @test getestimates(partial_corrected) ≢ getestimates(partial_uncorrected)
     end
 end
 
@@ -313,8 +313,8 @@ end
         @test is_partial(partial_spec) == true
 
         # For single process, partial spectrum should equal to the original
-        estimate = getestimate(partial_spec)
-        original_estimate = getestimate(spec)
+        estimate = getestimates(partial_spec)
+        original_estimate = getestimates(spec)
         @test original_estimate ≈ estimate
     end
 end

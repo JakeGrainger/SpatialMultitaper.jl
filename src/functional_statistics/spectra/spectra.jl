@@ -72,7 +72,7 @@ const RotationalSpectra{E, D, S <: Spectra} = RotationalEstimate{E, D, S}
 const NormalOrRotationalSpectra{E} = Union{Spectra{E}, RotationalSpectra{E}}
 getshortestimatename(::Type{<:Spectra}) = "f"
 getevaluationpoints(est::Spectra) = est.wavenumber
-getestimate(est::Spectra) = est.power
+getestimates(est::Spectra) = est.power
 
 function spectra(data, region::Meshes.Geometry; kwargs...)::Spectra
     return spectra(spatial_data(data, region); kwargs...)

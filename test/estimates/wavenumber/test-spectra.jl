@@ -2,7 +2,7 @@ using SpatialMultitaper, Test, StableRNGs, StaticArrays
 include("../../test_utilities/TestData.jl")
 using .TestData
 
-import SpatialMultitaper: Spectra, getevaluationpoints, getestimate,
+import SpatialMultitaper: Spectra, getevaluationpoints, getestimates,
                           _dft_to_spectral_matrix,
                           _compute_spectral_matrix, _make_wavenumber_grid,
                           getestimationinformation, ProcessInformation,
@@ -23,7 +23,7 @@ import SpatialMultitaper: Spectra, getevaluationpoints, getestimate,
 
         spec = Spectra{MarginalTrait}(wavenumber, power, processinfo, estimationinfo)
         @test getevaluationpoints(spec) == wavenumber
-        @test getestimate(spec) == power
+        @test getestimates(spec) == power
         @test embeddim(spec) == 2
         @test size(spec) == (2, 2)
     end

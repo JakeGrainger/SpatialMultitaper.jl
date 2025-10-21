@@ -61,7 +61,7 @@ getshortbaseestimatename(::Type{<:LFunction}) = "L"
 getbaseestimatename(::Type{<:LFunction}) = "L function"
 
 getevaluationpoints(f::LFunction) = f.radii
-getestimate(f::LFunction) = f.value
+getestimates(f::LFunction) = f.value
 
 """
     l_function(data, region; kwargs...) -> LFunction
@@ -155,7 +155,7 @@ end
 
 function l_function!(k::KFunction{E, D})::LFunction{E, D} where {E, D}
     radii = getevaluationpoints(k)
-    value = _k_to_l_transform!(getestimate(k), Val{D}())
+    value = _k_to_l_transform!(getestimates(k), Val{D}())
     processinfo = getprocessinformation(k)
     estimationinfo = getestimationinformation(k)
     return LFunction{E}(radii, value, processinfo, estimationinfo)

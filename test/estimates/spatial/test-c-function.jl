@@ -3,7 +3,7 @@ using Test, SpatialMultitaper, StableRNGs, StaticArrays, LinearAlgebra, QuadGK,
 include("../../test_utilities/TestData.jl")
 using .TestData
 
-import SpatialMultitaper: getestimate, getevaluationpoints, CFunction,
+import SpatialMultitaper: getestimates, getevaluationpoints, CFunction,
                           default_rotational_kernel,
                           getregion, _isotropic_c_weight, _anisotropic_c_weight,
                           _isotropic_c_weight_generic, _anisotropic_c_weight_generic,
@@ -19,7 +19,7 @@ rng = StableRNG(123)
             rng, n_processes = 1, dim = 2, point_number = 50, return_type = :single)
         tapers = sin_taper_family((3, 3), getregion(data))
         c = c_function(data; radii = 0:0.1:1, kmax = 2.0, tapers = tapers)
-        @test getestimate(c) isa AbstractVector{<:Real}
+        @test getestimates(c) isa AbstractVector{<:Real}
         @test c isa IsotropicEstimate
         @test abs(c) isa IsotropicEstimate
     end
@@ -28,7 +28,7 @@ rng = StableRNG(123)
             rng, n_processes = 1, dim = 2, point_number = 50, return_type = :vector)
         tapers = sin_taper_family((3, 3), getregion(data))
         c = c_function(data; radii = 0:0.1:1, kmax = 2.0, tapers = tapers)
-        @test getestimate(c) isa AbstractArray{<:Real, 3}
+        @test getestimates(c) isa AbstractArray{<:Real, 3}
         @test c isa IsotropicEstimate
         @test abs(c) isa IsotropicEstimate
     end
@@ -37,7 +37,7 @@ rng = StableRNG(123)
             rng, n_processes = 1, dim = 2, point_number = 50, return_type = :tuple)
         tapers = sin_taper_family((3, 3), getregion(data))
         c = c_function(data; radii = 0:0.1:1, kmax = 2.0, tapers = tapers)
-        @test getestimate(c) isa AbstractVector{<:SMatrix{1, 1, <:Real, 1}}
+        @test getestimates(c) isa AbstractVector{<:SMatrix{1, 1, <:Real, 1}}
         @test c isa IsotropicEstimate
         @test abs(c) isa IsotropicEstimate
     end
@@ -67,7 +67,7 @@ end
             points_spatial, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
         @test getevaluationpoints(raw_result) ≈ getevaluationpoints(spatial_result)
-        @test getestimate(raw_result) ≈ getestimate(spatial_result)
+        @test getestimates(raw_result) ≈ getestimates(spatial_result)
     end
 
     # - loop over single, tuple and vector
@@ -94,12 +94,12 @@ end
             @test result isa CFunction
             @test getevaluationpoints(result) ≈ radii
             if return_type == :vector
-                @test size(getestimate(result)) ==
+                @test size(getestimates(result)) ==
                       (n_processes, n_processes, length(radii))
             else
-                @test length(getestimate(result)) == length(radii)
+                @test length(getestimates(result)) == length(radii)
             end
-            @test all(x -> all(isfinite.(x)), getestimate(result))
+            @test all(x -> all(isfinite.(x)), getestimates(result))
         end
 
         # - - c function from spectra
@@ -126,7 +126,7 @@ end
                 points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
             @test getevaluationpoints(c_from_spectra) ≈ getevaluationpoints(c_direct)
-            @test getestimate(c_from_spectra) ≈ getestimate(c_direct)
+            @test getestimates(c_from_spectra) ≈ getestimates(c_direct)
         end
 
         # - - partial c function from SpatialData
@@ -149,10 +149,10 @@ end
                 @test partial_result isa CFunction
                 @test getevaluationpoints(partial_result) ≈ radii
                 if return_type == :vector
-                    @test size(getestimate(partial_result)) ==
+                    @test size(getestimates(partial_result)) ==
                           (n_processes, n_processes, length(radii))
                 else
-                    @test length(getestimate(partial_result)) == length(radii)
+                    @test length(getestimates(partial_result)) == length(radii)
                 end
             end
         end
@@ -229,24 +229,24 @@ end
             @test getevaluationpoints(result) isa AbstractVector
             @test length(getevaluationpoints(result)) == length(radii)
             if return_type == :vector
-                @test getestimate(result) isa AbstractArray
-                @test size(getestimate(result)) ==
+                @test getestimates(result) isa AbstractArray
+                @test size(getestimates(result)) ==
                       (n_processes, n_processes, length(radii))
             elseif return_type == :tuple
-                @test getestimate(result) isa AbstractVector
-                @test length(getestimate(result)) == length(radii)
-                @test eltype(getestimate(result)) <: SMatrix{n_processes, n_processes}
+                @test getestimates(result) isa AbstractVector
+                @test length(getestimates(result)) == length(radii)
+                @test eltype(getestimates(result)) <: SMatrix{n_processes, n_processes}
             else # return_type == :single
-                @test getestimate(result) isa AbstractVector
-                @test length(getestimate(result)) == length(radii)
+                @test getestimates(result) isa AbstractVector
+                @test length(getestimates(result)) == length(radii)
             end
 
             # Check element types
             @test eltype(getevaluationpoints(result)) <: Number
             if return_type == :tuple
-                @test eltype(getestimate(result)) <: SMatrix
+                @test eltype(getestimates(result)) <: SMatrix
             else
-                @test eltype(getestimate(result)) <: Number
+                @test eltype(getestimates(result)) <: Number
             end
         end
 
@@ -268,7 +268,7 @@ end
 
             # Test indexing into results
             radii_result = getevaluationpoints(result)
-            values_result = getestimate(result)
+            values_result = getestimates(result)
 
             @test radii_result[1] ≈ radii[1]
             @test radii_result[end] ≈ radii[end]
@@ -312,7 +312,7 @@ end
     tapers = sin_taper_family(bw, region)
     result = c_function(
         points_data, radii = small_radii, nk = (8, 8), kmax = (0.5, 0.5), tapers = tapers)
-    @test all(x -> all(isfinite.(x)), getestimate(result))
+    @test all(x -> all(isfinite.(x)), getestimates(result))
 
     # radii outside region size should error
     large_radii = [2.0, 100.0]
@@ -350,8 +350,8 @@ end
     @test c_vec isa CFunction
     @test c_tuple isa CFunction
 
-    @test getestimate(c_single) ≈ getestimate(c_vec)[1, 1, :]
-    @test getestimate(c_single) ≈ getindex.(getestimate(c_tuple), 1, 1)
+    @test getestimates(c_single) ≈ getestimates(c_vec)[1, 1, :]
+    @test getestimates(c_single) ≈ getindex.(getestimates(c_tuple), 1, 1)
 end
 
 R = [0.0, 0.1, 1.0, 10.0]

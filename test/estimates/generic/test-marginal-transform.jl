@@ -3,7 +3,7 @@ include("../../test_utilities/TestUtils.jl")
 using .TestUtils
 
 import SpatialMultitaper: MarginallyTransformedEstimate, apply_marginal_transform!,
-                          getestimatename, getoriginaltype, gettransformname, getestimate,
+                          getestimatename, getoriginaltype, gettransformname, getestimates,
                           getevaluationpoints, Spectra, getprocessinformation,
                           getestimationinformation
 
@@ -42,8 +42,8 @@ end
         real_spec = real(spec)
 
         # Check that imaginary parts are removed
-        estimate = getestimate(real_spec)
-        original_estimate = getestimate(spec)
+        estimate = getestimates(real_spec)
+        original_estimate = getestimates(spec)
 
         if original_estimate isa AbstractArray{<:SMatrix}
             # For SMatrix case, check element-wise
@@ -58,8 +58,8 @@ end
 
     @testset "imag transform" begin
         imag_spec = imag(spec)
-        estimate = getestimate(imag_spec)
-        original_estimate = getestimate(spec)
+        estimate = getestimates(imag_spec)
+        original_estimate = getestimates(spec)
 
         if original_estimate isa AbstractArray{<:SMatrix}
             @test all(x -> all(imag.(x) .≈ 0), estimate)  # Result should be real
@@ -72,8 +72,8 @@ end
 
     @testset "abs transform" begin
         abs_spec = abs(spec)
-        estimate = getestimate(abs_spec)
-        original_estimate = getestimate(spec)
+        estimate = getestimates(abs_spec)
+        original_estimate = getestimates(spec)
 
         # All values should be non-negative and real
         if original_estimate isa AbstractArray{<:SMatrix}
@@ -87,7 +87,7 @@ end
 
     @testset "abs2 transform" begin
         abs2_spec = abs2(spec)
-        estimate = getestimate(abs2_spec)
+        estimate = getestimates(abs2_spec)
 
         # Should be real and non-negative
         if estimate isa AbstractArray{<:SMatrix}
@@ -101,8 +101,8 @@ end
 
     @testset "conj transform" begin
         conj_spec = conj(spec)
-        estimate = getestimate(conj_spec)
-        original_estimate = getestimate(spec)
+        estimate = getestimates(conj_spec)
+        original_estimate = getestimates(spec)
 
         if original_estimate isa AbstractArray{<:SMatrix}
             @test all(conj.(y) ≈ x for (x, y) in zip(estimate, original_estimate))
@@ -117,7 +117,7 @@ end
         log_spec = log(abs_spec)
 
         # Should be real (since input was positive)
-        estimate = getestimate(log_spec)
+        estimate = getestimates(log_spec)
         if estimate isa AbstractArray{<:SMatrix}
             @test all(x -> all(isreal(x) for x in x), estimate)
         else
@@ -130,7 +130,7 @@ end
         exp_spec = exp(real_spec)
 
         # Exponential should always be positive
-        estimate = getestimate(exp_spec)
+        estimate = getestimates(exp_spec)
         if estimate isa AbstractArray{<:SMatrix}
             @test all(x -> all(real(x) > 0 for x in x), estimate)
         else
@@ -202,7 +202,7 @@ end
         @test size(log_abs_spec) == size(spec)
 
         # Check that the transformation actually happened
-        estimate = getestimate(log_abs_spec)
+        estimate = getestimates(log_abs_spec)
         if estimate isa AbstractArray{<:SMatrix}
             @test all(x -> all(isreal(x) for x in x), estimate)
         else
@@ -260,7 +260,7 @@ end
         abs_spec = abs(spec)
 
         # Real transform should produce real output
-        real_est = getestimate(real_spec)
+        real_est = getestimates(real_spec)
         if real_est isa AbstractArray{<:SMatrix}
             @test eltype(eltype(real_est)) <: Real
         else
@@ -268,7 +268,7 @@ end
         end
 
         # Abs transform should also produce real output
-        abs_est = getestimate(abs_spec)
+        abs_est = getestimates(abs_spec)
         if abs_est isa AbstractArray{<:SMatrix}
             @test eltype(eltype(abs_est)) <: Real
         else

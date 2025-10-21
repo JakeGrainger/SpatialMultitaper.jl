@@ -172,7 +172,7 @@ function partial_from_resampled(
         J_cross, mean_cross, J_marginal, mean_marginal, atoms, wavenumber, J_original,
         mean_original, f_inv_cross, f_inv_marginal, nothing
     )
-    par = getestimate(par_spec)
+    par = getestimates(par_spec)
     for i in CartesianIndices(par)
         denom = ntapers .* ones(typeof(par[i])) .- Q .+ 2 - I
         par[i] = par[i] .* ntapers ./ denom

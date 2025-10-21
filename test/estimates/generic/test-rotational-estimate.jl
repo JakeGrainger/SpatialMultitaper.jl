@@ -5,7 +5,7 @@ using .TestData
 import SpatialMultitaper: RotationalEstimate, MarginallyTransformedEstimate, Coherence,
                           rotational_estimate, default_rotational_radii, is_partial,
                           default_rotational_kernel, GaussKernel, RectKernel,
-                          _smoothed_rotational, getestimate, getevaluationpoints,
+                          _smoothed_rotational, getestimates, getevaluationpoints,
                           getestimatename,
                           getestimationinformation, getprocessinformation,
                           SingleProcessTrait
@@ -174,7 +174,7 @@ end
         rot_spec = rotational_estimate(spec, radii = custom_radii, kernel = custom_kernel)
 
         @test getevaluationpoints(rot_spec) == custom_radii
-        @test length(getestimate(rot_spec)) == length(custom_radii)
+        @test length(getestimates(rot_spec)) == length(custom_radii)
     end
 
     @testset "Default parameters" begin
@@ -264,8 +264,8 @@ end
         rot_spec_smooth = rotational_estimate(spec, kernel = GaussKernel(0.1))
         rot_spec_sharp = rotational_estimate(spec, kernel = RectKernel(0.02))
 
-        estimate_smooth = getestimate(rot_spec_smooth)
-        estimate_sharp = getestimate(rot_spec_sharp)
+        estimate_smooth = getestimates(rot_spec_smooth)
+        estimate_sharp = getestimates(rot_spec_sharp)
 
         # Smoother kernel should produce less variation
         # (This is hard to test rigorously without knowing the exact spectral structure)
@@ -285,7 +285,7 @@ end
             tapers = sin_taper_family((3, 3), region))
 
         rot_spec = rotational_estimate(spec)
-        estimate = getestimate(rot_spec)
+        estimate = getestimates(rot_spec)
         radii = getevaluationpoints(rot_spec)
 
         @test length(estimate) == length(radii)
@@ -368,7 +368,7 @@ end
 
         rot_spec = rotational_estimate(spec)
         @test rot_spec isa RotationalEstimate
-        @test all(isfinite, stack(getestimate(rot_spec)))
+        @test all(isfinite, stack(getestimates(rot_spec)))
     end
 
     @testset "Single radius" begin
@@ -381,7 +381,7 @@ end
 
         rot_spec = rotational_estimate(spec, radii = [0.1], kernel = RectKernel(0.1))
         @test length(getevaluationpoints(rot_spec)) == 1
-        @test length(getestimate(rot_spec)) == 1
+        @test length(getestimates(rot_spec)) == 1
     end
 
     @testset "Zero radius" begin
@@ -396,7 +396,7 @@ end
         @test getevaluationpoints(rot_spec)[1] ≈ 0.0
 
         # At zero radius, should equal center value of original spectrum
-        estimate = getestimate(rot_spec)[1]
+        estimate = getestimates(rot_spec)[1]
         @test all(isfinite, estimate)
     end
 end
@@ -413,7 +413,7 @@ end
         rot_spec = rotational_estimate(spec)
         @test rot_spec isa RotationalEstimate
         @test getevaluationpoints(rot_spec) isa AbstractVector
-        @test getestimate(rot_spec) isa AbstractVector
+        @test getestimates(rot_spec) isa AbstractVector
     end
 
     @testset "Consistent dimensions" begin
@@ -421,6 +421,6 @@ end
         rot_spec = rotational_estimate(spec, radii = custom_radii)
 
         @test length(getevaluationpoints(rot_spec)) == 10
-        @test length(getestimate(rot_spec)) == 10
+        @test length(getestimates(rot_spec)) == 10
     end
 end

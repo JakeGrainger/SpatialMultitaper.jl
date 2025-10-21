@@ -73,7 +73,7 @@ end
         end
     end
     SpatialMultitaper.getevaluationpoints(est::MockEstimate) = est.argument
-    SpatialMultitaper.getestimate(est::MockEstimate) = est.estimate
+    SpatialMultitaper.getestimates(est::MockEstimate) = est.estimate
 
     # Test with matrix estimate
     mock_matrix = MockEstimate{MarginalTrait}(

@@ -3,7 +3,7 @@ module RCallExt
 using SpatialMultitaper
 using RCall
 
-import SpatialMultitaper: IsotropicEstimate, SpatialData, getevaluationpoints, getestimate,
+import SpatialMultitaper: IsotropicEstimate, SpatialData, getevaluationpoints, getestimates,
                           getestimatename, getshortestimatename, getshortbaseestimatename,
                           processnames
 import RCall.CategoricalArrays: CategoricalArray, levels
@@ -19,9 +19,9 @@ function sexp(::Type{RClass{:fv}}, est::IsotropicEstimate)
     name = getshortestimatename(est)
     very_short_name = replace(getshortbaseestimatename(est), " " => "_")
     store = if size(est) == ()
-        NamedTuple(Symbol(very_short_name) => getestimate(est) for _ in 1:1)
+        NamedTuple(Symbol(very_short_name) => getestimates(est) for _ in 1:1)
     else
-        NamedTuple(Symbol(very_short_name * "[$i$j]") => getestimate(est[i, j])
+        NamedTuple(Symbol(very_short_name * "[$i$j]") => getestimates(est[i, j])
         for i in 1:size(est)[1] for j in 1:size(est)[2] if i <= j)
     end
     desc = if size(est) == ()

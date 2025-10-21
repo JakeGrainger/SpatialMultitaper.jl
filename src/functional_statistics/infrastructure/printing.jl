@@ -13,7 +13,7 @@ function Base.show(io::IO, ::MIME"text/plain", estimate::AbstractEstimate)
     println(io, getestimatename(estimate), " of a ", D, " dimensional process")
     println(io, "  between processes: ", proc_names_1, " and ", proc_names_2)
     println(io, "  evaluated at ", _printargument(estimate))
-    println(io, "  with values of type ", typeof(getestimate(estimate)))
+    println(io, "  with values of type ", typeof(getestimates(estimate)))
 end
 
 function _printargument(estimate::AbstractEstimate)

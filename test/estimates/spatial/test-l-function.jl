@@ -2,7 +2,7 @@ using Test, SpatialMultitaper, StableRNGs, StaticArrays, LinearAlgebra, Benchmar
 include("../../test_utilities/TestData.jl")
 using .TestData
 
-import SpatialMultitaper: getestimate, getevaluationpoints, LFunction, l_function!
+import SpatialMultitaper: getestimates, getevaluationpoints, LFunction, l_function!
 
 #
 rng = StableRNG(123)
@@ -31,7 +31,7 @@ rng = StableRNG(123)
             points_spatial, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
         @test getevaluationpoints(raw_result) ≈ getevaluationpoints(spatial_result)
-        @test getestimate(raw_result) ≈ getestimate(spatial_result)
+        @test getestimates(raw_result) ≈ getestimates(spatial_result)
     end
 
     # - loop over single, tuple and vector
@@ -58,12 +58,12 @@ rng = StableRNG(123)
             @test result isa LFunction
             @test getevaluationpoints(result) ≈ radii
             if return_type == :vector
-                @test size(getestimate(result)) ==
+                @test size(getestimates(result)) ==
                       (n_processes, n_processes, length(radii))
             else
-                @test length(getestimate(result)) == length(radii)
+                @test length(getestimates(result)) == length(radii)
             end
-            @test all(x -> all(isfinite.(x)), getestimate(result))
+            @test all(x -> all(isfinite.(x)), getestimates(result))
         end
 
         # - - l function from spectra
@@ -90,7 +90,7 @@ rng = StableRNG(123)
                 points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
             @test getevaluationpoints(l_from_spectra) ≈ getevaluationpoints(l_direct)
-            @test getestimate(l_from_spectra) ≈ getestimate(l_direct)
+            @test getestimates(l_from_spectra) ≈ getestimates(l_direct)
         end
 
         # - - l function from c function
@@ -118,7 +118,7 @@ rng = StableRNG(123)
                 points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
             @test getevaluationpoints(l_from_c) ≈ getevaluationpoints(l_direct)
-            @test getestimate(l_from_c) ≈ getestimate(l_direct)
+            @test getestimates(l_from_c) ≈ getestimates(l_direct)
         end
 
         # - - l function from k function
@@ -146,7 +146,7 @@ rng = StableRNG(123)
                 points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
             @test getevaluationpoints(l_from_k) ≈ getevaluationpoints(l_direct)
-            @test getestimate(l_from_k) ≈ getestimate(l_direct)
+            @test getestimates(l_from_k) ≈ getestimates(l_direct)
         end
 
         # - - partial l function from SpatialData
@@ -169,10 +169,10 @@ rng = StableRNG(123)
                 @test partial_result isa LFunction
                 @test getevaluationpoints(partial_result) ≈ radii
                 if return_type == :vector
-                    @test size(getestimate(partial_result)) ==
+                    @test size(getestimates(partial_result)) ==
                           (n_processes, n_processes, length(radii))
                 else
-                    @test length(getestimate(partial_result)) == length(radii)
+                    @test length(getestimates(partial_result)) == length(radii)
                 end
             end
         end
@@ -233,7 +233,7 @@ rng = StableRNG(123)
 
                 @test getevaluationpoints(l_from_partial_c) ≈
                       getevaluationpoints(l_partial_direct)
-                @test getestimate(l_from_partial_c) ≈ getestimate(l_partial_direct)
+                @test getestimates(l_from_partial_c) ≈ getestimates(l_partial_direct)
             end
         end
 
@@ -267,7 +267,7 @@ rng = StableRNG(123)
 
                 @test getevaluationpoints(l_from_partial_k) ≈
                       getevaluationpoints(l_partial_direct)
-                @test getestimate(l_from_partial_k) ≈ getestimate(l_partial_direct)
+                @test getestimates(l_from_partial_k) ≈ getestimates(l_partial_direct)
             end
         end
 
@@ -291,24 +291,24 @@ rng = StableRNG(123)
             @test getevaluationpoints(result) isa AbstractVector
             @test length(getevaluationpoints(result)) == length(radii)
             if return_type == :vector
-                @test getestimate(result) isa AbstractArray
-                @test size(getestimate(result)) ==
+                @test getestimates(result) isa AbstractArray
+                @test size(getestimates(result)) ==
                       (n_processes, n_processes, length(radii))
             elseif return_type == :tuple
-                @test getestimate(result) isa AbstractVector
-                @test length(getestimate(result)) == length(radii)
-                @test eltype(getestimate(result)) <: SMatrix{n_processes, n_processes}
+                @test getestimates(result) isa AbstractVector
+                @test length(getestimates(result)) == length(radii)
+                @test eltype(getestimates(result)) <: SMatrix{n_processes, n_processes}
             else # return_type == :single
-                @test getestimate(result) isa AbstractVector
-                @test length(getestimate(result)) == length(radii)
+                @test getestimates(result) isa AbstractVector
+                @test length(getestimates(result)) == length(radii)
             end
 
             # Check element types
             @test eltype(getevaluationpoints(result)) <: Number
             if return_type == :tuple
-                @test eltype(getestimate(result)) <: SMatrix
+                @test eltype(getestimates(result)) <: SMatrix
             else
-                @test eltype(getestimate(result)) <: Number
+                @test eltype(getestimates(result)) <: Number
             end
         end
 
@@ -330,7 +330,7 @@ rng = StableRNG(123)
 
             # Test indexing into results
             radii_result = getevaluationpoints(result)
-            values_result = getestimate(result)
+            values_result = getestimates(result)
 
             @test radii_result[1] ≈ radii[1]
             @test radii_result[end] ≈ radii[end]
@@ -383,12 +383,12 @@ rng = StableRNG(123)
             # Test that L function computed from K function gives same result
             l_from_k = l_function(k_result)
             @test getevaluationpoints(l_from_k) ≈ getevaluationpoints(l_result)
-            @test getestimate(l_from_k) ≈ getestimate(l_result)
+            @test getestimates(l_from_k) ≈ getestimates(l_result)
 
             # Test that L function computed from C function gives same result
             l_from_c = l_function(c_result)
             @test getevaluationpoints(l_from_c) ≈ getevaluationpoints(l_result)
-            @test getestimate(l_from_c) ≈ getestimate(l_result)
+            @test getestimates(l_from_c) ≈ getestimates(l_result)
         end
     end
 end
@@ -402,7 +402,7 @@ end
     tapers = sin_taper_family(bw, region)
     result = l_function(
         points_data, radii = small_radii, nk = (8, 8), kmax = (0.5, 0.5), tapers = tapers)
-    @test all(x -> all(isfinite.(x)), getestimate(result))
+    @test all(x -> all(isfinite.(x)), getestimates(result))
 
     # Test large radii
     large_radii = [2.0, 100.0]
@@ -413,7 +413,7 @@ end
     zero_radius = [0.0]
     result_zero = l_function(
         points_data, radii = zero_radius, nk = (8, 8), kmax = (0.5, 0.5), tapers = tapers)
-    @test abs(getestimate(result_zero)[1]) < 1e-6  # L(0) should be approximately 0
+    @test abs(getestimates(result_zero)[1]) < 1e-6  # L(0) should be approximately 0
 end
 
 @testset "in place tests $return_type" for return_type in [:single, :tuple, :vector]

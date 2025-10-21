@@ -17,7 +17,7 @@ end
 
 ## checking process bounds
 function checkprocessbounds(estimate::AbstractEstimate, p, q)
-    _checkprocessbounds(getestimate(estimate), p, q)
+    _checkprocessbounds(getestimates(estimate), p, q)
     nothing
 end
 
@@ -72,7 +72,7 @@ end
 ## checking index bounds
 function checkindexbounds(
         estimate::AbstractEstimate{E, D, N}, i::Vararg{Any, N}) where {E, D, N}
-    _checkindexbounds(getestimate(estimate), i...)
+    _checkindexbounds(getestimates(estimate), i...)
 end
 
 function _checkindexbounds(
@@ -192,12 +192,12 @@ end
 ## get estimate index
 function getestimateindex(
         estimate::AbstractEstimate{E, D, N}, p, q, i::Vararg{Any, N}) where {E, D, N}
-    return _getestimateindex(process_trait(estimate), getestimate(estimate), p, q, i...)
+    return _getestimateindex(process_trait(estimate), getestimates(estimate), p, q, i...)
 end
 
 function getestimateindex(
         estimate::AbstractEstimate{E, D, N}, p, q) where {E, D, N}
-    return _getestimateindex(process_trait(estimate), getestimate(estimate), p, q)
+    return _getestimateindex(process_trait(estimate), getestimates(estimate), p, q)
 end
 
 function _getestimateindex(::SingleProcessTrait, estimate::AbstractArray{<:Number, N},

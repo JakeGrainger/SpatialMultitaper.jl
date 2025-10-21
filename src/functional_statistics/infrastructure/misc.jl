@@ -15,7 +15,7 @@ end
 getshortestimatename(est::AbstractEstimate) = getshortestimatename(typeof(est))
 
 function Base.:(==)(a::AbstractEstimate, b::AbstractEstimate)
-    getestimate(a) == getestimate(b) &&
+    getestimates(a) == getestimates(b) &&
         getevaluationpoints(a) == getevaluationpoints(b) &&
         getprocessinformation(a) == getprocessinformation(b) &&
         getestimationinformation(a) == getestimationinformation(b) &&
@@ -92,7 +92,7 @@ end
 Produces a Tuple containing the arguments and the estimate.
 """
 function Base.collect(estimate::AbstractEstimate)
-    tuple(getargumenttuple(estimate)..., getestimate(estimate))
+    tuple(getargumenttuple(estimate)..., getestimates(estimate))
 end
 function getargumenttuple(estimate::AbstractEstimate)
     getevaluationpoints(estimate)::Tuple

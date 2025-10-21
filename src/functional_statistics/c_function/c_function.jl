@@ -139,7 +139,7 @@ struct CFunction{E, D, A, T, IP, IE} <: IsotropicEstimate{E, D}
 end
 getshortbaseestimatename(::Type{<:CFunction}) = "C"
 getbaseestimatename(::Type{<:CFunction}) = "C function"
-getargument(f::CFunction) = f.radii
+getevaluationpoints(f::CFunction) = f.radii
 getestimate(f::CFunction) = f.value
 
 # Public API
@@ -321,7 +321,7 @@ function _preallocate_c_output(power, ::MultipleVectorTrait, radii)
 end
 
 function precompute_c_weights(spectra::Spectra{E, D}, radii::AbstractVector) where {E, D}
-    wavenumber = getargument(spectra)
+    wavenumber = getevaluationpoints(spectra)
     power_size = size(getestimate(spectra))
     wavenumber_spacing = prod(step, wavenumber)
     T = promote_type(float(eltype(radii)), float(typeof(wavenumber_spacing)))
@@ -336,7 +336,7 @@ end
 
 function precompute_c_weights(
         spectra::RotationalSpectra{E, D}, radii::AbstractVector) where {E, D}
-    wavenumber = getargument(spectra)
+    wavenumber = getevaluationpoints(spectra)
     power_size = size(getestimate(spectra))
     spacing = step(wavenumber)
     T = promote_type(float(eltype(radii)), float(typeof(spacing)))

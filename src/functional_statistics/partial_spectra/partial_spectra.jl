@@ -112,7 +112,7 @@ function partial_spectra!(spectrum::Spectra{MarginalTrait})::Spectra{PartialTrai
         _partial_spectra_noalloc!, est, trait, estimation_info.ntapers)
 
     return Spectra{PartialTrait}(
-        getargument(spectrum), transformed, process_info, estimation_info)
+        getevaluationpoints(spectrum), transformed, process_info, estimation_info)
 end
 
 function partial_spectra(data, region::Meshes.Geometry; kwargs...)::Spectra{PartialTrait}
@@ -131,7 +131,7 @@ function partial_spectra!(spectrum::RotationalSpectra{MarginalTrait})::Rotationa
         ))
     end
 
-    wavenumber = getargument(spectrum)
+    wavenumber = getevaluationpoints(spectrum)
     power = getestimate(spectrum)
     trait = process_trait(spectrum)
     # Note: Debiasing is different for rotational estimates (not currently implemented)
@@ -239,7 +239,8 @@ See also: [`partial_spectra`](@ref)
 """
 function partial_spectra_uncorrected(spectrum::Spectra{MarginalTrait})::Spectra{PartialTrait}
     # Create a modified spectrum with no taper information for uncorrected computation
-    new_spectrum = Spectra{MarginalTrait}(getargument(spectrum), getestimate(spectrum),
+    new_spectrum = Spectra{MarginalTrait}(
+        getevaluationpoints(spectrum), getestimate(spectrum),
         getprocessinformation(spectrum), EstimationInformation(nothing))
     return partial_spectra(new_spectrum)
 end

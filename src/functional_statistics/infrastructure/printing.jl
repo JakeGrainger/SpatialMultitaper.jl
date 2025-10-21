@@ -17,7 +17,7 @@ function Base.show(io::IO, ::MIME"text/plain", estimate::AbstractEstimate)
 end
 
 function _printargument(estimate::AbstractEstimate)
-    _printargument(getargument(estimate))
+    _printargument(getevaluationpoints(estimate))
 end
 function _printargument(arg::Tuple)
     join(arg, ", ")

@@ -4,7 +4,8 @@ include("../../test_utilities/TestUtils.jl")
 using .TestUtils
 
 import SpatialMultitaper: partial_spectra, partial_spectra_uncorrected, getestimate,
-                          getargument, is_partial, MarginallyTransformedEstimate, Spectra,
+                          getevaluationpoints, is_partial, MarginallyTransformedEstimate,
+                          Spectra,
                           getprocessinformation, getestimationinformation, partial_spectra!
 
 @testset "partial_spectra matrix function" begin
@@ -85,7 +86,7 @@ end
         @test is_partial(partial_spec) == true  # Should have PartialTrait
         @test size(partial_spec) == size(spec)
         @test embeddim(partial_spec) == embeddim(spec)
-        @test getargument(partial_spec) == getargument(spec)  # Same wavenumbers
+        @test getevaluationpoints(partial_spec) == getevaluationpoints(spec)  # Same wavenumbers
         @test getprocessinformation(partial_spec) == getprocessinformation(spec)
         @test getestimationinformation(partial_spec) == getestimationinformation(spec)
     end

@@ -64,7 +64,7 @@ end
 function getestimate(est::MarginallyTransformedEstimate)
     return est.estimate
 end
-function getargument(est::MarginallyTransformedEstimate)
+function getevaluationpoints(est::MarginallyTransformedEstimate)
     return est.argument
 end
 
@@ -153,7 +153,7 @@ end
 function apply_marginal_transform!(transform::F, mem,
         est::AbstractEstimate{E, D, N})::MarginallyTransformedEstimate{
         E, D, N} where {F, E, D, N}
-    argument = getargument(est)
+    argument = getevaluationpoints(est)
     estimate = apply_marginal_transform!(transform, mem, getestimate(est))
     processinfo = getprocessinformation(est)
     estimationinfo = getestimationinformation(est)

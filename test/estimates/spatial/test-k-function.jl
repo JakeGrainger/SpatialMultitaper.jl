@@ -2,7 +2,7 @@ using Test, SpatialMultitaper, StableRNGs, StaticArrays, LinearAlgebra, Benchmar
 include("../../test_utilities/TestData.jl")
 using .TestData
 
-import SpatialMultitaper: getestimate, getargument, KFunction, k_function!,
+import SpatialMultitaper: getestimate, getevaluationpoints, KFunction, k_function!,
                           getprocessinformation, process_trait, _c_to_k_transform!
 rng = StableRNG(123)
 
@@ -29,7 +29,7 @@ rng = StableRNG(123)
         spatial_result = k_function(
             points_spatial, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
-        @test getargument(raw_result) ≈ getargument(spatial_result)
+        @test getevaluationpoints(raw_result) ≈ getevaluationpoints(spatial_result)
         @test getestimate(raw_result) ≈ getestimate(spatial_result)
     end
 
@@ -55,7 +55,7 @@ rng = StableRNG(123)
                 points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
             @test result isa KFunction
-            @test getargument(result) ≈ radii
+            @test getevaluationpoints(result) ≈ radii
             if return_type == :vector
                 @test size(getestimate(result)) ==
                       (n_processes, n_processes, length(radii))
@@ -88,7 +88,7 @@ rng = StableRNG(123)
             k_direct = k_function(
                 points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
-            @test getargument(k_from_spectra) ≈ getargument(k_direct)
+            @test getevaluationpoints(k_from_spectra) ≈ getevaluationpoints(k_direct)
             @test getestimate(k_from_spectra) ≈ getestimate(k_direct)
         end
 
@@ -116,7 +116,7 @@ rng = StableRNG(123)
             k_direct = k_function(
                 points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
-            @test getargument(k_from_c) ≈ getargument(k_direct)
+            @test getevaluationpoints(k_from_c) ≈ getevaluationpoints(k_direct)
             @test getestimate(k_from_c) ≈ getestimate(k_direct)
         end
 
@@ -138,7 +138,7 @@ rng = StableRNG(123)
                     nk = nk, kmax = kmax, tapers = tapers)
 
                 @test partial_result isa KFunction
-                @test getargument(partial_result) ≈ radii
+                @test getevaluationpoints(partial_result) ≈ radii
                 if return_type == :vector
                     @test size(getestimate(partial_result)) ==
                           (n_processes, n_processes, length(radii))
@@ -170,7 +170,7 @@ rng = StableRNG(123)
                 k_from_partial = k_function(partial_spec, radii = radii)
 
                 @test k_from_partial isa KFunction
-                @test getargument(k_from_partial) ≈ radii
+                @test getevaluationpoints(k_from_partial) ≈ radii
             end
         end
 
@@ -196,13 +196,14 @@ rng = StableRNG(123)
                 k_from_partial_c = k_function(partial_c)
 
                 @test k_from_partial_c isa KFunction
-                @test getargument(k_from_partial_c) ≈ radii
+                @test getevaluationpoints(k_from_partial_c) ≈ radii
 
                 # Compare with direct partial K function computation
                 k_partial_direct = partial_k_function(
                     points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
-                @test getargument(k_from_partial_c) ≈ getargument(k_partial_direct)
+                @test getevaluationpoints(k_from_partial_c) ≈
+                      getevaluationpoints(k_partial_direct)
                 @test getestimate(k_from_partial_c) ≈ getestimate(k_partial_direct)
             end
         end
@@ -224,8 +225,8 @@ rng = StableRNG(123)
                 points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
             @test result isa KFunction
-            @test getargument(result) isa AbstractVector
-            @test length(getargument(result)) == length(radii)
+            @test getevaluationpoints(result) isa AbstractVector
+            @test length(getevaluationpoints(result)) == length(radii)
             if return_type == :vector
                 @test getestimate(result) isa AbstractArray
                 @test size(getestimate(result)) ==
@@ -240,7 +241,7 @@ rng = StableRNG(123)
             end
 
             # Check element types
-            @test eltype(getargument(result)) <: Number
+            @test eltype(getevaluationpoints(result)) <: Number
             if return_type == :tuple
                 @test eltype(getestimate(result)) <: SMatrix
             else
@@ -265,7 +266,7 @@ rng = StableRNG(123)
                 points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
             # Test indexing into results
-            radii_result = getargument(result)
+            radii_result = getevaluationpoints(result)
             values_result = getestimate(result)
 
             @test radii_result[1] ≈ radii[1]
@@ -311,11 +312,11 @@ rng = StableRNG(123)
             c_result = c_function(
                 points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
-            @test getargument(k_result) ≈ getargument(c_result)
+            @test getevaluationpoints(k_result) ≈ getevaluationpoints(c_result)
 
             # Test that K function computed from C function gives same result
             k_from_c = k_function(c_result)
-            @test getargument(k_from_c) ≈ getargument(k_result)
+            @test getevaluationpoints(k_from_c) ≈ getevaluationpoints(k_result)
             @test getestimate(k_from_c) ≈ getestimate(k_result)
 
             # K function should be non-negative for positive radii and single process

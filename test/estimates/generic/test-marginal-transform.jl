@@ -4,7 +4,7 @@ using .TestUtils
 
 import SpatialMultitaper: MarginallyTransformedEstimate, apply_marginal_transform!,
                           getestimatename, getoriginaltype, gettransformname, getestimate,
-                          getargument, Spectra, getprocessinformation,
+                          getevaluationpoints, Spectra, getprocessinformation,
                           getestimationinformation
 
 @testset "MarginallyTransformedEstimate Construction" begin
@@ -22,7 +22,7 @@ import SpatialMultitaper: MarginallyTransformedEstimate, apply_marginal_transfor
         real_spec = real(spec)
 
         @test real_spec isa MarginallyTransformedEstimate
-        @test getargument(real_spec) == getargument(spec)
+        @test getevaluationpoints(real_spec) == getevaluationpoints(spec)
         @test getprocessinformation(real_spec) == getprocessinformation(spec)
         @test getestimationinformation(real_spec) == getestimationinformation(spec)
         @test size(real_spec) == size(spec)
@@ -225,7 +225,7 @@ end
         real_sub = real_spec[1, 2]
         @test real_sub isa MarginallyTransformedEstimate
         @test size(real_sub) == ()
-        @test getargument(real_sub) == getargument(real_spec)
+        @test getevaluationpoints(real_sub) == getevaluationpoints(real_spec)
     end
 
     @testset "Wavenumber indexing" begin
@@ -234,7 +234,7 @@ end
         @test size(real_wavenumber) == ()
 
         # Check wavenumber was correctly indexed
-        wavenumber_arg = getargument(real_wavenumber)
+        wavenumber_arg = getevaluationpoints(real_wavenumber)
         @test length(wavenumber_arg[1]) == 1
         @test length(wavenumber_arg[2]) == 1
     end

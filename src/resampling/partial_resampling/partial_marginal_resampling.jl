@@ -126,7 +126,7 @@ Computes the Fourier transform of the prediction kernel given estimates of the s
 """
 function prediction_kernel_ft(spec::Spectra{MarginalTrait})
     _prediction_kernel_ft(
-        getargument(spec), getestimate(spec), process_trait(spec), getestimationinformation(spec).ntapers)
+        getevaluationpoints(spec), getestimate(spec), process_trait(spec), getestimationinformation(spec).ntapers)
 end
 function _prediction_kernel_ft(
         wavenumber, est::AbstractArray{<:SMatrix{P, P}}, trait::MultipleTupleTrait, ntapers) where {P}

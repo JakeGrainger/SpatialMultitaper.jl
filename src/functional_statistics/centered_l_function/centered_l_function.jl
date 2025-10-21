@@ -48,11 +48,11 @@ getshortbaseestimatename(::Type{<:CenteredLFunction}) = "centered L"
 getbaseestimatename(::Type{<:CenteredLFunction}) = "centered L function (L(r)-r)"
 
 """
-    getargument(f::CenteredLFunction)
+    getevaluationpoints(f::CenteredLFunction)
 
 Get the radii at which the centered L function is evaluated.
 """
-getargument(f::CenteredLFunction) = f.radii
+getevaluationpoints(f::CenteredLFunction) = f.radii
 
 """
     getestimate(f::CenteredLFunction)
@@ -114,7 +114,7 @@ centered_l_function!(k::KFunction) = centered_l_function!(l_function!(k))
 Transform L function to centered L function.
 """
 function centered_l_function!(l::LFunction{E, D})::CenteredLFunction{E, D} where {E, D}
-    radii = getargument(l)
+    radii = getevaluationpoints(l)
     value = _l_to_centered_l_transform!(radii, getestimate(l), process_trait(l))
     processinfo = getprocessinformation(l)
     estimationinfo = getestimationinformation(l)

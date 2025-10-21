@@ -50,11 +50,11 @@ struct RotationalEstimate{E, D, S, A, T, IP, IE} <: IsotropicEstimate{E, D}
 end
 
 """
-    getargument(f::RotationalEstimate)
+    getevaluationpoints(f::RotationalEstimate)
 
 Get the radii at which the rotational estimate is evaluated.
 """
-getargument(f::RotationalEstimate) = f.radii
+getevaluationpoints(f::RotationalEstimate) = f.radii
 
 """
     getestimate(f::RotationalEstimate)
@@ -257,7 +257,7 @@ Internal function to compute rotational averaging with a given kernel.
 """
 function _rotational_estimate(est::AbstractEstimate{E}, radii, kernel) where {E}
     rot_est = _smoothed_rotational(
-        getargument(est), getestimate(est), process_trait(est), radii, kernel)
+        getevaluationpoints(est), getestimate(est), process_trait(est), radii, kernel)
     processinfo = getprocessinformation(est)
     estimationinfo = getestimationinformation(est)
     return RotationalEstimate{E, typeof(est)}(radii, rot_est, processinfo, estimationinfo)
@@ -342,7 +342,7 @@ function default_rotational_radii(nk, kmax)
 end
 
 function default_rotational_radii(s::AbstractEstimate)
-    return default_rotational_radii(getargument(s))
+    return default_rotational_radii(getevaluationpoints(s))
 end
 
 function default_rotational_radii(wavenumber::NTuple{D, AbstractVector{<:Real}}) where {D}
@@ -370,7 +370,7 @@ while preserving wavenumber resolution.
 A `RectKernel` with bandwidth = 2 * max(wavenumber_steps)
 """
 function default_rotational_kernel(est::AbstractEstimate)
-    return default_rotational_kernel(getargument(est))
+    return default_rotational_kernel(getevaluationpoints(est))
 end
 
 function default_rotational_kernel(nk, kmax)

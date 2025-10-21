@@ -2,7 +2,7 @@ using Test, SpatialMultitaper, StableRNGs, StaticArrays, LinearAlgebra, Benchmar
 include("../../test_utilities/TestData.jl")
 using .TestData
 
-import SpatialMultitaper: getestimate, getargument, LFunction, l_function!
+import SpatialMultitaper: getestimate, getevaluationpoints, LFunction, l_function!
 
 #
 rng = StableRNG(123)
@@ -30,7 +30,7 @@ rng = StableRNG(123)
         spatial_result = l_function(
             points_spatial, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
-        @test getargument(raw_result) ≈ getargument(spatial_result)
+        @test getevaluationpoints(raw_result) ≈ getevaluationpoints(spatial_result)
         @test getestimate(raw_result) ≈ getestimate(spatial_result)
     end
 
@@ -56,7 +56,7 @@ rng = StableRNG(123)
                 points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
             @test result isa LFunction
-            @test getargument(result) ≈ radii
+            @test getevaluationpoints(result) ≈ radii
             if return_type == :vector
                 @test size(getestimate(result)) ==
                       (n_processes, n_processes, length(radii))
@@ -89,7 +89,7 @@ rng = StableRNG(123)
             l_direct = l_function(
                 points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
-            @test getargument(l_from_spectra) ≈ getargument(l_direct)
+            @test getevaluationpoints(l_from_spectra) ≈ getevaluationpoints(l_direct)
             @test getestimate(l_from_spectra) ≈ getestimate(l_direct)
         end
 
@@ -117,7 +117,7 @@ rng = StableRNG(123)
             l_direct = l_function(
                 points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
-            @test getargument(l_from_c) ≈ getargument(l_direct)
+            @test getevaluationpoints(l_from_c) ≈ getevaluationpoints(l_direct)
             @test getestimate(l_from_c) ≈ getestimate(l_direct)
         end
 
@@ -145,7 +145,7 @@ rng = StableRNG(123)
             l_direct = l_function(
                 points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
-            @test getargument(l_from_k) ≈ getargument(l_direct)
+            @test getevaluationpoints(l_from_k) ≈ getevaluationpoints(l_direct)
             @test getestimate(l_from_k) ≈ getestimate(l_direct)
         end
 
@@ -167,7 +167,7 @@ rng = StableRNG(123)
                     nk = nk, kmax = kmax, tapers = tapers)
 
                 @test partial_result isa LFunction
-                @test getargument(partial_result) ≈ radii
+                @test getevaluationpoints(partial_result) ≈ radii
                 if return_type == :vector
                     @test size(getestimate(partial_result)) ==
                           (n_processes, n_processes, length(radii))
@@ -199,7 +199,7 @@ rng = StableRNG(123)
                 l_from_partial = l_function(partial_spec, radii = radii)
 
                 @test l_from_partial isa LFunction
-                @test getargument(l_from_partial) ≈ radii
+                @test getevaluationpoints(l_from_partial) ≈ radii
             end
         end
 
@@ -225,13 +225,14 @@ rng = StableRNG(123)
                 l_from_partial_c = l_function(partial_c)
 
                 @test l_from_partial_c isa LFunction
-                @test getargument(l_from_partial_c) ≈ radii
+                @test getevaluationpoints(l_from_partial_c) ≈ radii
 
                 # Compare with direct partial L function computation
                 l_partial_direct = partial_l_function(
                     points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
-                @test getargument(l_from_partial_c) ≈ getargument(l_partial_direct)
+                @test getevaluationpoints(l_from_partial_c) ≈
+                      getevaluationpoints(l_partial_direct)
                 @test getestimate(l_from_partial_c) ≈ getestimate(l_partial_direct)
             end
         end
@@ -258,13 +259,14 @@ rng = StableRNG(123)
                 l_from_partial_k = l_function(partial_k)
 
                 @test l_from_partial_k isa LFunction
-                @test getargument(l_from_partial_k) ≈ radii
+                @test getevaluationpoints(l_from_partial_k) ≈ radii
 
                 # Compare with direct partial L function computation
                 l_partial_direct = partial_l_function(
                     points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
-                @test getargument(l_from_partial_k) ≈ getargument(l_partial_direct)
+                @test getevaluationpoints(l_from_partial_k) ≈
+                      getevaluationpoints(l_partial_direct)
                 @test getestimate(l_from_partial_k) ≈ getestimate(l_partial_direct)
             end
         end
@@ -286,8 +288,8 @@ rng = StableRNG(123)
                 points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
             @test result isa LFunction
-            @test getargument(result) isa AbstractVector
-            @test length(getargument(result)) == length(radii)
+            @test getevaluationpoints(result) isa AbstractVector
+            @test length(getevaluationpoints(result)) == length(radii)
             if return_type == :vector
                 @test getestimate(result) isa AbstractArray
                 @test size(getestimate(result)) ==
@@ -302,7 +304,7 @@ rng = StableRNG(123)
             end
 
             # Check element types
-            @test eltype(getargument(result)) <: Number
+            @test eltype(getevaluationpoints(result)) <: Number
             if return_type == :tuple
                 @test eltype(getestimate(result)) <: SMatrix
             else
@@ -327,7 +329,7 @@ rng = StableRNG(123)
                 points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
             # Test indexing into results
-            radii_result = getargument(result)
+            radii_result = getevaluationpoints(result)
             values_result = getestimate(result)
 
             @test radii_result[1] ≈ radii[1]
@@ -375,17 +377,17 @@ rng = StableRNG(123)
             c_result = c_function(
                 points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
-            @test getargument(l_result) ≈ getargument(k_result)
-            @test getargument(l_result) ≈ getargument(c_result)
+            @test getevaluationpoints(l_result) ≈ getevaluationpoints(k_result)
+            @test getevaluationpoints(l_result) ≈ getevaluationpoints(c_result)
 
             # Test that L function computed from K function gives same result
             l_from_k = l_function(k_result)
-            @test getargument(l_from_k) ≈ getargument(l_result)
+            @test getevaluationpoints(l_from_k) ≈ getevaluationpoints(l_result)
             @test getestimate(l_from_k) ≈ getestimate(l_result)
 
             # Test that L function computed from C function gives same result
             l_from_c = l_function(c_result)
-            @test getargument(l_from_c) ≈ getargument(l_result)
+            @test getevaluationpoints(l_from_c) ≈ getevaluationpoints(l_result)
             @test getestimate(l_from_c) ≈ getestimate(l_result)
         end
     end

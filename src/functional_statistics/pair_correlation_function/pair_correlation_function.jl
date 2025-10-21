@@ -12,7 +12,7 @@ struct PairCorrelationFunction{E, D, A, T, IP, IE} <: IsotropicEstimate{E, D}
     end
 end
 getshortbaseestimatename(::Type{<:PairCorrelationFunction}) = "pcf"
-getargument(f::PairCorrelationFunction) = f.radii
+getevaluationpoints(f::PairCorrelationFunction) = f.radii
 getestimate(f::PairCorrelationFunction) = f.value
 
 function pair_correlation_function(data, region; kwargs...)
@@ -22,7 +22,7 @@ function pair_correlation_function(data::SpatialData; pcf_method = PCFMethodC(),
     pair_correlation_function(k_function(data; kwargs...); pcf_method = pcf_method)
 end
 function pair_correlation_function(est::KFunction{E}; pcf_method = PCFMethodC()) where {E}
-    radii = getargument(est)
+    radii = getevaluationpoints(est)
     value = k2paircorrelation(est, pcf_method)
     processinfo = getprocessinformation(est)
     estimationinfo = getestimationinformation(est)
@@ -102,7 +102,7 @@ end
 end
 
 function k2paircorrelation(est::KFunction{E, D}, method) where {E, D}
-    radii = getargument(est)
+    radii = getevaluationpoints(est)
     stacked_pcf = stack(_k2paircorrelation(radii, getestimate(est[i, j]), Val{D}(), method)
     for i in 1:size(est)[1], j in 1:size(est)[2])
     return _post_process_pcf(stacked_pcf, est)
@@ -164,7 +164,7 @@ function _sdf2pcf(
         f::Spectra{E, D},
         radius::Number
 ) where {E, D}
-    wavenumber = getargument(f)
+    wavenumber = getevaluationpoints(f)
     spectra = getestimate(f)
     zeroatom = getprocessinformation(f).atoms
     mean_prod = getprocessinformation(f).mean_product

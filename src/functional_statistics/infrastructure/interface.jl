@@ -1,4 +1,4 @@
-# should be a struct implementing getargument and getestimate
+# should be a struct implementing getevaluationpoints and getestimate
 # if the estimate is anisotropic, then the argument should be a tuple of length D
 # if the estimate is isotropic, then the argument can either be a single `AbstractVector` or a tuple of length 1
 # it is a good idea to use checkinputs when constructing these
@@ -20,5 +20,5 @@ is_partial(::PartialAbstractEstimate) = true
 getestimationinformation(est::AbstractEstimate) = est.estimationinformation
 getprocessinformation(est::AbstractEstimate) = est.processinformation
 
-getargument(est::AbstractEstimate)
+getevaluationpoints(est::AbstractEstimate)
 getestimate(est::AbstractEstimate)

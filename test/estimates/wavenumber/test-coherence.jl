@@ -3,7 +3,7 @@ include("../../test_utilities/TestUtils.jl")
 using .TestUtils
 
 import SpatialMultitaper: Coherence, MarginallyTransformedEstimate, getestimate,
-                          getargument, gettransformtype, getprocessinformation,
+                          getevaluationpoints, gettransformtype, getprocessinformation,
                           getestimationinformation
 
 @testset "coherence matrix function" begin
@@ -55,7 +55,7 @@ end
         coh = coherence(spec)
 
         @test coh isa Coherence
-        @test getargument(coh) == getargument(spec)  # Same wavenumbers
+        @test getevaluationpoints(coh) == getevaluationpoints(spec)  # Same wavenumbers
         @test size(coh) == size(spec)
         @test embeddim(coh) == embeddim(spec)
         @test getprocessinformation(coh) == getprocessinformation(spec)

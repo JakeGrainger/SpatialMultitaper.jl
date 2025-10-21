@@ -72,7 +72,7 @@ end
             new{E, D, N}(argument, estimate, processinfo, estimationinfo)
         end
     end
-    SpatialMultitaper.getargument(est::MockEstimate) = est.argument
+    SpatialMultitaper.getevaluationpoints(est::MockEstimate) = est.argument
     SpatialMultitaper.getestimate(est::MockEstimate) = est.estimate
 
     # Test with matrix estimate

@@ -3,7 +3,8 @@ using Test, SpatialMultitaper, StableRNGs, StaticArrays, LinearAlgebra, QuadGK,
 include("../../test_utilities/TestData.jl")
 using .TestData
 
-import SpatialMultitaper: getestimate, getargument, CFunction, default_rotational_kernel,
+import SpatialMultitaper: getestimate, getevaluationpoints, CFunction,
+                          default_rotational_kernel,
                           getregion, _isotropic_c_weight, _anisotropic_c_weight,
                           _isotropic_c_weight_generic, _anisotropic_c_weight_generic,
                           IsotropicEstimate
@@ -65,7 +66,7 @@ end
         spatial_result = c_function(
             points_spatial, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
-        @test getargument(raw_result) ≈ getargument(spatial_result)
+        @test getevaluationpoints(raw_result) ≈ getevaluationpoints(spatial_result)
         @test getestimate(raw_result) ≈ getestimate(spatial_result)
     end
 
@@ -91,7 +92,7 @@ end
                 points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
             @test result isa CFunction
-            @test getargument(result) ≈ radii
+            @test getevaluationpoints(result) ≈ radii
             if return_type == :vector
                 @test size(getestimate(result)) ==
                       (n_processes, n_processes, length(radii))
@@ -124,7 +125,7 @@ end
             c_direct = c_function(
                 points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
-            @test getargument(c_from_spectra) ≈ getargument(c_direct)
+            @test getevaluationpoints(c_from_spectra) ≈ getevaluationpoints(c_direct)
             @test getestimate(c_from_spectra) ≈ getestimate(c_direct)
         end
 
@@ -146,7 +147,7 @@ end
                     nk = nk, kmax = kmax, tapers = tapers)
 
                 @test partial_result isa CFunction
-                @test getargument(partial_result) ≈ radii
+                @test getevaluationpoints(partial_result) ≈ radii
                 if return_type == :vector
                     @test size(getestimate(partial_result)) ==
                           (n_processes, n_processes, length(radii))
@@ -178,7 +179,7 @@ end
                 c_from_partial = c_function(partial_spec, radii = radii)
 
                 @test c_from_partial isa CFunction
-                @test getargument(c_from_partial) ≈ radii
+                @test getevaluationpoints(c_from_partial) ≈ radii
             end
         end
 
@@ -204,7 +205,7 @@ end
                 partial_from_spec = partial_c_function(spectrum, radii = radii)
 
                 @test partial_from_spec isa CFunction
-                @test getargument(partial_from_spec) ≈ radii
+                @test getevaluationpoints(partial_from_spec) ≈ radii
             end
         end
 
@@ -225,8 +226,8 @@ end
                 points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
             @test result isa CFunction
-            @test getargument(result) isa AbstractVector
-            @test length(getargument(result)) == length(radii)
+            @test getevaluationpoints(result) isa AbstractVector
+            @test length(getevaluationpoints(result)) == length(radii)
             if return_type == :vector
                 @test getestimate(result) isa AbstractArray
                 @test size(getestimate(result)) ==
@@ -241,7 +242,7 @@ end
             end
 
             # Check element types
-            @test eltype(getargument(result)) <: Number
+            @test eltype(getevaluationpoints(result)) <: Number
             if return_type == :tuple
                 @test eltype(getestimate(result)) <: SMatrix
             else
@@ -266,7 +267,7 @@ end
                 points_data, radii = radii, nk = nk, kmax = kmax, tapers = tapers)
 
             # Test indexing into results
-            radii_result = getargument(result)
+            radii_result = getevaluationpoints(result)
             values_result = getestimate(result)
 
             @test radii_result[1] ≈ radii[1]

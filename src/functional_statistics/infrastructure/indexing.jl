@@ -161,7 +161,7 @@ function Base.getindex(estimate::AbstractEstimate{E}, p, q) where {E}
     return _construct_estimate_subset(
         typeof(estimate),
         E,
-        getargument(estimate),
+        getevaluationpoints(estimate),
         getestimateindex(estimate, p, q),
         getprocessinformationindex(estimate, p, q),
         getestimationinformation(estimate),
@@ -180,7 +180,7 @@ end
 ## get argument index
 function getargumentindex(
         estimate::AbstractEstimate{E, D, N}, i::Vararg{Any, N}) where {E, D, N}
-    _getargumentindex(getargument(estimate), i...)
+    _getargumentindex(getevaluationpoints(estimate), i...)
 end
 function _getargumentindex(argument::NTuple{N}, i::Vararg{Any, N}) where {N}
     getindex.(argument, tuple(i...))

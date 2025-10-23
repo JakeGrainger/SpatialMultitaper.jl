@@ -109,10 +109,3 @@ end
 function _validate_radii(::Nothing, data::SpatialData)
     return default_radii(data)
 end
-
-function _validate_radii(radii, data::SpatialData)
-    @argcheck all(radii .>= 0)
-    side_length = sides(boundingbox(getregion(data)))
-    @argcheck all(radii .<= Meshes.ustrip(minimum(side_length)))
-    return radii
-end

@@ -1,118 +1,110 @@
+"""
+    KFunction{E, D, A, T, IP, IE} <: IsotropicEstimate{E, D}
 
-function k_function(data::SpatialData; kwargs...)::KFunction
-    return k_function!(c_function(data; kwargs...))
+Ripley's K function estimate for spatial point pattern analysis.
+
+Ripley's K function K(r) measures the expected number of points within distance r of a
+typical point, normalized by the intensity. It is fundamental in spatial statistics for
+detecting clustering (K > theoretical) or regularity (K < theoretical) in point patterns.
+The K function is derived from spectral estimates via the C function transformation.
+
+# Type Parameters
+- `E <: EstimateTrait`: Estimate trait (e.g., `MarginalTrait`, `PartialTrait`)
+- `D`: Spatial dimension of the underlying process
+- `A`: Type of the radii array
+- `T`: Type of the K function values (typically `Vector{Float64}` or similar)
+- `IP`: Type of process information structure
+- `IE`: Type of estimation information structure
+
+# Fields
+- `radii::A`: Distance values at which the K function is evaluated
+- `value::T`: K function values corresponding to each radius (always real and non-negative)
+- `processinformation::IP`: Information about the analyzed processes (includes intensity)
+- `estimationinformation::IE`: Details about the estimation procedure
+
+# Mathematical Background
+For a stationary point process with intensity λ, Ripley's K function is defined as:
+
+K_{ij}(r) = λ⁻¹ E[number of additional `i` points within distance `r` of a typical `j` point]
+
+The transformation from C function to K function is:
+K(r) = C(r)/λ² + V_d r^d
+
+where:
+- C(r) is the corresponding C function value
+- λ is the process intensity (derived from mean product)
+- V_d is the volume of a unit d-dimensional ball
+- For Poisson processes: K(r) = V_d r^d (baseline for comparison)
+
+# Interpretation
+- K(r) > V_d r^d: clustering at distance r
+- K(r) < V_d r^d: regularity/inhibition at distance r
+- K(r) = V_d r^d: random (Poisson) pattern
+
+# Notes
+- K function values are always real and non-negative
+- Supports both marginal and partial variants via the trait system
+- Intensity normalization is handled automatically from process information
+- Common baseline comparisons: K_Poisson(r) = πr² (2D), K_Poisson(r) = (4π/3)r³ (3D)
+
+See also: [`k_function`](@ref), [`partial_k_function`](@ref), [`CFunction`](@ref)
+"""
+struct KFunction{E, D, A, T, IP, IE} <: IsotropicEstimate{E, D}
+    radii::A
+    value::T
+    processinformation::IP
+    estimationinformation::IE
+    function KFunction{E}(radii::A, value::T, processinfo::ProcessInformation{D},
+            estimationinfo::IE) where {E, A, T, IE, D}
+        checkinputs(radii, value, processinfo)
+        IP = typeof(processinfo)
+        return new{E, D, A, T, IP, IE}(radii, value, processinfo, estimationinfo)
+    end
+end
+get_short_base_estimate_name(::Type{<:KFunction}) = "K"
+get_base_estimate_name(::Type{<:KFunction}) = "K function"
+
+## required interface
+
+computed_from(::Type{<:KFunction{E}}) where {E} = CFunction{E}
+
+function allocate_estimate_memory(
+        ::Type{<:KFunction}, ::Type{<:CFunction}, extracted_memory; kwargs...)
+    return extracted_memory
 end
 
-function k_function(est::AbstractEstimate; kwargs...)::KFunction
-    mem = deepcopy(est)
-    return k_function!(mem; kwargs...)
+extract_relevant_memory(::Type{KFunction}, est::CFunction) = get_estimates(est)
+function extract_relevant_memory(::Type{KFunction}, mem::EstimateMemory{<:CFunction})
+    return mem.estimate_type.spatial_output
 end
-function k_function!(c::CFunction{E, D})::KFunction{E, D} where {E, D}
-    mean_prod = get_process_information(c).mean_product
-    radii = get_evaluation_points(c)
-    value = _c_to_k_transform!(
-        radii, get_estimates(c), process_trait(c), mean_prod, Val{D}())
-    processinfo = get_process_information(c)
-    estimationinfo = get_estimation_information(c)
+
+validate_core_parameters(::Type{<:KFunction}, kwargs...) = nothing
+
+function validate_memory_compatibility(::Type{<:KFunction}, previous_memory)
+    # TODO: fill in once C function memory is done
+    return nothing
+end
+
+function resolve_missing_parameters(::Type{<:KFunction}, arg; kwargs...)
+    return kwargs # no parameters beyond those in C function
+end
+
+function compute_estimate!(
+        ::Type{<:KFunction{E, D}}, mem, source::CFunction{E, D}; kwargs...) where {E, D}
+    processinfo = get_process_information(source)
+    estimationinfo = get_estimation_information(source)
+    radii = get_evaluation_points(source)
+    cfunc = get_estimates(source)
+    mean_prod = processinfo.mean_product
+    value = _c_to_k_transform!(radii, cfunc, process_trait(source), mean_prod, Val{D}())
     return KFunction{E}(radii, value, processinfo, estimationinfo)
 end
 
-function k_function!(spectrum::NormalOrRotationalSpectra; kwargs...)::KFunction
-    return k_function!(c_function(spectrum; kwargs...))
-end
+get_evaluation_points(f::KFunction) = f.radii
 
-# Partial K functions
+get_estimates(f::KFunction) = f.value
 
-"""
-    partial_k_function(data, region; kwargs...) -> KFunction{PartialTrait}
-    partial_k_function(data::SpatialData; kwargs...) -> KFunction{PartialTrait}
-    partial_k_function(spectrum::NormalOrRotationalSpectra; kwargs...) -> KFunction{PartialTrait}
-    partial_k_function(c::CFunction{PartialTrait}) -> KFunction{PartialTrait}
-
-Compute partial Ripley's K function from spatial data or estimates.
-
-The partial K function represents the direct spatial clustering or regularity patterns
-after removing the linear influence of all other processes. It is computed from partial
-C functions using the same transformation as regular K functions, but applied to partial
-estimates that show only direct relationships between processes.
-
-# Arguments
-- `data`: Spatial data for direct partial K function computation
-- `region::Meshes.Geometry`: Spatial region for direct computation
-- `spectrum`: Spectral estimate (partial or marginal trait)
-- `c::CFunction{PartialTrait}`: Partial C function estimate
-
-# Keywords
-All keywords from [`partial_c_function`](@ref) and [`k_function`](@ref) are supported:
-- `radii::AbstractVector`: Distances at which to evaluate the partial K function (required)
-- Plus all spectral estimation keywords: `nk`, `kmax`, `dk`, `tapers`, `nw`, `mean_method`
-
-# Returns
-- `KFunction{PartialTrait}`: A partial K function estimate with the same structure as
-    regular K functions but representing direct spatial relationships.
-
-# Notes
-- Automatically converts marginal spectra/C functions to partial when needed
-- Uses the same intensity normalization and volume correction as regular K functions
-- Results represent direct spatial clustering after removing indirect effects
-- Cannot compute from marginal C functions (must use partial C functions or convert first)
-
-# Examples
-```julia
-# Direct computation from data
-radii = 0.1:0.1:2.0
-partial_kf = partial_k_function(data, region; radii = radii, kmax = 0.5, nw = 3)
-
-# From existing partial C function
-partial_cf = partial_c_function(data; radii = radii, kmax = 0.5)
-partial_kf = partial_k_function(partial_cf)
-
-# From marginal spectrum (automatically converts to partial)
-marginal_spec = spectra(data; kmax = 0.5, nw = 3)
-partial_kf = partial_k_function(marginal_spec; radii = radii)
-
-# Compare direct vs total clustering
-regular_kf = k_function(data; radii = radii, kmax = 0.5)
-direct_clustering = partial_kf.value .- regular_kf.value
-```
-
-See also: [`k_function`](@ref), [`partial_c_function`](@ref), [`partial_spectra`](@ref)
-"""
-partial_k_function
-
-function partial_k_function(data, region; kwargs...)::KFunction{PartialTrait}
-    return partial_k_function(spatial_data(data, region); kwargs...)
-end
-
-function partial_k_function(data::SpatialData; kwargs...)::KFunction{PartialTrait}
-    return k_function!(partial_c_function(data; kwargs...))
-end
-
-function partial_k_function(est::AbstractEstimate; kwargs...)::KFunction{PartialTrait}
-    mem = deepcopy(est)
-    return partial_k_function!(mem; kwargs...)
-end
-
-function partial_k_function!(spectrum::NormalOrRotationalSpectra{PartialTrait};
-        kwargs...)::KFunction{PartialTrait}
-    return k_function!(spectrum; kwargs...)
-end
-
-function partial_k_function!(spectrum::NormalOrRotationalSpectra{MarginalTrait};
-        kwargs...)::KFunction{PartialTrait}
-    return k_function!(partial_spectra!(spectrum); kwargs...)
-end
-
-partial_k_function!(c::CFunction{PartialTrait}) = k_function!(c)
-
-function partial_k_function!(::CFunction{MarginalTrait})
-    throw(ArgumentError(
-        "Cannot compute partial K function from marginal C function. " *
-        "Compute from partial spectral estimates or use partial_c_function first."
-    ))
-end
-
-# Internal transformation functions
+## internals
 
 """
     _c_to_k_transform!(radii, c_values, trait, mean_prod, ::Val{D})

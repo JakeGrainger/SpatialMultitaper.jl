@@ -5,7 +5,7 @@
 # you will need to define the following:
 # function computed_from end
 # function allocate_estimate_memory end
-# function extract_allocation_memory end
+# function extract_relevant_memory end
 # function validate_core_parameters end
 # function validate_memory_compatibility end
 # function resolve_missing_parameters end
@@ -76,23 +76,50 @@ storage required for the computation.
 function allocate_estimate_memory end
 
 """
-    extract_allocation_memory(estimate::AbstractEstimate)
+    extract_relevant_memory(::Type{T}, source)
 
-Extract the memory structure that was used to compute an existing estimate. This
-allows reusing the allocated memory and accessing structural information (like
-number of processes, array dimensions) when computing dependent estimates.
+Extract memory or information from a source (estimate object or EstimateMemory)
+that is relevant for allocating memory to compute estimate type T. This function
+provides a unified interface for both computation chains and direct computation
+from existing estimates.
 
-For example, when computing coherence from an existing spectra estimate, this
-extracts the `EstimateMemory` that was used for the spectra computation, enabling
-both memory reuse and access to sizing information.
+Different estimate types may need different information:
+- Some need full memory structures for reuse
+- Some need only metadata (e.g., array dimensions, number of processes)
+- Some need specific parameters (e.g., radii, wavenumbers)
+- Some don't need any information from the source
 
 # Arguments
-- `estimate::AbstractEstimate`: The source estimate to extract memory from
+- `::Type{T}`: The target estimate type that will be computed
+- `source`: Either an `AbstractEstimate` object or an `EstimateMemory` structure
 
 # Returns
-- `EstimateMemory`: The memory structure used to compute this estimate
+- Memory structure, metadata, or other information needed by `allocate_estimate_memory`
+- Return type depends on what T needs from the source
+- Can return `nothing` if no information is needed
+
+# Examples
+```julia
+# Extract from existing estimate object
+extract_relevant_memory(::Type{CFunction}, est::Spectra) = get_estimates(est)
+
+# Extract from EstimateMemory in computation chain
+extract_relevant_memory(::Type{CFunction}, mem::EstimateMemory{<:Spectra}) = mem.power
+
+# Extract only specific parameters
+extract_relevant_memory(::Type{KFunction}, c_func::CFunction) = c_func.radii
+
+# No extraction needed
+extract_relevant_memory(::Type{SomeEstimate}, ::SpatialData) = nothing
+```
+
+# Notes
+- This function handles both direct computation from estimates and computation chains
+- Provides a clean, unified interface instead of separate extraction mechanisms
+- The returned value is passed to `allocate_estimate_memory` as the third argument
+- Should define methods for both `AbstractEstimate` and `EstimateMemory` sources when needed
 """
-function extract_allocation_memory end
+function extract_relevant_memory end
 
 """
     validate_core_parameters(::Type{T}; kwargs...)
@@ -119,7 +146,7 @@ other memory characteristics match what's needed for the computation.
 
 # Arguments
 - `::Type{T}`: The estimate type being computed
-- `mem`: The preallocated memory structure
+- `mem`: The preallocated memory structure (which is not the `EstimateMemory` itself, but rather the internal data it holds)
 - `arg`: The input argument/data
 - `kwargs...`: Computation parameters
 
@@ -129,36 +156,37 @@ other memory characteristics match what's needed for the computation.
 function validate_memory_compatibility end
 
 """
-    resolve_missing_parameters(::Type{T}; kwargs...)
+    resolve_missing_parameters(::Type{T}, arg; kwargs...)
 
-Resolve parameters that weren't provided by the user but can be inferred or
-have computation-dependent defaults. This handles interdependencies between
-parameters (e.g., if nk is provided, compute dk from it).
+Resolve missing parameters and handle parameter constraints specific to estimate type T.
+This function handles both parameter interdependencies and default values in a single
+step, allowing each estimate type to implement its own resolution logic.
+
+For example:
+- `Spectra`: Handle `dk`/`nk`/`kmax` constraint resolution where any two determine the third
+- `CFunction`: Apply defaults for `radii` based on spatial domain
+- Other estimates: Implement their own parameter relationships and defaults
 
 # Arguments
 - `::Type{T}`: The estimate type being computed
-- `kwargs...`: User-provided parameters
+- `arg`: The input argument/data (can be used to derive defaults)
+- `kwargs...`: User-provided parameters (already validated by `validate_core_parameters`)
 
 # Returns
-- `NamedTuple`: Resolved parameters with missing values filled in
+- `NamedTuple`: Complete parameter set with all missing values resolved and constraints satisfied
+
+# Examples
+```julia
+# Spectra example - handles wavenumber constraints
+resolve_missing_parameters(::Type{Spectra}, data; nk=100, kwargs...)
+# → Uses default dk from data, derives kmax from nk and dk
+
+# CFunction example - applies spatial defaults
+resolve_missing_parameters(::Type{CFunction}, data; kwargs...)
+# → Uses default radii based on spatial domain if not provided
+```
 """
 function resolve_missing_parameters end
-
-"""
-    apply_parameter_defaults(::Type{T}, resolved_params)
-
-Apply final default values for any parameters that are still unresolved after
-the resolution phase. This provides fallback values when parameters cannot
-be inferred from the computation context.
-
-# Arguments
-- `::Type{T}`: The estimate type being computed
-- `resolved_params`: Parameters from the resolution phase
-
-# Returns
-- `NamedTuple`: Complete parameter set with all defaults applied
-"""
-function apply_parameter_defaults end
 
 """
     compute_estimate!(::Type{T}, mem, source; kwargs...)

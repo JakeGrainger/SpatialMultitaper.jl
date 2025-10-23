@@ -1,91 +1,4 @@
 """
-    c_function(spectrum::Spectra; radii, wavenumber_radii, rotational_method) -> CFunction
-    c_function(spectrum::RotationalSpectra; radii) -> CFunction
-    c_function(data, region; kwargs...) -> CFunction
-    c_function(data::SpatialData; kwargs...) -> CFunction
-
-Compute spatial C function from spectral estimates or directly from spatial data.
-
-The C function is the reduced covariance measure evaluated on punctured balls as a
-function of distance. For a stationary process at radius `r`, it represents
-C(r) = C̆({x : 0 < ||x|| ≤ r}), where C̆ is the reduced covariance measure. The C function
-is computed via inverse Fourier transform of the power spectral density with appropriate
-spatial weighting functions that depend on the dimension.
-
-# Arguments
-- `spectrum::Spectra`: Input power spectral density estimate
-- `spectrum::RotationalSpectra`: Rotationally averaged spectral estimate
-- `data`: Spatial data for direct C function computation
-- `region::Meshes.Geometry`: Spatial region for direct computation
-
-# Keywords
-- `radii::AbstractVector`: Distances at which to evaluate the C function (required)
-- `wavenumber_radii::Union{Nothing, AbstractVector} = nothing`: Radial wavenumbers for
-    rotational averaging. If `nothing`, defaults are computed from the spectrum grid.
-- `rotational_method = nothing`: Smoothing kernel for rotational averaging. If `nothing`,
-    uses `NoRotational()` (no smoothing).
-
-When computing directly from data, all keywords from [`spectra`](@ref) are also supported:
-- `nk`: Number of wavenumbers in each dimension
-- `kmax`: Maximum wavenumber in each dimension
-- `dk`: Wavenumber spacing in each dimension
-- `tapers`: Taper functions to use
-- `nw = 3`: Space-bandwidth product for taper generation
-- `mean_method = DefaultMean()`: Method for mean estimation
-
-# Returns
-- `CFunction`: A C function estimate containing:
-  - `radii`: Distance values where C function is evaluated
-  - `value`: C function values (real-valued)
-  - `processinformation`: Information about the analyzed processes
-  - `estimationinformation`: Details about the estimation procedure
-
-# Mathematical Details
-For a stationary process with power spectral density f(k), the C function is computed as:
-
-C(r) = ∫ f(k) W(r,k) dk
-
-where W(r,k) is the spatial weighting function that depends on dimension D:
-- **1D**: W(r,k) = 2r sinc(2r|k|)
-- **2D**: W(r,k) = (r/|k|) J₁(2πr|k|) for |k| > 0, πr² for k = 0
-- **3D**: W(r,k) = (r/|k|)^(3/2) J₃/₂(2πr|k|) for |k| > 0, (4π/3)r³ for k = 0
-
-where J_ν is the Bessel function of the first kind of order ν, and sinc(x) = sin(πx)/(πx).
-
-# Notes
-- The C function measures spatial correlation as a function of distance
-- Results are always real-valued due to the spatial integration
-- For anisotropic spectra, rotational averaging is performed first
-- Zero-atom corrections are automatically applied when available
-- Use [`partial_c_function`](@ref) for partial C functions from partial spectra
-
-# Examples
-```julia
-# Compute C function from existing spectral estimate
-spec = spectra(data; kmax = 0.5, nw = 3)
-radii = 0.1:0.1:2.0
-cf = c_function(spec; radii = radii)
-
-# Direct computation from data and region
-cf = c_function(data, region; radii = 0.1:0.1:2.0, nk = (64, 64), kmax = (0.5, 0.5))
-
-# With custom rotational averaging parameters
-wavenumber_radii = 0.05:0.05:0.5
-cf = c_function(spec; radii = radii, wavenumber_radii = wavenumber_radii)
-
-# From rotational spectrum (no additional averaging needed)
-rot_spec = rotational_spectra(data; kmax = 0.5, nw = 3)
-cf = c_function(rot_spec; radii = radii)
-
-# Access C function values
-correlation_at_1km = cf.value[findfirst(r -> r ≈ 1.0, cf.radii)]
-```
-
-See also: [`spectra`](@ref), [`partial_c_function`](@ref), [`rotational_spectra`](@ref)
-"""
-c_function
-
-"""
     CFunction{E, D, A, T, IP, IE} <: IsotropicEstimate{E, D}
 
 Spatial C function estimate derived from spectral estimates.
@@ -139,132 +52,99 @@ struct CFunction{E, D, A, T, IP, IE} <: IsotropicEstimate{E, D}
 end
 get_short_base_estimate_name(::Type{<:CFunction}) = "C"
 get_base_estimate_name(::Type{<:CFunction}) = "C function"
+
+## required interface
+
+function computed_from(::Type{CFunction{E}}) where {E}
+    return (Spectra{E}, RotationalSpectra{E})
+end
+
+function allocate_estimate_memory(
+        ::Type{<:CFunction}, ::Type{<:Spectra}, previous_memory; radii, kwargs...)
+    spatial_output = preallocate_spatial_output(spectrum, radii)
+    weights = precompute_c_weights(spectrum, radii)
+    return (spatial_output = spatial_output, weights = weights)
+end
+
+function extract_relevant_memory(::Type{CFunction}, est::Spectra)
+    return get_estimates(est)
+end
+function extract_relevant_memory(::Type{CFunction}, mem::EstimateMemory{<:Spectra})
+    return mem.power
+end
+
+function validate_core_parameters(::Type{<:CFunction}, radii, kwargs...)
+    @argcheck all(radii .>= 0)
+    side_length = sides(boundingbox(getregion(data)))
+    @argcheck all(radii .<= Meshes.ustrip(minimum(side_length)))
+    return nothing
+end
+# when no radii are provided, defaults will be set in apply_parameter_defaults
+validate_core_parameters(::Type{<:CFunction}, kwargs...) = nothing
+
+function validate_memory_compatibility(
+        ::Type{<:CFunction}, mem, arg::Spectra; radii, kwargs...)
+    validate_c_internal(mem.weights, get_estimates(arg), get_trait(arg))
+    validate_c_output(mem.spatial_output, radii, get_trait(arg))
+    return nothing
+end
+
+function resolve_missing_parameters(::Type{<:CFunction}, data::SpatialData; kwargs...)
+    return (radii = process_radii(radii, data), kwargs...)
+end
+
+process_radii(radii, ::SpatialData) = radii
+function process_radii(::Nothing, data::SpatialData)
+    region = getregion(data)
+    short_side = Meshes.ustrip(minimum(sides(boundingbox(region))))
+    return range(0, short_side / 3, length = 100)
+end
+
+function compute_estimate! end
+
 get_evaluation_points(f::CFunction) = f.radii
+
 get_estimates(f::CFunction) = f.value
 
-# Public API
+## Internal
 
-function c_function(data, region; kwargs...)::CFunction
-    return c_function(spatial_data(data, region); kwargs...)
+### Validation
+
+function validate_c_internal(weights, spectrum, ::SingleProcessTrait)
+    @argcheck size(weights) == size(spectrum)
+    return nothing
 end
 
-function c_function(data::SpatialData; radii = nothing,
-        rotational_wavenumber_radii = nothing,
-        rotational_method = nothing, kwargs...)::CFunction
-    spectrum = spectra(data; kwargs...)
-    wavenumber_radii_processed = process_c_rotational_radii(
-        spectrum, rotational_wavenumber_radii)
-    rotational_method_processed = process_c_rotational_kernel(spectrum, rotational_method)
-    radii = _validate_radii(radii, data)
-    return c_function(
-        spectrum; radii = radii, wavenumber_radii = wavenumber_radii_processed,
-        rotational_method = rotational_method_processed)
-end
-process_c_rotational_kernel(spectrum, ::Nothing) = default_c_rotational_kernel(spectrum)
-process_c_rotational_kernel(spectrum, kernel) = kernel
-
-process_c_rotational_radii(spectrum, ::Nothing) = default_c_rotational_radii(spectrum)
-process_c_rotational_radii(spectrum, radii) = radii
-
-default_c_rotational_kernel(spectrum) = NoRotational()
-default_c_rotational_radii(spectrum) = default_rotational_radii(spectrum)
-
-function c_function(spectrum::Spectra; radii,
-        wavenumber_radii = process_c_rotational_kernel(spectrum, nothing),
-        rotational_method = process_c_rotational_kernel(spectrum, nothing))
-    rot_spec = rotational_estimate(
-        spectrum, radii = wavenumber_radii, kernel = rotational_method)
-    return _c_function(rot_spec, radii)
+function validate_c_internal(weights, spectrum, ::MultipleSpatialDataTuple)
+    @argcheck size(weights) == size(spectrum)
+    return nothing
 end
 
-function c_function(spectrum::RotationalSpectra; radii)
-    _c_function(spectrum, radii)
+function validate_c_internal(weights, spectrum, ::MultipleSpatialDataVec)
+    @argcheck size(weights) == size(spectrum)[3:end]
+    return nothing
 end
 
-"""
-    partial_c_function(data, region; kwargs...) -> CFunction{PartialTrait}
-    partial_c_function(data::SpatialData; kwargs...) -> CFunction{PartialTrait}
-    partial_c_function(spectrum::NormalOrRotationalSpectra{PartialTrait}; kwargs...) -> CFunction{PartialTrait}
-    partial_c_function(spectrum::NormalOrRotationalSpectra{MarginalTrait}; kwargs...) -> CFunction{PartialTrait}
-
-Compute spatial partial C function from spectral estimates or directly from spatial data.
-
-The partial C function represents the direct spatial correlation structure after removing
-the linear influence of all other processes. It is computed from partial spectral estimates
-using the same inverse Fourier transform approach as the regular C function, but applied
-to partial spectra rather than marginal spectra.
-
-# Arguments
-- `data`: Spatial data for direct partial C function computation
-- `region::Meshes.Geometry`: Spatial region for direct computation
-- `spectrum`: Spectral estimate (partial or marginal trait)
-
-# Keywords
-- `radii::AbstractVector`: Distances at which to evaluate the partial C function (required)
-- Additional keywords: All keywords from [`partial_spectra`](@ref) and [`c_function`](@ref)
-
-# Returns
-- `CFunction{PartialTrait}`: A partial C function estimate with the same structure as
-    regular C functions but representing direct spatial relationships.
-
-# Notes
-- Automatically converts marginal spectra to partial spectra when needed
-- Uses the same spatial weighting functions as regular C functions
-- Results represent direct spatial correlations after removing indirect effects
-- For partial trait inputs, applies C function transformation directly
-
-# Examples
-```julia
-# Direct computation from data
-radii = 0.1:0.1:2.0
-partial_cf = partial_c_function(data, region; radii = radii, kmax = 0.5, nw = 3)
-
-# From existing partial spectral estimate
-partial_spec = partial_spectra(data; kmax = 0.5, nw = 3)
-partial_cf = partial_c_function(partial_spec; radii = radii)
-
-# From marginal spectrum (automatically converts to partial)
-marginal_spec = spectra(data; kmax = 0.5, nw = 3)
-partial_cf = partial_c_function(marginal_spec; radii = radii)
-```
-
-See also: [`c_function`](@ref), [`partial_spectra`](@ref)
-"""
-function partial_c_function(data, region; kwargs...)::CFunction{PartialTrait}
-    return partial_c_function(spatial_data(data, region); kwargs...)
+function validate_c_output(output::AbstractVector, radii, ::SingleProcessTrait)
+    @argcheck length(output) == length(radii)
+    @argcheck eltype(output) <: Real
+    return nothing
 end
 
-function partial_c_function(
-        data::SpatialData; radii = nothing, spectra_kwargs...)::CFunction{PartialTrait}
-    radii = _validate_radii(radii, data)
-    f_mt = partial_spectra(data; spectra_kwargs...)
-    return c_function(f_mt; radii = radii)
+function validate_c_output(output::AbstractVector, radii, ::MultipleSpatialDataTuple)
+    @argcheck length(output) == length(radii)
+    @argcheck eltype(output) <: SMatrix
+    return nothing
 end
 
-function partial_c_function(
-        spectrum::NormalOrRotationalSpectra{PartialTrait}; kwargs...
-)::CFunction{PartialTrait}
-    return c_function(spectrum; kwargs...)
+function validate_c_output(output::AbstractArray, radii, ::MultipleSpatialDataVec)
+    @argcheck ndims(output) == 3
+    @argcheck size(output, 3) == length(radii)
+    @argcheck eltype(output) <: Real
+    return nothing
 end
 
-function partial_c_function(
-        spectrum::NormalOrRotationalSpectra{MarginalTrait}; kwargs...
-)::CFunction{PartialTrait}
-    return c_function(partial_spectra(spectrum); kwargs...)
-end
-
-# Internal implementation
-
-function _c_function(spectrum::NormalOrRotationalSpectra{E}, radii) where {E}
-    out = preallocate_spatial_output(spectrum, radii)
-    store = precompute_c_weights(spectrum, radii)
-
-    value = _sdf2C!(out, store, spectrum, radii)
-    return CFunction{E}(
-        radii, value, get_process_information(spectrum), get_estimation_information(spectrum))
-end
-
-# Core transformation functions
+### Computation
 
 function _sdf2C!(out, store, spectrum::NormalOrRotationalSpectra, radii)
     power = get_estimates(spectrum)

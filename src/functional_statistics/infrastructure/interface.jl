@@ -7,8 +7,8 @@
 # function allocate_estimate_memory end
 # function extract_relevant_memory end
 # function validate_core_parameters end
-# function validate_memory_compatibility end
 # function resolve_missing_parameters end
+# function validate_memory_compatibility end
 # function apply_parameter_defaults end
 # function compute_estimate! end
 # function get_evaluation_points end
@@ -138,24 +138,6 @@ any computation begins.
 function validate_core_parameters end
 
 """
-    validate_memory_compatibility(::Type{T}, mem, arg; kwargs...)
-
-Check that the preallocated memory structure is compatible with the requested
-computation parameters. This should verify that array dimensions, types, and
-other memory characteristics match what's needed for the computation.
-
-# Arguments
-- `::Type{T}`: The estimate type being computed
-- `mem`: The preallocated memory structure (which is not the `EstimateMemory` itself, but rather the internal data it holds)
-- `arg`: The input argument/data
-- `kwargs...`: Computation parameters
-
-# Throws
-- Error if memory is incompatible with the requested computation
-"""
-function validate_memory_compatibility end
-
-"""
     resolve_missing_parameters(::Type{T}, arg; kwargs...)
 
 Resolve missing parameters and handle parameter constraints specific to estimate type T.
@@ -187,6 +169,24 @@ resolve_missing_parameters(::Type{CFunction}, data; kwargs...)
 ```
 """
 function resolve_missing_parameters end
+
+"""
+    validate_memory_compatibility(::Type{T}, mem, arg; kwargs...)
+
+Check that the preallocated memory structure is compatible with the requested
+computation parameters. This should verify that array dimensions, types, and
+other memory characteristics match what's needed for the computation.
+
+# Arguments
+- `::Type{T}`: The estimate type being computed
+- `mem`: The preallocated memory structure (which is not the `EstimateMemory` itself, but rather the internal data it holds)
+- `arg`: The input argument/data
+- `kwargs...`: Computation parameters
+
+# Throws
+- Error if memory is incompatible with the requested computation
+"""
+function validate_memory_compatibility end
 
 """
     compute_estimate!(::Type{T}, mem, source; kwargs...)

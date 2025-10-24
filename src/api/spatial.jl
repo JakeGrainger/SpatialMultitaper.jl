@@ -166,10 +166,10 @@ See also: [`c_function`](@ref), [`partial_k_function`](@ref), [`spectra`](@ref)
 """
 k_function
 
-function k_function(data, region; kwargs...)::KFunction
+function k_function(data, region; kwargs...)::KFunction{MarginalTrait}
     return k_function(spatial_data(data, region); kwargs...)
 end
 
 function k_function(arg; kwargs...)
-    compute(KFunction, arg; kwargs...)
+    compute(KFunction{MarginalTrait}, arg; kwargs...)
 end

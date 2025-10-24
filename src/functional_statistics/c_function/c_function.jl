@@ -82,13 +82,6 @@ end
 # when no radii are provided, defaults will be set in apply_parameter_defaults
 validate_core_parameters(::Type{<:CFunction}, kwargs...) = nothing
 
-function validate_memory_compatibility(
-        ::Type{<:CFunction}, mem, arg::Spectra; radii, kwargs...)
-    validate_c_internal(mem.weights, get_estimates(arg), get_trait(arg))
-    validate_c_output(mem.spatial_output, radii, get_trait(arg))
-    return nothing
-end
-
 function resolve_missing_parameters(::Type{<:CFunction}, data::SpatialData; kwargs...)
     return (radii = process_radii(radii, data), kwargs...)
 end
@@ -98,6 +91,13 @@ function process_radii(::Nothing, data::SpatialData)
     region = getregion(data)
     short_side = Meshes.ustrip(minimum(sides(boundingbox(region))))
     return range(0, short_side / 3, length = 100)
+end
+
+function validate_memory_compatibility(
+        ::Type{<:CFunction}, mem, arg::Spectra; radii, kwargs...)
+    validate_c_internal(mem.weights, get_estimates(arg), get_trait(arg))
+    validate_c_output(mem.spatial_output, radii, get_trait(arg))
+    return nothing
 end
 
 function compute_estimate! end

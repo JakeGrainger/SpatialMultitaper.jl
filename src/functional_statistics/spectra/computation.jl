@@ -1,47 +1,3 @@
-
-function spectra(data, region::Meshes.Geometry; kwargs...)::Spectra
-    return spectra(spatial_data(data, region); kwargs...)
-end
-
-function spectra(data::SpatialData; nk = nothing, kmax = nothing, dk = nothing,
-        tapers = nothing, nw = 3, mean_method::MeanEstimationMethod = DefaultMean())::Spectra
-    tapers = _validate_tapers(tapers, getregion(data), nw)
-    all_mem = preallocate_spectra(data; nk = nk, kmax = kmax, dk = dk, tapers = tapers)
-    return spectra!(all_mem, data; nk = nk, kmax = kmax, dk = dk,
-        tapers = tapers, mean_method = mean_method)
-end
-
-# function preallocate_spectra(
-#         data::SpatialData; nk = nothing, kmax, dk = nothing, tapers = nothing, nw = 3)
-#     _nk, _kmax = _validate_wavenumber_params(nk, kmax, dk, data)
-#     tapers = _validate_tapers(tapers, getregion(data), nw)
-#     mem = preallocate_tapered_dft(data, tapers, _nk, _kmax)
-#     power = _preallocate_spectral_matrix(data, _nk)
-#     return (mem, power)
-# end
-
-function spectra!(
-        all_mem, data::SpatialData; nk = nothing, kmax, dk = nothing,
-        tapers = nothing, nw = 3, mean_method::MeanEstimationMethod = DefaultMean())::Spectra
-    _nk, _kmax = _validate_wavenumber_params(nk, kmax, dk, data)
-    wavenumber = _make_wavenumber_grid(_nk, _kmax)
-    tapers = _validate_tapers(tapers, getregion(data), nw)
-
-    mem = all_mem[1]
-    power = all_mem[2]
-
-    J_n = tapered_dft!(mem, data, tapers, _nk, _kmax, mean_method)
-    _dft_to_spectral_matrix!(power, J_n, process_trait(data))
-
-    process_info = ProcessInformation(data; mean_method = mean_method)
-    estimation_info = EstimationInformation(length(tapers))
-
-    return Spectra{MarginalTrait}(wavenumber, power, process_info, estimation_info)
-end
-
-# Alias for backwards compatibility
-const multitaper_estimate = spectra
-
 """
     _dft_to_spectral_matrix(data, J_n, nk)
 
@@ -62,12 +18,6 @@ Compute the spectral matrix from DFTs for different process types.
 - For multiple processes (tuple): returns an array of spectral matrices.
 - For multiple vector processes: returns a D+2 array where each slice is a spectral matrix.
 """
-function _dft_to_spectral_matrix(data, J_n, nk)
-    S_mat = _preallocate_spectral_matrix(data, nk)
-    _dft_to_spectral_matrix!(S_mat, J_n, process_trait(data))
-    return S_mat
-end
-
 function _dft_to_spectral_matrix!(
         S_mat::AbstractArray, J_n::AbstractArray, ::MultipleVectorTrait)
     for i in CartesianIndices(size(J_n)[3:end])
@@ -83,16 +33,6 @@ function _dft_to_spectral_matrix!(
     end
     return S_mat
 end
-
-"""
-    _dft_to_spectral_matrix!(
-        S_mat::Array{<:SMatrix{P, P}}, J_n::AbstractArray{<:SVector{P}, N},
-        ::MultipleTupleTrait) where {P, N}
-
-Fill spectral matrix for multiple process case.
-
-Each array in J_n has size n_1 × ... × n_D × M.
-"""
 function _dft_to_spectral_matrix!(
         S_mat::Array{<:SMatrix{P, P}}, J_n::AbstractArray{<:SVector{P}, N},
         ::MultipleTupleTrait) where {P, N}

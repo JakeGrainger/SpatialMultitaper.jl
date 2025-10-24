@@ -55,3 +55,11 @@ spec = spectra(data; kmax = 0.3, mean_method = KnownMean(0.0))
 ```
 """
 spectra
+
+function spectra(data, region::Meshes.Geometry; kwargs...)::Spectra
+    return spectra(spatial_data(data, region); kwargs...)
+end
+
+function spectra(data::SpatialData; kwargs...)::Spectra
+    return compute(Spectra{MarginalTrait}, data; kwargs...)
+end

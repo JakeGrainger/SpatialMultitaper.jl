@@ -60,17 +60,18 @@ function computed_from(::Type{CFunction{E}}) where {E}
 end
 
 function allocate_estimate_memory(
-        ::Type{<:CFunction}, ::Type{<:Spectra}, previous_memory; radii, kwargs...)
-    spatial_output = preallocate_spatial_output(spectrum, radii)
-    weights = precompute_c_weights(spectrum, radii)
-    return (spatial_output = spatial_output, weights = weights)
+        ::Type{<:CFunction}, ::Type{<:Spectra}, relevant_memory; radii, kwargs...)
+    spatial_output = preallocate_radial_output(relevant_memory, radii)
+    weights = precompute_c_weights(relevant_memory, radii)
+    return spatial_output, weights
 end
 
-function extract_relevant_memory(::Type{CFunction}, est::Spectra)
+function extract_relevant_memory(::Type{CFunction}, est::NormalOrRotationalSpectra)
     return get_estimates(est)
 end
-function extract_relevant_memory(::Type{CFunction}, mem::EstimateMemory{<:Spectra})
-    return mem.power
+function extract_relevant_memory(
+        ::Type{CFunction}, mem::EstimateMemory{<:NormalOrRotationalSpectra})
+    return mem.output_memory
 end
 
 function validate_core_parameters(::Type{<:CFunction}, radii, kwargs...)
@@ -83,6 +84,7 @@ end
 validate_core_parameters(::Type{<:CFunction}, kwargs...) = nothing
 
 function resolve_missing_parameters(::Type{<:CFunction}, data::SpatialData; kwargs...)
+    radii = get(kwargs, :radii, nothing)
     return (radii = process_radii(radii, data), kwargs...)
 end
 
@@ -95,12 +97,19 @@ end
 
 function validate_memory_compatibility(
         ::Type{<:CFunction}, mem, arg::Spectra; radii, kwargs...)
-    validate_c_internal(mem.weights, get_estimates(arg), get_trait(arg))
-    validate_c_output(mem.spatial_output, radii, get_trait(arg))
+    validate_c_internal(mem.internal_memory, get_estimates(arg), process_trait(arg))
+    validate_radial_memory(mem.output_memory, process_trait(arg), radii)
     return nothing
 end
 
-function compute_estimate! end
+function compute_estimate!(
+        ::Type{<:CFunction{E}}, mem, source::Spectra; radii, kwargs...) where {E}
+    value = _sdf2C!(out, store, source, radii)
+
+    process_info = get_process_information(source)
+    estimation_info = get_estimation_information(source)
+    return CFunction{E}(radii, value, process_info, estimation_info)
+end
 
 get_evaluation_points(f::CFunction) = f.radii
 
@@ -110,37 +119,18 @@ get_estimates(f::CFunction) = f.value
 
 ### Validation
 
-function validate_c_internal(weights, spectrum, ::SingleProcessTrait)
-    @argcheck size(weights) == size(spectrum)
+function validate_c_internal(weights, power, ::SingleProcessTrait)
+    @argcheck size(weights) == size(power)
     return nothing
 end
 
-function validate_c_internal(weights, spectrum, ::MultipleSpatialDataTuple)
-    @argcheck size(weights) == size(spectrum)
+function validate_c_internal(weights, power, ::MultipleSpatialDataTuple)
+    @argcheck size(weights) == size(power)
     return nothing
 end
 
-function validate_c_internal(weights, spectrum, ::MultipleSpatialDataVec)
-    @argcheck size(weights) == size(spectrum)[3:end]
-    return nothing
-end
-
-function validate_c_output(output::AbstractVector, radii, ::SingleProcessTrait)
-    @argcheck length(output) == length(radii)
-    @argcheck eltype(output) <: Real
-    return nothing
-end
-
-function validate_c_output(output::AbstractVector, radii, ::MultipleSpatialDataTuple)
-    @argcheck length(output) == length(radii)
-    @argcheck eltype(output) <: SMatrix
-    return nothing
-end
-
-function validate_c_output(output::AbstractArray, radii, ::MultipleSpatialDataVec)
-    @argcheck ndims(output) == 3
-    @argcheck size(output, 3) == length(radii)
-    @argcheck eltype(output) <: Real
+function validate_c_internal(weights, power, ::MultipleSpatialDataVec)
+    @argcheck size(weights) == size(power)[3:end]
     return nothing
 end
 

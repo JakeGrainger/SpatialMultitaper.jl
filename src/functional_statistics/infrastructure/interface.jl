@@ -9,7 +9,6 @@
 # function validate_core_parameters end
 # function resolve_missing_parameters end
 # function validate_memory_compatibility end
-# function apply_parameter_defaults end
 # function compute_estimate! end
 # function get_evaluation_points end
 # function get_estimates end
@@ -58,7 +57,7 @@ computed_from(::Type{Spectra}) = SpatialData  # Base case
 function computed_from end
 
 """
-    allocate_estimate_memory(::Type{T}, ::Type{S}, previous_memory; kwargs...) where {T, S}
+    allocate_estimate_memory(::Type{T}, ::Type{S}, relevant_memory; kwargs...) where {T, S}
 
 Allocate memory structures needed for computing estimate of type T from type S.
 This function should create all necessary arrays, buffers, and intermediate
@@ -67,11 +66,12 @@ storage required for the computation.
 # Arguments
 - `::Type{T}`: The target estimate type to allocate memory for
 - `::Type{S}`: The source type that T will be computed from
-- `previous_memory`: Memory structure from the previous computation step (of type S)
+- `relevant_memory`: Relevant memory structure from the previous computation step
 - `kwargs...`: Parameters that determine memory sizes (e.g., nk, grid dimensions)
 
 # Returns
-- Memory structure suitable for computing T from S
+- output_memory: The memory structure that will hold the computed estimate of type T
+- internal_memory: Any additional internal memory needed for the computation
 """
 function allocate_estimate_memory end
 
@@ -143,6 +143,10 @@ function validate_core_parameters end
 Resolve missing parameters and handle parameter constraints specific to estimate type T.
 This function handles both parameter interdependencies and default values in a single
 step, allowing each estimate type to implement its own resolution logic.
+
+Note that core parameter validation has already been performed by
+`validate_core_parameters`, so this function can assume that provided parameters
+are valid.
 
 For example:
 - `Spectra`: Handle `dk`/`nk`/`kmax` constraint resolution where any two determine the third

@@ -69,19 +69,20 @@ get_base_estimate_name(::Type{<:KFunction}) = "K function"
 computed_from(::Type{<:KFunction{E}}) where {E} = CFunction{E}
 
 function allocate_estimate_memory(
-        ::Type{<:KFunction}, ::Type{<:CFunction}, extracted_memory; kwargs...)
-    return extracted_memory
+        ::Type{<:KFunction}, ::Type{<:CFunction}, relevant_memory; kwargs...)
+    return relevant_memory
 end
 
 extract_relevant_memory(::Type{KFunction}, est::CFunction) = get_estimates(est)
 function extract_relevant_memory(::Type{KFunction}, mem::EstimateMemory{<:CFunction})
-    return mem.estimate_type.spatial_output
+    return mem.output_memory
 end
 
 validate_core_parameters(::Type{<:KFunction}, kwargs...) = nothing
 
-function validate_memory_compatibility(::Type{<:KFunction}, previous_memory)
-    # TODO: fill in once C function memory is done
+function validate_memory_compatibility(::Type{<:KFunction}, mem, arg::CFunction; kwargs...)
+    @argcheck size(mem.output_memory) == size(get_estimates(arg))
+    @argcheck eltype(mem.output_memory) == eltype(get_estimates(arg))
     return nothing
 end
 
@@ -95,8 +96,9 @@ function compute_estimate!(
     estimationinfo = get_estimation_information(source)
     radii = get_evaluation_points(source)
     cfunc = get_estimates(source)
+    value = mem.output_memory
     mean_prod = processinfo.mean_product
-    value = _c_to_k_transform!(radii, cfunc, process_trait(source), mean_prod, Val{D}())
+    _c_to_k_transform!(value, radii, cfunc, process_trait(source), mean_prod, Val{D}())
     return KFunction{E}(radii, value, processinfo, estimationinfo)
 end
 
@@ -107,7 +109,7 @@ get_estimates(f::KFunction) = f.value
 ## internals
 
 """
-    _c_to_k_transform!(radii, c_values, trait, mean_prod, ::Val{D})
+    _c_to_k_transform!(value, radii, c_values, trait, mean_prod, ::Val{D})
 
 Transform C function values to K function values for multiple vector process traits.
 
@@ -115,32 +117,32 @@ Applies the transformation K(r) = C(r)/λ² + V_d r^d element-wise for multiple 
 stored as arrays, where each process pair has its own intensity λ and the volume
 correction V_d r^d depends on the spatial dimension D.
 """
-function _c_to_k_transform!(radii, c_values::AbstractArray,
+function _c_to_k_transform!(value, radii, c_values::AbstractArray,
         ::MultipleVectorTrait, mean_prod, ::Val{D}) where {D}
     for idx in CartesianIndices(size(c_values)[1:(ndims(c_values) - 1)])
         mean_prod_slice = mean_prod[idx]
         for (i, radius) in enumerate(radii)
-            c_values[idx, i] = _compute_k_from_c(
+            value[idx, i] = _compute_k_from_c(
                 radius, c_values[idx, i], mean_prod_slice, Val{D}())
         end
     end
-    return c_values
+    return value
 end
 
 """
-    _c_to_k_transform!(radii, c_values, trait, mean_prod, ::Val{D})
+    _c_to_k_transform!(value, radii, c_values, trait, mean_prod, ::Val{D})
 
 Transform C function values to K function values for single process or tuple traits.
 
 Applies the transformation K(r) = C(r)/λ² + V_d r^d for single processes or tuple-based
 multiple processes, where the intensity λ and volume correction are applied uniformly.
 """
-function _c_to_k_transform!(radii, c_values::AbstractArray,
+function _c_to_k_transform!(value, radii, c_values::AbstractArray,
         ::Union{MultipleTupleTrait, SingleProcessTrait}, mean_prod, ::Val{D}) where {D}
     for (i, radius) in enumerate(radii)
-        c_values[i] = _compute_k_from_c(radius, c_values[i], mean_prod, Val{D}())
+        value[i] = _compute_k_from_c(radius, c_values[i], mean_prod, Val{D}())
     end
-    return c_values
+    return value
 end
 
 """

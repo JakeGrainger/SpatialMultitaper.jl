@@ -1,25 +1,33 @@
-struct EstimateMemory{T, M, S <: Union{Nothing, <:EstimateMemory}}
+struct EstimateMemory{T, M, I, S <: Union{Nothing, <:EstimateMemory}}
     estimate_type::Type{T}
-    memory_data::M
+    output_memory::M
+    internal_memory::I
     previous_memory::S
 end
-const BaseEstimateMemory{T, M} = EstimateMemory{T, M, Nothing}
+const BaseEstimateMemory{T, M, I} = EstimateMemory{T, M, I, Nothing}
 
 function compute(::Type{T}, arg; kwargs...) where {T <: AbstractEstimate}
+    kwargs = filter(kv -> kv[2] !== nothing, kwargs) # required for the api and R implementation
     resolved_kwargs = resolve_parameters(T, arg; kwargs...)
     mem = preallocate_memory(T, arg; resolved_kwargs...)
     return estimate_function!(T, mem, arg; resolved_kwargs...)
 end
 
-function resolve_parameters(::Type{T}, arg; kwargs...) where {T <: AbstractEstimate}
+function resolve_parameters(::Type{T}, arg; kwargs...)
+    previous_resolved = resolve_parameters(computed_from(T), arg; kwargs...)
+
     # Phase 1: Validate what the user actually provided
-    validate_core_parameters(T; kwargs...)
+    validate_core_parameters(T; previous_resolved...)
 
     # Phase 2: Let each estimate type handle its own parameter resolution + defaults
     # This is where Spectra handles dk/nk/kmax constraints, CFunction handles radii, etc.
-    resolved = resolve_missing_parameters(T, arg; kwargs...)
+    resolved = resolve_missing_parameters(T, arg; previous_resolved...)
 
     return resolved
+end
+
+function resolve_parameters(::Type{T}, arg::T; kwargs...) where {T}
+    return kwargs # base case
 end
 
 function estimate_function!(
@@ -39,7 +47,7 @@ function check_memory_compatibility(
         ::Type{T}, mem::EstimateMemory{T}, arg; kwargs...) where {T <: AbstractEstimate}
     # Memory type compatibility is guaranteed by type system
     # Type-specific compatibility checks
-    validate_memory_compatibility(T, mem.memory_data, arg; kwargs...)
+    validate_memory_compatibility(T, mem, arg; kwargs...)
     return nothing
 end
 
@@ -72,14 +80,16 @@ end
 function _preallocate_memory(::Type{T}, ::Type{S}, arg; kwargs...) where {T, S}
     previous_memory = _preallocate_memory(S, select_source_type(S, arg), arg; kwargs...)
     relevant_memory = extract_relevant_memory(T, previous_memory)
-    memory_data = allocate_estimate_memory(T, S, relevant_memory; kwargs...)
-    return EstimateMemory(T, memory_data, previous_memory)
+    output_memory, internal_memory = allocate_estimate_memory(
+        T, S, relevant_memory; kwargs...)
+    return EstimateMemory(T, output_memory, internal_memory, previous_memory)
 end
 function _preallocate_memory(::Type{T}, ::Type{S}, arg::S; kwargs...) where {T, S}
     # Extract the memory structure that was used to compute this existing estimate
     relevant_memory = extract_relevant_memory(T, arg) # only needed to decide the required memory
-    memory_data = allocate_estimate_memory(T, S, relevant_memory; kwargs...)
-    return EstimateMemory(T, memory_data, nothing)
+    output_memory, internal_memory = allocate_estimate_memory(
+        T, S, relevant_memory; kwargs...)
+    return EstimateMemory(T, output_memory, internal_memory, nothing)
 end
 
 function validate_computation_chain(T, arg)

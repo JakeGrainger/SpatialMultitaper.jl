@@ -49,19 +49,72 @@ struct RotationalEstimate{E, D, S, A, T, IP, IE} <: IsotropicEstimate{E, D}
     end
 end
 
-"""
-    get_evaluation_points(f::RotationalEstimate)
+## interface
 
-Get the radii at which the rotational estimate is evaluated.
-"""
+computed_from(::Type{<:RotationalEstimate{E, D, S}}) where {E, D, S} = S
+
+function allocate_estimate_memory(::Type{<:RotationalEstimate{E, D, S}},
+        ::Type{<:S}, relevant_memory; kwargs...) where {E, D, S}
+    out = preallocate_radial_output(relevant_memory, process_trait(S); kwargs...)
+    return out, nothing
+end
+
+function extract_relevant_memory(::Type{<:RotationalEstimate}, source::AbstractEstimate)
+    return get_estimates(source)
+end
+
+function extract_relevant_memory(::Type{<:RotationalEstimate}, source::EstimateMemory)
+    return source.output_memory
+end
+
+function validate_core_parameters(::Type{<:RotationalEstimate}, kwargs...)
+    if haskey(kwargs, :radii)
+        radii = kwargs[:radii]
+        @argcheck radii isa AbstractVector{<:Real}
+        @argcheck all(r -> r ≥ 0, radii)
+    end
+    if haskey(kwargs, :kernel)
+        kernel = kwargs[:kernel]
+        @argcheck kernel isa RotationalKernel
+    end
+end
+
+function resolve_missing_parameters(::Type{<:RotationalEstimate}, arg; kwargs...)
+    radii = if haskey(kwargs, :radii)
+        kwargs[:radii]
+    else
+        default_rotational_radii(arg; kwargs...)
+    end
+    if haskey(kwargs, :kernel)
+        kwargs[:kernel]
+    else
+        default_rotational_kernel(arg; radii = radii, kwargs...)
+    end
+    other_kwargs = filter(kv -> kv[1] ∉ (:radii, :kernel), kwargs)
+    return (; radii = radii, kernel = kernel, other_kwargs...)
+end
+
+function validate_memory_compatibility(
+        ::Type{<:RotationalEstimate}, mem, source; radii, kwargs...)
+    validate_radial_memory(mem.output_memory, process_trait(source), radii)
+end
+
+function compute_estimate!(
+        ::Type{<:RotationalEstimate{E, D, S}}, mem, source::S; radii, kernel, kwargs...)
+    x = get_evaluation_points(source)
+    y = get_estimates(source)
+    _smoothed_rotational!(mem.output_memory, x, y, process_trait(S), radii, kernel)
+
+    processinfo = get_process_information(source)
+    estimationinfo = get_estimation_information(source)
+    return RotationalEstimate{E, S}(radii, mem.output_memory, processinfo, estimationinfo)
+end
+
 get_evaluation_points(f::RotationalEstimate) = f.radii
 
-"""
-    get_estimates(f::RotationalEstimate)
-
-Get the rotationally averaged estimate values.
-"""
 get_estimates(f::RotationalEstimate) = f.estimate
+
+## additional interface
 
 """
     getoriginaltype(::Type{<:RotationalEstimate{E, D, S}}) where {E, D, S}
@@ -69,42 +122,6 @@ get_estimates(f::RotationalEstimate) = f.estimate
 Extract the original estimate type before rotational averaging.
 """
 getoriginaltype(::Type{<:RotationalEstimate{E, D, S}}) where {E, D, S} = S
-
-"""
-    rotational_estimate(est::AnisotropicEstimate{E}; radii, kernel) where {E}
-
-Compute a rotationally averaged estimate from an anisotropic estimate.
-
-Rotational averaging integrates the estimate over circular annuli at different
-radii, producing an isotropic result that depends only on distance from the origin.
-This is useful for analyzing scale-dependent properties without directional bias.
-
-# Arguments
-- `est::AnisotropicEstimate`: The anisotropic estimate to average
-- `radii`: Radial distances for evaluation (default: `default_rotational_radii(est)`)
-- `kernel`: Smoothing kernel for averaging (default: `default_rotational_kernel(est)`)
-
-# Returns
-A `RotationalEstimate` containing the rotationally averaged values.
-The exception is if kernel is `NoRotational`, in which case the input estimate is returned.
-This is used to skip rotational averaging in some downstream cases.
-
-# Examples
-```julia
-# Basic rotational averaging
-rot_est = rotational_estimate(spectrum)
-
-# With custom parameters
-radii = range(0.1, 2.0, length=50)
-kernel = GaussKernel(0.1)  # Gaussian smoothing with bandwidth 0.1
-rot_est = rotational_estimate(spectrum, radii=radii, kernel=kernel)
-```
-"""
-function rotational_estimate(
-        est::AnisotropicEstimate; radii = default_rotational_radii(est),
-        kernel = default_rotational_kernel(est))
-    return _rotational_estimate(est, radii, kernel)
-end
 
 """
     get_estimate_name(::Type{<:RotationalEstimate{E, D, S}}) where {E, D, S}
@@ -184,99 +201,9 @@ function _construct_estimate_subset(
     )
 end
 
-## Smoothing kernels for rotational averaging
+## internals
+include("rotational_kernels.jl")
 
-"""
-    NoRotational
-
-Indicates that no rotational averaging should be performed.
-"""
-struct NoRotational end # just indicates not to do rotational averaging
-
-"""
-    GaussKernel{T <: Real}
-
-Gaussian smoothing kernel for rotational averaging.
-
-# Fields
-- `bw::T`: Bandwidth parameter controlling the width of the Gaussian
-
-# Mathematical Form
-K(x) = exp(-x²/(2σ²)) / σ where σ is the bandwidth.
-"""
-struct GaussKernel{T <: Real}
-    bw::T
-end
-
-"""
-    (f::GaussKernel)(x)
-
-Evaluate the Gaussian kernel at distance x.
-"""
-function (f::GaussKernel)(x)
-    return exp(-(x^2) / (2 * f.bw^2)) / f.bw
-end
-
-"""
-    RectKernel{T <: Real}
-
-Rectangular (uniform) smoothing kernel for rotational averaging.
-
-# Fields
-- `bw::T`: Bandwidth parameter controlling the width of the rectangular window
-
-# Mathematical Form
-K(x) = 1/h if |x/h| < 1/2, 0 otherwise, where h is the bandwidth.
-"""
-struct RectKernel{T <: Real}
-    bw::T
-end
-
-"""
-    (f::RectKernel)(x)
-
-Evaluate the rectangular kernel at distance x.
-"""
-function (f::RectKernel)(x)
-    return (abs(x / f.bw) < 1 / 2) / f.bw
-end
-
-# Internal implementation functions
-
-"""
-    _rotational_estimate(a::AbstractEstimate, radii, ::NoRotational)
-
-Pass-through function when no rotational averaging is requested.
-"""
-_rotational_estimate(a::AbstractEstimate, radii, ::NoRotational) = a
-
-"""
-    _rotational_estimate(a::AbstractEstimate, radii, kernel)
-
-Internal function to compute rotational averaging with a given kernel.
-"""
-function _rotational_estimate(est::AbstractEstimate{E}, radii, kernel) where {E}
-    rot_est = _smoothed_rotational(
-        get_evaluation_points(est), get_estimates(est), process_trait(est), radii, kernel)
-    processinfo = get_process_information(est)
-    estimationinfo = get_estimation_information(est)
-    return RotationalEstimate{E, typeof(est)}(radii, rot_est, processinfo, estimationinfo)
-end
-
-"""
-    _smoothed_rotational(x::NTuple{D}, y::AbstractArray{T, D}, radii, kernel) where {D, T}
-
-Core rotational averaging computation.
-
-Computes weighted averages over circular annuli using the specified kernel.
-"""
-function _smoothed_rotational(x::NTuple{D}, y::AbstractArray{T, D},
-        trait::Union{SingleProcessTrait, MultipleTupleTrait}, radii,
-        kernel) where {D, T <: Union{<:Number, <:SMatrix}}
-    out = zeros(eltype(y), length(radii))
-    _smoothed_rotational!(out, x, y, trait, radii, kernel)
-    return out
-end
 function _smoothed_rotational!(out, x::NTuple{D}, y::AbstractArray{T, D},
         trait::Union{SingleProcessTrait, MultipleTupleTrait}, radii,
         kernel) where {D, T <: Union{<:Number, <:SMatrix}}
@@ -292,13 +219,6 @@ function _smoothed_rotational!(out, x::NTuple{D}, y::AbstractArray{T, D},
     return out
 end
 
-function _smoothed_rotational(
-        x::NTuple{D}, y::AbstractArray{<:Number, N}, ::MultipleVectorTrait, radii, kernel) where {
-        D, N}
-    out = zeros(eltype(y), (size(y)[1:2]..., length(radii)))
-    _smoothed_rotational!(out, x, y, MultipleVectorTrait(), radii, kernel)
-    return out
-end
 function _smoothed_rotational!(
         out::AbstractArray{<:Number, 3}, x::NTuple{D}, y::AbstractArray{<:Number, N},
         ::MultipleVectorTrait, radii, kernel) where {D, N}
@@ -313,36 +233,13 @@ function _smoothed_rotational!(
     return out
 end
 
-"""
-    default_rotational_radii(wavenumber::NTuple{D,AbstractVector{<:Real}}) where {D}
-    default_rotational_radii(s::AbstractEstimate)
-    default_rotational_radii(nk, kmax)
-
-Construct default radii for rotational averaging based on wavenumber vectors.
-
-The default radii are chosen to span from near zero to the minimum of the
-maximum wavenumbers across dimensions, with the number of points equal to
-the maximum wavenumber vector length.
-
-# Arguments
-- `wavenumber`: Tuple of wavenumber vectors for each dimension
-- `s`: An estimate from which to extract wavenumber information
-- `nk`, `kmax`: Number of wavenumbers and maximum wavenumber per dimension
-
-# Returns
-A range of radii suitable for rotational averaging.
-
-# Algorithm
-- Maximum radius = min(max_wavenumber_per_dimension)
-- Number of radii = max(length_per_dimension)
-- Radii are offset by half a step to avoid the origin singularity
-"""
-function default_rotational_radii(nk, kmax)
+## defaults
+function default_rotational_radii(::SpatialData; nk, kmax, kwargs...)
     return default_rotational_radii(_choose_wavenumbers_1d.(nk, kmax))
 end
 
-function default_rotational_radii(s::AbstractEstimate)
-    return default_rotational_radii(get_evaluation_points(s))
+function default_rotational_radii(est::AbstractEstimate; kwargs...)
+    return default_rotational_radii(get_evaluation_points(est))
 end
 
 function default_rotational_radii(wavenumber::NTuple{D, AbstractVector{<:Real}}) where {D}
@@ -355,34 +252,20 @@ function default_rotational_radii(wavenumber::NTuple{D, AbstractVector{<:Real}})
     return used_range
 end
 
-"""
-    default_rotational_kernel(est::AbstractEstimate)
-    default_rotational_kernel(nk, kmax)
-    default_rotational_kernel(wavenumber::NTuple{D, AbstractVector{<:Real}}) where {D}
-
-Construct a default smoothing kernel for rotational averaging.
-
-The default kernel is a rectangular kernel with bandwidth twice the maximum
-wavenumber step size across dimensions. This provides reasonable smoothing
-while preserving wavenumber resolution.
-
-# Returns
-A `RectKernel` with bandwidth = 2 * max(wavenumber_steps)
-"""
-function default_rotational_kernel(est::AbstractEstimate)
-    return default_rotational_kernel(get_evaluation_points(est))
-end
-
-function default_rotational_kernel(nk, kmax)
+function default_rotational_kernel(::SpatialData; nk, kmax, kwargs...)
     return default_rotational_kernel(_choose_wavenumbers_1d.(nk, kmax))
 end
 
-function default_rotational_kernel(wavenumber::NTuple{D, AbstractVector{<:Real}}) where {D}
-    max_step = maximum(step, wavenumber)
+function default_rotational_kernel(est::AbstractEstimate; kwargs...)
+    return default_rotational_kernel(get_evaluation_points(est))
+end
+
+function default_rotational_kernel(x::NTuple{D, AbstractVector{<:Real}}) where {D}
+    max_step = maximum(step, x) # TODO: currently only supports uniform steps
     return RectKernel(2 * max_step)
 end
 
-function default_rotational_kernel(wavenumber::AbstractVector{<:Real})
-    max_step = step(wavenumber)
+function default_rotational_kernel(x::AbstractVector{<:Real})
+    max_step = step(x)
     return RectKernel(2 * max_step)
 end

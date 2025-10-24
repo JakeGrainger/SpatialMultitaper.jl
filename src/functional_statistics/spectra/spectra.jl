@@ -21,7 +21,7 @@ function allocate_estimate_memory(::Type{<:Spectra{MarginalTrait}}, ::Type{T},
         ::Nothing; nk, kmax, tapers, kwargs...) where {T <: SpatialData}
     mem = preallocate_tapered_dft(T, tapers, nk, kmax)
     power = _preallocate_spectral_matrix(T, nk)
-    return (mem = mem, power = power)
+    return power, mem
 end
 
 extract_relevant_memory(::Type{<:Spectra{MarginalTrait}}, source) = nothing
@@ -61,17 +61,23 @@ function resolve_missing_parameters(
     return stage_2
 end
 
-function validate_memory_compatibility end
+function validate_memory_compatibility(
+        ::Type{<:Spectra{MarginalTrait}}, mem, source; kwargs...)
+    validate_dft_memory(mem.internal_memory, source; kwargs...)
+    validate_spectral_memory(mem.output_memory, source; kwargs...)
+end
 
-function compute_estimate!(
-        ::Type{<:Spectra{MarginalTrait}}, mem, source::SpatialData; kwargs...)
-    J_n = tapered_dft!(mem.mem, data, tapers, _nk, _kmax, mean_method)
-    _dft_to_spectral_matrix!(mem.power, J_n, process_trait(data))
+function compute_estimate!(::Type{<:Spectra{MarginalTrait}}, mem, source::SpatialData;
+        tapers, nk, kmax, mean_method, kwargs...)
+    dft_mem = mem.internal_memory
+    power = mem.output_memory
+    J_n = tapered_dft!(dft_mem, data, tapers, nk, kmax, mean_method)
+    _dft_to_spectral_matrix!(power, J_n, process_trait(data))
 
     process_info = ProcessInformation(data; mean_method = mean_method)
     estimation_info = EstimationInformation(length(tapers))
 
-    return Spectra{MarginalTrait}(wavenumber, mem.power, process_info, estimation_info)
+    return Spectra{MarginalTrait}(wavenumber, power, process_info, estimation_info)
 end
 
 get_evaluation_points(est::Spectra) = est.wavenumber
@@ -99,3 +105,26 @@ include("parameter_validation.jl")
 
 ### computation
 include("computation.jl")
+
+### memory validation
+
+function validate_dft_memory(mem::AbstractArray, source; kwargs...)
+    # TODO: implement this
+end
+
+function validate_spectral_memory(
+        mem::AbstractArray, source::SingleProcessData; nk, kwargs...)
+    @argcheck size(mem) == nk
+    @argcheck eltype(mem) == ComplexF64 # TODO: generalize type
+end
+function validate_spectral_memory(
+        mem::AbstractArray, source::MultipleSpatialDataTuple{P}; nk, kwargs...) where {P}
+    @argcheck size(mem) == nk
+    @argcheck eltype(mem) <: SMatrix{P, P, ComplexF64} # TODO: generalize type
+end
+function validate_spectral_memory(
+        mem::AbstractArray, source::MultipleSpatialDataVec; nk, kwargs...)
+    nprocesses = ncol(source)
+    @argcheck size(mem) == (nprocesses, nprocesses, nk)
+    @argcheck eltype(mem) == ComplexF64 # TODO: generalize type
+end

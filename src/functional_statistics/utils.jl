@@ -1,11 +1,16 @@
-function preallocate_spatial_output(spectrum::NormalOrRotationalSpectra, radii)
-    return _preallocate_spatial_output(
-        get_estimates(spectrum), process_trait(spectrum), radii)
+function preallocate_radial_output(
+        source, ::Union{SingleProcessTrait, MultipleTupleTrait}; radii, kwargs...)
+    return zeros(real(eltype(source)), length(radii))
 end
-function _preallocate_spatial_output(
-        power, ::Union{SingleProcessTrait, MultipleTupleTrait}, radii)
-    return zeros(real(eltype(power)), length(radii))
+function preallocate_radial_output(source, ::MultipleVectorTrait; radii, kwargs...)
+    return zeros(real(eltype(source)), size(source, 1), size(source, 2), length(radii))
 end
-function _preallocate_spatial_output(power, ::MultipleVectorTrait, radii)
-    return zeros(real(eltype(power)), size(power, 1), size(power, 2), length(radii))
+
+function validate_radial_memory(
+        mem::AbstractVector, ::Union{SingleProcessTrait, MultipleTupleTrait}, radii)
+    @argcheck length(mem) == length(radii)
+end
+function validate_radial_memory(mem::AbstractArray, ::MultipleVectorTrait, radii)
+    @argcheck size(mem, 3) == length(radii)
+    @argcheck ndims(mem) == 3
 end

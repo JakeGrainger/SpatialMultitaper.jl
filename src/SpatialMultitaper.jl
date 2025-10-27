@@ -52,6 +52,10 @@ include("functional_statistics/l_function/l_function.jl")
 include("functional_statistics/centered_l_function/centered_l_function.jl")
 include("functional_statistics/pair_correlation_function/pair_correlation_function.jl")
 
+include("api/wavenumber/api.jl")
+include("api/spatial/api.jl")
+include("api/general.jl")
+
 include("resampling/partial_resampling/partial_cross_resampling.jl")
 include("resampling/partial_resampling/partial_marginal_resampling.jl")
 include("resampling/partial_resampling/partial_resampling.jl")

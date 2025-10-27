@@ -99,8 +99,8 @@ function validate_memory_compatibility(
     validate_radial_memory(mem.output_memory, process_trait(source), radii)
 end
 
-function compute_estimate!(
-        ::Type{<:RotationalEstimate{E, D, S}}, mem, source::S; radii, kernel, kwargs...)
+function compute_estimate!(::Type{<:RotationalEstimate{E, D, S}}, mem,
+        source::S; radii, kernel, kwargs...) where {E, D, S}
     x = get_evaluation_points(source)
     y = get_estimates(source)
     _smoothed_rotational!(mem.output_memory, x, y, process_trait(S), radii, kernel)

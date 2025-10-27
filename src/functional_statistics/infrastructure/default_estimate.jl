@@ -1,4 +1,4 @@
-struct EstimateMemory{T, M, I, S <: Union{Nothing, <:EstimateMemory}}
+struct EstimateMemory{T, M, I, S} # S should be <: Union{Nothing, <:EstimateMemory}
     estimate_type::Type{T}
     output_memory::M
     internal_memory::I
@@ -13,7 +13,7 @@ function compute(::Type{T}, arg; kwargs...) where {T <: AbstractEstimate}
     return estimate_function!(T, mem, arg; resolved_kwargs...)
 end
 
-function resolve_parameters(::Type{T}, arg; kwargs...)
+function resolve_parameters(::Type{T}, arg; kwargs...) where {T}
     previous_resolved = resolve_parameters(computed_from(T), arg; kwargs...)
 
     # Phase 1: Validate what the user actually provided

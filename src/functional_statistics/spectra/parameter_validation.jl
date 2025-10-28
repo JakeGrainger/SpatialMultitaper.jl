@@ -4,9 +4,6 @@ function validate_dk(dk)
     @argcheck all(@. dk > 0)
 end
 function validate_nk(nk)
-    if D > 1 && any(@. nk >= 1000)
-        @warn "Number of wavenumbers `nk` >= 1000, probably means you misspecified kmax, may want to ctrl-c and check."
-    end
     @argcheck all(@. nk > 0)
 end
 function validate_kmax(kmax)
@@ -148,7 +145,7 @@ function _resolve_tapers(region, tapers::TaperFamily, nw)
 end
 function _resolve_tapers(region, ::Nothing, ::Nothing)
     nw = 4
-    return _resolve_tapers(nothing, region, nw)
+    return _resolve_tapers(region, nothing, nw)
 end
 function _resolve_tapers(region, ::Nothing, nw)
     return _default_tapers(region, nw)
@@ -162,4 +159,17 @@ end
 function _default_tapers(region, nw)
     bandwidth = nw / Meshes.ustrip(minimum(sides(boundingbox(region))))
     return make_tapers(region, bandwidth = bandwidth)
+end
+
+function resolve_mean_method(data; kwargs...)
+    mean_method = get(kwargs, :mean_method, nothing)
+    mean_method = _resolve_mean_method(mean_method)
+    other_kwargs = filter(kv -> kv[1] != :mean_method, kwargs)
+    return (; mean_method = mean_method, other_kwargs...)
+end
+function _resolve_mean_method(::Nothing)
+    return DefaultMean()
+end
+function _resolve_mean_method(mean_method)
+    return mean_method
 end

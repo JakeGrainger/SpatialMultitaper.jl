@@ -1,10 +1,15 @@
-struct EstimateMemory{T, M, I, S} # S should be <: Union{Nothing, <:EstimateMemory}
+struct EstimateMemory{T, P, M, I, S} # S should be <: Union{Nothing, <:EstimateMemory}
     estimate_type::Type{T}
+    process_trait::P
     output_memory::M
     internal_memory::I
     previous_memory::S
 end
-const BaseEstimateMemory{T, M, I} = EstimateMemory{T, M, I, Nothing}
+const BaseEstimateMemory{T, P, M, I} = EstimateMemory{T, P, M, I, Nothing}
+
+function process_trait(mem::EstimateMemory)
+    return mem.process_trait
+end
 
 function compute(::Type{T}, arg; kwargs...) where {T <: AbstractEstimate}
     kwargs = filter(kv -> kv[2] !== nothing, kwargs) # required for the api and R implementation
@@ -14,7 +19,8 @@ function compute(::Type{T}, arg; kwargs...) where {T <: AbstractEstimate}
 end
 
 function resolve_parameters(::Type{T}, arg; kwargs...) where {T}
-    previous_resolved = resolve_parameters(computed_from(T), arg; kwargs...)
+    S = select_source_type(T, arg)
+    previous_resolved = resolve_parameters(S, arg; kwargs...)
 
     # Phase 1: Validate what the user actually provided
     validate_core_parameters(T; previous_resolved...)
@@ -32,8 +38,9 @@ end
 
 function estimate_function!(
         ::Type{T}, mem::EstimateMemory{T}, arg; kwargs...) where {T <: AbstractEstimate}
-    check_memory_compatibility(T, mem, arg; kwargs...)
-    previous_arg = estimate_function!(computed_from(T), mem.previous_memory, arg; kwargs...)
+    S = select_source_type(T, arg)
+    previous_arg = estimate_function!(S, mem.previous_memory, arg; kwargs...)
+    check_memory_compatibility(T, mem, previous_arg; kwargs...)
     return compute_estimate!(T, mem, previous_arg; kwargs...)
 end
 
@@ -73,7 +80,6 @@ function select_source_type(::Type{T}, arg) where {T}
     end
 
     # If arg doesn't match any source directly, use the preferred (first) source
-    # This handles cases where we need to build a computation chain
     return first(possible_sources)
 end
 
@@ -82,23 +88,21 @@ function _preallocate_memory(::Type{T}, ::Type{S}, arg; kwargs...) where {T, S}
     relevant_memory = extract_relevant_memory(T, previous_memory)
     output_memory, internal_memory = allocate_estimate_memory(
         T, S, relevant_memory; kwargs...)
-    return EstimateMemory(T, output_memory, internal_memory, previous_memory)
+    return EstimateMemory(
+        T, process_trait(arg), output_memory, internal_memory, previous_memory)
 end
 function _preallocate_memory(::Type{T}, ::Type{S}, arg::S; kwargs...) where {T, S}
     # Extract the memory structure that was used to compute this existing estimate
     relevant_memory = extract_relevant_memory(T, arg) # only needed to decide the required memory
     output_memory, internal_memory = allocate_estimate_memory(
-        T, S, relevant_memory; kwargs...)
-    return EstimateMemory(T, output_memory, internal_memory, nothing)
+        T, typeof(arg), relevant_memory; kwargs...)
+    return EstimateMemory(T, process_trait(arg), output_memory, internal_memory, nothing)
 end
 
 function validate_computation_chain(T, arg)
-    possible_sources = computed_from(T)
-    possible_sources = possible_sources isa Type ? (possible_sources,) : possible_sources
-    for S in possible_sources
-        if arg isa S
-            return nothing  # Valid path found
-        end
+    S = select_source_type(T, arg)
+    if arg isa S
+        return nothing
     end
     if S === SpatialData # If you reach this point without typeof(arg) in the chain, you cant go further as Spatial Data is the base of everything
         error("Estimates of type $T cannot be computed from $(typeof(arg)).")

@@ -55,7 +55,7 @@ computed_from(::Type{<:RotationalEstimate{E, D, S}}) where {E, D, S} = S
 
 function allocate_estimate_memory(::Type{<:RotationalEstimate{E, D, S}},
         ::Type{<:S}, relevant_memory; kwargs...) where {E, D, S}
-    out = preallocate_radial_output(relevant_memory, process_trait(S); kwargs...)
+    out = preallocate_radial_output(relevant_memory...; kwargs...)
     return out, nothing
 end
 
@@ -64,10 +64,10 @@ function extract_relevant_memory(::Type{<:RotationalEstimate}, source::AbstractE
 end
 
 function extract_relevant_memory(::Type{<:RotationalEstimate}, source::EstimateMemory)
-    return source.output_memory
+    return source.output_memory, process_trait(source)
 end
 
-function validate_core_parameters(::Type{<:RotationalEstimate}, kwargs...)
+function validate_core_parameters(::Type{<:RotationalEstimate}; kwargs...)
     if haskey(kwargs, :radii)
         radii = kwargs[:radii]
         @argcheck radii isa AbstractVector{<:Real}

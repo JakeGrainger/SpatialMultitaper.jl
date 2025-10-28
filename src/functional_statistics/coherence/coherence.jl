@@ -50,20 +50,20 @@ const NormalOrRotationalCoherence{E} = Union{Coherence{E}, RotationalCoherence{E
 # computation from partial spectra will give different results in general due to debiasing
 # This debiasing is appropriate for linear transformations of the partial spectra, which is
 # why is is not the default for coherence computation
-computed_from(::Type{<:Coherence{MarginalTrait}}) = Spectra{MarginalTrait}
-function computed_from(::Type{<:Coherence{PartialTrait}})
-    (Spectra{MarginalTrait}, Spectra{PartialTrait})
+computed_from(::Type{<:Coherence{MarginalTrait, D}}) where {D} = Spectra{MarginalTrait, D}
+function computed_from(::Type{<:Coherence{PartialTrait, D}}) where {D}
+    (Spectra{MarginalTrait, D}, Spectra{PartialTrait, D})
 end
-function computed_from(::Type{<:RotationalCoherence{MarginalTrait}})
-    RotationalSpectra{MarginalTrait}
+function computed_from(::Type{<:RotationalCoherence{MarginalTrait, D}}) where {D}
+    RotationalSpectra{MarginalTrait, D}
 end
-function computed_from(::Type{<:RotationalCoherence{PartialTrait}})
-    (RotationalSpectra{MarginalTrait}, RotationalSpectra{PartialTrait})
+function computed_from(::Type{<:RotationalCoherence{PartialTrait, D}}) where {D}
+    (RotationalSpectra{MarginalTrait, D}, RotationalSpectra{PartialTrait, D})
 end
 
 function allocate_estimate_memory(::Type{<:NormalOrRotationalCoherence},
         ::Type{<:NormalOrRotationalSpectra}, relevant_memory; kwargs...)
-    return relevant_memory
+    return relevant_memory, nothing
 end
 
 function extract_relevant_memory(::Type{<:NormalOrRotationalCoherence},
@@ -71,18 +71,18 @@ function extract_relevant_memory(::Type{<:NormalOrRotationalCoherence},
     return get_estimates(est)
 end
 function extract_relevant_memory(::Type{<:NormalOrRotationalCoherence},
-        est::EstimateMemory{NormalOrRotationalSpectra})
+        est::EstimateMemory{<:NormalOrRotationalSpectra})
     return est.output_memory
 end
 
 function validate_core_parameters(
-        ::Type{<:NormalOrRotationalCoherence}, kwargs...)
+        ::Type{<:NormalOrRotationalCoherence}; kwargs...)
     # no additional parameters to validate
     return nothing
 end
 
 function resolve_missing_parameters(
-        ::Type{<:NormalOrRotationalCoherence}, kwargs...)
+        ::Type{<:NormalOrRotationalCoherence}, arg; kwargs...)
     return kwargs
 end
 
@@ -94,7 +94,7 @@ function validate_memory_compatibility(
 end
 
 function compute_estimate!(::Type{<:NormalOrRotationalCoherence{E}},
-        mem, source::NormalOrRotationalCoherence{E}; kwargs...) where {E}
+        mem, source::Spectra{E}; kwargs...) where {E}
     if !is_same_process_sets(source)
         throw(ArgumentError(
             "Coherence computation requires equal input and output process sets. " *
@@ -106,7 +106,7 @@ function compute_estimate!(::Type{<:NormalOrRotationalCoherence{E}},
 end
 
 function compute_estimate!(::Type{<:NormalOrRotationalCoherence{PartialTrait}},
-        mem, source::NormalOrRotationalCoherence{MarginalTrait}; kwargs...)
+        mem, source::Spectra{MarginalTrait}; kwargs...)
     if !is_same_process_sets(source)
         throw(ArgumentError(
             "Coherence computation requires equal input and output process sets. " *

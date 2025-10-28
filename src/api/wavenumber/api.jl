@@ -5,7 +5,7 @@ function spectra(data, region::Meshes.Geometry; kwargs...)
 end
 
 function spectra(data::SpatialData; kwargs...)
-    return compute(Spectra{MarginalTrait}, data; kwargs...)
+    return compute(Spectra{MarginalTrait, embeddim(data)}, data; kwargs...)
 end
 
 function partial_spectra(data, region::Meshes.Geometry; kwargs...)
@@ -13,7 +13,7 @@ function partial_spectra(data, region::Meshes.Geometry; kwargs...)
 end
 
 function partial_spectra(arg; kwargs...)
-    return compute(Spectra{PartialSpectra}, arg; kwargs...)
+    return compute(Spectra{PartialSpectra, embeddim(data)}, arg; kwargs...)
 end
 
 ## coherence
@@ -23,11 +23,11 @@ function coherence(data, region::Meshes.Geometry; kwargs...)
 end
 
 function coherence(arg; kwargs...)
-    return compute(Coherence{MarginalTrait}, arg; kwargs...)
+    return compute(Coherence{MarginalTrait, embeddim(arg)}, arg; kwargs...)
 end
 
 function coherence(arg::PartialAbstractEstimate; kwargs...)
-    return compute(Coherence{PartialSpectra}, arg; kwargs...)
+    return compute(Coherence{PartialTrait, embeddim(arg)}, arg; kwargs...)
 end
 
 function partial_coherence(data, region::Meshes.Geometry; kwargs...)
@@ -35,5 +35,5 @@ function partial_coherence(data, region::Meshes.Geometry; kwargs...)
 end
 
 function partial_coherence(arg; kwargs...)
-    return compute(Coherence{PartialSpectra}, arg; kwargs...)
+    return compute(Coherence{PartialTrait, embeddim(arg)}, arg; kwargs...)
 end

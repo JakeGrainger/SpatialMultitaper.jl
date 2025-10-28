@@ -1,9 +1,11 @@
-computed_from(::Type{<:Spectra{PartialTrait}}) = Spectra{MarginalTrait}
-computed_from(::Type{<:RotationalSpectra{PartialTrait}}) = RotationalSpectra{MarginalTrait}
+computed_from(::Type{<:Spectra{PartialTrait, D}}) where {D} = Spectra{MarginalTrait, D}
+function computed_from(::Type{<:RotationalSpectra{PartialTrait, D}}) where {D}
+    RotationalSpectra{MarginalTrait, D}
+end
 
 function allocate_estimate_memory(::Type{<:NormalOrRotationalSpectra{PartialTrait}},
         ::Type{<:NormalOrRotationalSpectra{MarginalTrait}}, relevant_memory; kwargs...)
-    return relevant_memory
+    return relevant_memory, nothing
 end
 
 function extract_relevant_memory(::Type{<:NormalOrRotationalSpectra{PartialTrait}},
@@ -11,18 +13,18 @@ function extract_relevant_memory(::Type{<:NormalOrRotationalSpectra{PartialTrait
     return get_estimates(est)
 end
 function extract_relevant_memory(::Type{<:NormalOrRotationalSpectra{PartialTrait}},
-        est::EstimateMemory{NormalOrRotationalSpectra{MarginalTrait}})
+        est::EstimateMemory{<:NormalOrRotationalSpectra{MarginalTrait}})
     return est.output_memory
 end
 
 function validate_core_parameters(
-        ::Type{<:NormalOrRotationalSpectra{PartialTrait}}, kwargs...)
+        ::Type{<:NormalOrRotationalSpectra{PartialTrait}}; kwargs...)
     # no additional parameters to validate
     return nothing
 end
 
 function resolve_missing_parameters(
-        ::Type{<:NormalOrRotationalSpectra{PartialTrait}}, kwargs...)
+        ::Type{<:NormalOrRotationalSpectra{PartialTrait}}, arg; kwargs...)
     return kwargs
 end
 

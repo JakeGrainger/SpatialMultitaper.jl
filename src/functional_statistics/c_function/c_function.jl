@@ -55,23 +55,29 @@ get_base_estimate_name(::Type{<:CFunction}) = "C function"
 
 ## required interface
 
-function computed_from(::Type{CFunction{E}}) where {E}
-    return (Spectra{E}, RotationalSpectra{E})
+function computed_from(::Type{CFunction{E, D}}) where {E, D}
+    return (Spectra{E, D}, RotationalSpectra{E, D})
 end
 
 function allocate_estimate_memory(
-        ::Type{<:CFunction}, ::Type{<:Spectra}, relevant_memory; radii, kwargs...)
-    spatial_output = preallocate_radial_output(relevant_memory, radii)
-    weights = precompute_c_weights(relevant_memory, radii)
+        ::Type{<:CFunction}, ::Type{S}, relevant_memory; kwargs...) where {S <: Spectra}
+    mem = relevant_memory[1:2]
+    wavenumber = _extract_wavenumber_from_c_mem(relevant_memory[3]; kwargs...)
+    spatial_output = preallocate_radial_output(mem...; kwargs...)
+    weights = precompute_c_weights(S, mem[1], wavenumber; kwargs...)
     return spatial_output, weights
 end
+function _extract_wavenumber_from_c_mem(::Nothing; nk, kmax, kwargs...)
+    _choose_wavenumbers_1d.(nk, kmax)
+end
+_extract_wavenumber_from_c_mem(wavenumber; kwargs...) = wavenumber
 
-function extract_relevant_memory(::Type{CFunction}, est::NormalOrRotationalSpectra)
-    return get_estimates(est)
+function extract_relevant_memory(::Type{<:CFunction}, est::NormalOrRotationalSpectra)
+    return get_estimates(est), process_trait(est), get_evaluation_points(est)
 end
 function extract_relevant_memory(
-        ::Type{CFunction}, mem::EstimateMemory{<:NormalOrRotationalSpectra})
-    return mem.output_memory
+        ::Type{<:CFunction}, mem::EstimateMemory{<:NormalOrRotationalSpectra})
+    return mem.output_memory, process_trait(mem), nothing
 end
 
 function validate_core_parameters(::Type{<:CFunction}, radii, kwargs...)
@@ -81,7 +87,14 @@ function validate_core_parameters(::Type{<:CFunction}, radii, kwargs...)
     return nothing
 end
 # when no radii are provided, defaults will be set in apply_parameter_defaults
-validate_core_parameters(::Type{<:CFunction}, kwargs...) = nothing
+validate_core_parameters(::Type{<:CFunction}; kwargs...) = nothing
+
+function resolve_missing_parameters(::Type{<:CFunction}, spec::Spectra; kwargs...)
+    if !haskey(kwargs, :radii)
+        throw(ArgumentError("When computing C function from spectra, `radii` keyword argument must be provided."))
+    end
+    return kwargs
+end
 
 function resolve_missing_parameters(::Type{<:CFunction}, data::SpatialData; kwargs...)
     radii = get(kwargs, :radii, nothing)
@@ -96,14 +109,16 @@ function process_radii(::Nothing, data::SpatialData)
 end
 
 function validate_memory_compatibility(
-        ::Type{<:CFunction}, mem, arg::Spectra; radii, kwargs...)
+        ::Type{<:CFunction}, mem, arg::NormalOrRotationalSpectra; radii, kwargs...)
     validate_c_internal(mem.internal_memory, get_estimates(arg), process_trait(arg))
     validate_radial_memory(mem.output_memory, process_trait(arg), radii)
     return nothing
 end
 
 function compute_estimate!(
-        ::Type{<:CFunction{E}}, mem, source::Spectra; radii, kwargs...) where {E}
+        ::Type{<:CFunction{E}}, mem, source::NormalOrRotationalSpectra; radii, kwargs...) where {E}
+    out = mem.output_memory
+    store = mem.internal_memory
     value = _sdf2C!(out, store, source, radii)
 
     process_info = get_process_information(source)
@@ -120,17 +135,17 @@ get_estimates(f::CFunction) = f.value
 ### Validation
 
 function validate_c_internal(weights, power, ::SingleProcessTrait)
-    @argcheck size(weights) == size(power)
+    @argcheck size(weights)[1:(end - 1)] == size(power)
     return nothing
 end
 
 function validate_c_internal(weights, power, ::MultipleSpatialDataTuple)
-    @argcheck size(weights) == size(power)
+    @argcheck size(weights)[1:(end - 1)] == size(power)
     return nothing
 end
 
 function validate_c_internal(weights, power, ::MultipleSpatialDataVec)
-    @argcheck size(weights) == size(power)[3:end]
+    @argcheck size(weights)[1:(end - 1)] == size(power)[3:end]
     return nothing
 end
 
@@ -179,9 +194,9 @@ function _sdf2C_sum(store, power, ::Nothing)
     return real(c)
 end
 
-function precompute_c_weights(spectra::Spectra{E, D}, radii::AbstractVector) where {E, D}
-    wavenumber = get_evaluation_points(spectra)
-    power_size = size(get_estimates(spectra))
+function precompute_c_weights(::Type{<:Spectra{E, D}}, power, wavenumber;
+        radii::AbstractVector, kwargs...) where {E, D}
+    power_size = size(power)
     wavenumber_spacing = prod(step, wavenumber)
     T = promote_type(float(eltype(radii)), float(typeof(wavenumber_spacing)))
     store = zeros(T, power_size..., length(radii))
@@ -193,10 +208,9 @@ function precompute_c_weights(spectra::Spectra{E, D}, radii::AbstractVector) whe
     return store
 end
 
-function precompute_c_weights(
-        spectra::RotationalSpectra{E, D}, radii::AbstractVector) where {E, D}
-    wavenumber = get_evaluation_points(spectra)
-    power_size = size(get_estimates(spectra))
+function precompute_c_weights(::Type{<:RotationalSpectra{E, D}}, power,
+        wavenumber; radii::AbstractVector, kwargs...) where {E, D}
+    power_size = size(power)
     spacing = step(wavenumber)
     T = promote_type(float(eltype(radii)), float(typeof(spacing)))
     store = zeros(T, power_size..., length(radii))

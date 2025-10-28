@@ -66,19 +66,19 @@ get_base_estimate_name(::Type{<:KFunction}) = "K function"
 
 ## required interface
 
-computed_from(::Type{<:KFunction{E}}) where {E} = CFunction{E}
+computed_from(::Type{<:KFunction{E, D}}) where {E, D} = CFunction{E, D}
 
 function allocate_estimate_memory(
         ::Type{<:KFunction}, ::Type{<:CFunction}, relevant_memory; kwargs...)
-    return relevant_memory
+    return relevant_memory, nothing
 end
 
-extract_relevant_memory(::Type{KFunction}, est::CFunction) = get_estimates(est)
-function extract_relevant_memory(::Type{KFunction}, mem::EstimateMemory{<:CFunction})
+extract_relevant_memory(::Type{<:KFunction}, est::CFunction) = get_estimates(est)
+function extract_relevant_memory(::Type{<:KFunction}, mem::EstimateMemory{<:CFunction})
     return mem.output_memory
 end
 
-validate_core_parameters(::Type{<:KFunction}, kwargs...) = nothing
+validate_core_parameters(::Type{<:KFunction}; kwargs...) = nothing
 
 function validate_memory_compatibility(::Type{<:KFunction}, mem, arg::CFunction; kwargs...)
     @argcheck size(mem.output_memory) == size(get_estimates(arg))

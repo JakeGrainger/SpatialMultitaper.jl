@@ -37,6 +37,7 @@ include("functional_statistics/infrastructure/misc.jl")
 include("functional_statistics/infrastructure/printing.jl")
 include("functional_statistics/infrastructure/errors.jl")
 include("functional_statistics/infrastructure/spectral_matrix_transforms.jl")
+include("functional_statistics/utils.jl")
 
 include("functional_statistics/rotational_estimate/rotational_estimate.jl")
 include("functional_statistics/marginal_transform/marginal_transform.jl")

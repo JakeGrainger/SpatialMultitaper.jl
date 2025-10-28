@@ -49,20 +49,20 @@ get_base_estimate_name(::Type{<:CenteredLFunction}) = "centered L function (L(r)
 
 ## required interface
 
-computed_from(::Type{<:CenteredLFunction{E}}) where {E} = LFunction{E}
+computed_from(::Type{<:CenteredLFunction{E, D}}) where {E, D} = LFunction{E, D}
 
 function allocate_estimate_memory(
         ::Type{<:CenteredLFunction}, ::Type{<:LFunction}, relevant_memory; kwargs...)
-    return relevant_memory
+    return relevant_memory, nothing
 end
 
-extract_relevant_memory(::Type{CenteredLFunction}, est::LFunction) = get_estimates(est)
+extract_relevant_memory(::Type{<:CenteredLFunction}, est::LFunction) = get_estimates(est)
 function extract_relevant_memory(
-        ::Type{CenteredLFunction}, mem::EstimateMemory{<:LFunction})
+        ::Type{<:CenteredLFunction}, mem::EstimateMemory{<:LFunction})
     return mem.output_memory
 end
 
-validate_core_parameters(::Type{<:CenteredLFunction}, kwargs...) = nothing
+validate_core_parameters(::Type{<:CenteredLFunction}; kwargs...) = nothing
 
 function validate_memory_compatibility(
         ::Type{<:CenteredLFunction}, mem, arg::LFunction; kwargs...)

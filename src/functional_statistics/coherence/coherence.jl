@@ -68,7 +68,7 @@ end
 
 function extract_relevant_memory(::Type{<:NormalOrRotationalCoherence},
         est::NormalOrRotationalSpectra)
-    return get_estimates(est)
+    return deepcopy(get_estimates(est))
 end
 function extract_relevant_memory(::Type{<:NormalOrRotationalCoherence},
         est::EstimateMemory{<:NormalOrRotationalSpectra})

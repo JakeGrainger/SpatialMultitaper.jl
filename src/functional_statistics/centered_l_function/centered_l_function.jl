@@ -56,7 +56,9 @@ function allocate_estimate_memory(
     return relevant_memory, nothing
 end
 
-extract_relevant_memory(::Type{<:CenteredLFunction}, est::LFunction) = get_estimates(est)
+function extract_relevant_memory(::Type{<:CenteredLFunction}, est::LFunction)
+    deepcopy(get_estimates(est))
+end
 function extract_relevant_memory(
         ::Type{<:CenteredLFunction}, mem::EstimateMemory{<:LFunction})
     return mem.output_memory

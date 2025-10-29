@@ -10,7 +10,7 @@ end
 
 function extract_relevant_memory(::Type{<:NormalOrRotationalSpectra{PartialTrait}},
         est::NormalOrRotationalSpectra{MarginalTrait})
-    return get_estimates(est)
+    return deepcopy(get_estimates(est))
 end
 function extract_relevant_memory(::Type{<:NormalOrRotationalSpectra{PartialTrait}},
         est::EstimateMemory{<:NormalOrRotationalSpectra{MarginalTrait}})

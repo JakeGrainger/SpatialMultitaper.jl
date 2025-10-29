@@ -139,12 +139,12 @@ function validate_c_internal(weights, power, ::SingleProcessTrait)
     return nothing
 end
 
-function validate_c_internal(weights, power, ::MultipleSpatialDataTuple)
+function validate_c_internal(weights, power, ::MultipleTupleTrait)
     @argcheck size(weights)[1:(end - 1)] == size(power)
     return nothing
 end
 
-function validate_c_internal(weights, power, ::MultipleSpatialDataVec)
+function validate_c_internal(weights, power, ::MultipleVectorTrait)
     @argcheck size(weights)[1:(end - 1)] == size(power)[3:end]
     return nothing
 end
@@ -196,12 +196,13 @@ end
 
 function precompute_c_weights(::Type{<:Spectra{E, D}}, power, wavenumber;
         radii::AbstractVector, kwargs...) where {E, D}
-    power_size = size(power)
+    wavenumber_size = length.(wavenumber)
     wavenumber_spacing = prod(step, wavenumber)
     T = promote_type(float(eltype(radii)), float(typeof(wavenumber_spacing)))
-    store = zeros(T, power_size..., length(radii))
+    store = zeros(T, wavenumber_size..., length(radii))
     for (i, radius) in enumerate(radii)
-        for (idx, k) in zip(CartesianIndices(power_size), Iterators.product(wavenumber...))
+        for (idx, k) in zip(
+            CartesianIndices(wavenumber_size), Iterators.product(wavenumber...))
             store[idx, i] = _anisotropic_c_weight(radius, k, Val{D}()) * wavenumber_spacing
         end
     end
@@ -210,12 +211,12 @@ end
 
 function precompute_c_weights(::Type{<:RotationalSpectra{E, D}}, power,
         wavenumber; radii::AbstractVector, kwargs...) where {E, D}
-    power_size = size(power)
+    wavenumber_size = length.(wavenumber)
     spacing = step(wavenumber)
     T = promote_type(float(eltype(radii)), float(typeof(spacing)))
-    store = zeros(T, power_size..., length(radii))
+    store = zeros(T, wavenumber_size..., length(radii))
     for (i, radius) in enumerate(radii)
-        for (idx, k) in zip(CartesianIndices(power_size), wavenumber)
+        for (idx, k) in zip(CartesianIndices(wavenumber_size), wavenumber)
             store[idx, i] = _isotropic_c_weight(radius, k, spacing, Val{D}())
         end
     end

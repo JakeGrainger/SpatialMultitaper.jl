@@ -45,7 +45,6 @@ include("functional_statistics/marginal_transform/marginal_transform.jl")
 include("functional_statistics/spectra/spectra.jl")
 include("functional_statistics/partial_spectra/partial_spectra.jl")
 include("functional_statistics/coherence/coherence.jl")
-include("functional_statistics/rotational_spectra/rotational_spectra.jl")
 
 include("functional_statistics/c_function/c_function.jl")
 include("functional_statistics/k_function/k_function.jl")
@@ -56,6 +55,8 @@ include("functional_statistics/pair_correlation_function/pair_correlation_functi
 include("api/wavenumber/api.jl")
 include("api/spatial/api.jl")
 include("api/general.jl")
+include("api/marginal_transforms.jl")
+include("api/rotational_spectra.jl")
 
 include("resampling/partial_resampling/partial_cross_resampling.jl")
 include("resampling/partial_resampling/partial_marginal_resampling.jl")

@@ -18,12 +18,12 @@ get_short_estimate_name(::Type{<:Spectra}) = "f"
 computed_from(::Type{<:Spectra{MarginalTrait, D}}) where {D} = SpatialData
 
 function allocate_estimate_memory(::Type{<:Spectra{MarginalTrait}}, ::Type{T},
-        ::Nothing; nk, kmax, tapers, kwargs...) where {T <: SpatialData}
-    power = _preallocate_spectral_matrix(T, nk)
+        nprocesses; nk, kmax, tapers, kwargs...) where {T <: SpatialData}
+    power = _preallocate_spectral_matrix(T, nk, nprocesses)
     return power, nothing
 end
 
-extract_relevant_memory(::Type{<:Spectra{MarginalTrait}}, source) = nothing
+extract_relevant_memory(::Type{<:Spectra{MarginalTrait}}, source) = ncol(source)
 
 function validate_core_parameters(::Type{<:Spectra{MarginalTrait}}; kwargs...)
     spectral_kwargs = (:nk, :kmax, :dk, :tapers, :nw, :mean_method)
@@ -89,16 +89,17 @@ get_estimates(est::Spectra) = est.power
 
 ### preallocation
 
-function _preallocate_spectral_matrix(::Type{<:SingleProcessData}, nk)
+function _preallocate_spectral_matrix(::Type{<:SingleProcessData}, nk, nprocesses)
     return zeros(Float64, nk) # TODO: generalize type
 end
 
-function _preallocate_spectral_matrix(::Type{<:MultipleSpatialDataTuple{P}}, nk) where {P}
+function _preallocate_spectral_matrix(
+        ::Type{<:MultipleSpatialDataTuple{P}}, nk, nprocesses) where {P}
     return zeros(SMatrix{P, P, ComplexF64, P * P}, nk) # TODO: generalize type
 end
 
-function _preallocate_spectral_matrix(::Type{<:MultipleSpatialDataVec}, nk)
-    return zeros(ComplexF64, (ncol(data), ncol(data), nk...)) # TODO: generalize type
+function _preallocate_spectral_matrix(::Type{<:MultipleSpatialDataVec}, nk, nprocesses)
+    return zeros(ComplexF64, (nprocesses, nprocesses, nk...)) # TODO: generalize type
 end
 
 ### keywords
@@ -122,6 +123,6 @@ end
 function validate_spectral_memory(
         mem::AbstractArray, source::MultipleSpatialDataVec; nk, kwargs...)
     nprocesses = ncol(source)
-    @argcheck size(mem) == (nprocesses, nprocesses, nk)
+    @argcheck size(mem) == (nprocesses, nprocesses, nk...)
     @argcheck eltype(mem) == ComplexF64 # TODO: generalize type
 end

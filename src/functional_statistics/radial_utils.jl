@@ -14,3 +14,16 @@ function validate_radial_memory(mem::AbstractArray, ::MultipleVectorTrait, radii
     @argcheck size(mem, 3) == length(radii)
     @argcheck ndims(mem) == 3
 end
+
+function validate_radii(radii)
+    @argcheck all(radii .>= 0)
+    side_length = sides(boundingbox(getregion(data)))
+    @argcheck all(radii .<= Meshes.ustrip(minimum(side_length)))
+end
+
+process_radii(radii, ::SpatialData) = radii
+function process_radii(::Nothing, data::SpatialData)
+    region = getregion(data)
+    short_side = Meshes.ustrip(minimum(sides(boundingbox(region))))
+    return range(0, short_side / 3, length = 100)
+end

@@ -96,9 +96,7 @@ function extract_relevant_memory(
 end
 
 function validate_core_parameters(::Type{<:CFunction}, radii, kwargs...)
-    @argcheck all(radii .>= 0)
-    side_length = sides(boundingbox(getregion(data)))
-    @argcheck all(radii .<= Meshes.ustrip(minimum(side_length)))
+    validate_radii(radii)
     return nothing
 end
 # when no radii are provided, defaults will be set in apply_parameter_defaults
@@ -114,13 +112,6 @@ end
 function resolve_missing_parameters(::Type{<:CFunction}, data::SpatialData; kwargs...)
     radii = get(kwargs, :radii, nothing)
     return (radii = process_radii(radii, data), kwargs...)
-end
-
-process_radii(radii, ::SpatialData) = radii
-function process_radii(::Nothing, data::SpatialData)
-    region = getregion(data)
-    short_side = Meshes.ustrip(minimum(sides(boundingbox(region))))
-    return range(0, short_side / 3, length = 100)
 end
 
 function validate_memory_compatibility(

@@ -11,81 +11,138 @@ struct PairCorrelationFunction{E, D, A, T, IP, IE} <: IsotropicEstimate{E, D}
         new{E, D, A, T, IP, IE}(radii, value, processinfo, estimationinfo)
     end
 end
-get_short_base_estimate_name(::Type{<:PairCorrelationFunction}) = "pcf"
+
+## required interface
+function computed_from(::Type{<:PairCorrelationFunction{E, D}}) where {E, D}
+    (KFunction{E, D}, Spectra{E, D})
+end
+
+function allocate_estimate_memory(
+        ::Type{<:PairCorrelationFunction}, ::Type{S}, relevant_memory; kwargs...)
+    mem = relevant_memory[1:2]
+    wavenumber = _extract_wavenumber_from_c_mem(relevant_memory[3]; kwargs...)
+    spatial_output = preallocate_pcf_output(S, mem...; kwargs...)
+    weights = precompute_pcf_weights(S, mem[1], wavenumber; kwargs...)
+    return spatial_output, weights
+end
+function preallocate_pcf_output(::Type{<:Spectra}, mem...; kwargs...)
+    return preallocate_radial_output(mem...; kwargs...)
+end
+function preallocate_pcf_output(::Type{<:KFunction}, mem...; kwargs...)
+    return mem[1]
+end
+
+function extract_relevant_memory(
+        ::Type{<:PairCorrelationFunction}, est::AbstractEstimate)
+    return deepcopy(get_estimates(est)), process_trait(est), get_evaluation_points(est)
+end
+function extract_relevant_memory(
+        ::Type{<:PairCorrelationFunction}, mem::EstimateMemory)
+    return mem.output_memory, process_trait(mem), nothing
+end
+
+function validate_core_parameters(::Type{<:PairCorrelationFunction}, radii, kwargs...)
+    validate_radii(radii)
+    return nothing
+end
+validate_core_parameters(::Type{<:PairCorrelationFunction}; kwargs...) = nothing
+
+function resolve_missing_parameters(::Type{<:PairCorrelationFunction}, arg; kwargs...)
+    radii = get(kwargs, :radii, nothing)
+    return (radii = process_radii(radii, data), kwargs...)
+end
+
+function validate_memory_compatibility(
+        ::Type{<:PairCorrelationFunction}, mem, arg; kwargs...)
+    validate_pcf_internal(mem.internal_memory, get_estimates(arg), process_trait(arg))
+    validate_radial_memory(mem.output_memory, process_trait(arg), radii)
+    return nothing
+end
+
+function compute_estimate!(
+        ::Type{PairCorrelationFunction{E}}, mem, arg::Spectra; radii, kwargs...) where {E}
+    estimate = sdf2pcf(arg, radii) # TODO: modify to use memory
+
+    processinfo = get_process_information(arg)
+    estimationinfo = get_estimation_information(arg)
+    return PairCorrelationFunction{E}(radii, estimate, processinfo, estimationinfo)
+end
+
+function compute_estimate!(::Type{PairCorrelationFunction{E}}, mem,
+        arg::KFunction; pcf_method, kwargs...) where {E}
+    radii = get_evaluation_points(arg)
+    estimate = k2paircorrelation(arg, pcf_method) # TODO: modify to use memory
+
+    processinfo = get_process_information(arg)
+    estimationinfo = get_estimation_information(arg)
+    return PairCorrelationFunction{E}(radii, estimate, processinfo, estimationinfo)
+end
+
 get_evaluation_points(f::PairCorrelationFunction) = f.radii
+
 get_estimates(f::PairCorrelationFunction) = f.value
 
-function pair_correlation_function(data, region; kwargs...)
-    pair_correlation_function(spatial_data(data, region); kwargs...)
-end
-function pair_correlation_function(data::SpatialData; pcf_method = PCFMethodC(), kwargs...)
-    pair_correlation_function(k_function(data; kwargs...); pcf_method = pcf_method)
-end
-function pair_correlation_function(est::KFunction{E}; pcf_method = PCFMethodC()) where {E}
-    radii = get_evaluation_points(est)
-    value = k2paircorrelation(est, pcf_method)
-    processinfo = get_process_information(est)
-    estimationinfo = get_estimation_information(est)
-    return PairCorrelationFunction{E}(radii, value, processinfo, estimationinfo)
-end
-function pair_correlation_function(spectrum::Spectra; kwargs...)
-    pair_correlation_function(k_function(spectrum); kwargs...)
-end
+## additional interface
 
-function partial_pair_correlation_function(data, region; kwargs...)
-    partial_pair_correlation_function(spatial_data(data, region); kwargs...)
-end
-function partial_pair_correlation_function(
-        data::SpatialData; pcf_method = PCFMethodC(), kwargs...)
-    pair_correlation_function(
-        partial_k_function(data; kwargs...); pcf_method = pcf_method)
-end
-function partial_pair_correlation_function(spectrum::Spectra{MarginalTrait}; kwargs...)
-    pair_correlation_function(partial_spectra(spectrum); kwargs...)
-end
-function partial_pair_correlation_function(spectrum::Spectra{PartialTrait}; kwargs...)
-    pair_correlation_function(spectrum; kwargs...)
-end
-function partial_pair_correlation_function(est::KFunction{PartialTrait}; kwargs...)
-    pair_correlation_function(est; kwargs...)
-end
-function partial_pair_correlation_function(est::CFunction{PartialTrait}; kwargs...)
-    throw(partial_from_marginal_error(PairCorrelationFunction, typeof(est)))
-end
-
-## direct method
-function pair_correlation_function_direct(data, region; kwargs...)
-    pair_correlation_function_direct(spatial_data(data, region); kwargs...)
-end
-function pair_correlation_function_direct(data::SpatialData; radii, spectra_kwargs...)
-    spectrum = spectra(data; spectra_kwargs...)
-    return pair_correlation_function_direct(spectrum, radii = radii)
-end
-
-function pair_correlation_function_direct(f::Spectra{E}; radii) where {E}
-    value = sdf2pcf(f, radii)
-    processinfo = get_process_information(f)
-    estimationinfo = get_estimation_information(f)
-    return PairCorrelationFunction{E}(radii, value, processinfo, estimationinfo)
-end
-
-function partial_pair_correlation_function_direct(data, region; kwargs...)
-    partial_pair_correlation_function_direct(spatial_data(data, region); kwargs...)
-end
-function partial_pair_correlation_function_direct(
-        data::SpatialData; radii, spectra_kwargs...)
-    spectrum = partial_spectra(data; spectra_kwargs...)
-    return pair_correlation_function_direct(spectrum, radii = radii)
-end
-function partial_pair_correlation_function_direct(spectrum::Spectra{PartialTrait}; radii)
-    return pair_correlation_function_direct(spectrum, radii = radii)
-end
-
-function partial_pair_correlation_function_direct(spectrum::Spectra{MarginalTrait}; radii)
-    return pair_correlation_function_direct(partial_spectra(spectrum), radii = radii)
-end
+get_short_base_estimate_name(::Type{<:PairCorrelationFunction}) = "pcf"
 
 ## internals
+
+### Validation
+
+function validate_pcf_internal(weights, power, ::SingleProcessTrait)
+    @argcheck size(weights)[1:(end - 1)] == size(power)
+    return nothing
+end
+
+function validate_pcf_internal(weights, power, ::MultipleTupleTrait)
+    @argcheck size(weights)[1:(end - 1)] == size(power)
+    return nothing
+end
+
+function validate_pcf_internal(weights, power, ::MultipleVectorTrait)
+    @argcheck size(weights)[1:(end - 1)] == size(power)[3:end]
+    return nothing
+end
+
+### from spectra
+
+function sdf2pcf(f, radii::AbstractVector{<:Number})
+    [_sdf2pcf(f, radius) for radius in radii]
+end
+
+function _sdf2pcf(
+        f::Spectra{E, D},
+        radius::Number
+) where {E, D}
+    wavenumber = get_evaluation_points(f)
+    spectra = get_estimates(f)
+    zeroatom = get_process_information(f).atoms
+    mean_prod = get_process_information(f).mean_product
+    pcf_unweighted = prod(step, wavenumber) * real(
+        sum((f - zeroatom) * pcf_weight(radius, k, Val{D}())
+    for
+    (f, k) in zip(spectra, Iterators.product(wavenumber...))
+    ))
+    return pcf_unweighted ./ (mean_prod) .+ 1
+end
+
+function pcf_weight(r, u, ::Val{1})
+    error("Pair correlation function is not implemented 1D yet.")
+end
+
+function pcf_weight(r, u, ::Val{2})
+    rx = r * norm(u)
+    return (rx < 1e-10) ? 1.0 : besselj0(2π * rx)
+end
+
+function pcf_weight(r, u, ::Val{D}) where {D}
+    rx = r * norm(u)
+    return (rx < 1e-10) ? 1.0 :
+           (gamma(D / 2) / (2π)^(D / 2)) * (1 / rx)^(D / 2) * besselj(D / 2 - 1, 2π * rx)
+end
+
+### from k function
 
 abstract type PCFMethod end
 @kwdef struct PCFMethodA{T} <: PCFMethod
@@ -153,41 +210,4 @@ function _k2paircorrelation(radii, k, ::Val{2}, method::PCFMethodD)
     v = BSplineKit.fit(BSplineKit.BSplineOrder(4), radii, sqrt.(k), penalty)
     ∂v = BSplineKit.Derivative(1) * v
     return ∂v.(radii) .* sqrt.(k) ./ (π .* radii)
-end
-
-## dirtect method internals
-
-function sdf2pcf(f, radii::AbstractVector{<:Number})
-    [_sdf2pcf(f, radius) for radius in radii]
-end
-
-function _sdf2pcf(
-        f::Spectra{E, D},
-        radius::Number
-) where {E, D}
-    wavenumber = get_evaluation_points(f)
-    spectra = get_estimates(f)
-    zeroatom = get_process_information(f).atoms
-    mean_prod = get_process_information(f).mean_product
-    pcf_unweighted = prod(step, wavenumber) * real(
-        sum((f - zeroatom) * pcf_weight(radius, k, Val{D}())
-    for
-    (f, k) in zip(spectra, Iterators.product(wavenumber...))
-    ))
-    return pcf_unweighted ./ (mean_prod) .+ 1
-end
-
-function pcf_weight(r, u, ::Val{1})
-    error("Pair correlation function is not implemented 1D yet.")
-end
-
-function pcf_weight(r, u, ::Val{2})
-    rx = r * norm(u)
-    return (rx < 1e-10) ? 1.0 : besselj0(2π * rx)
-end
-
-function pcf_weight(r, u, ::Val{D}) where {D}
-    rx = r * norm(u)
-    return (rx < 1e-10) ? 1.0 :
-           (gamma(D / 2) / (2π)^(D / 2)) * (1 / rx)^(D / 2) * besselj(D / 2 - 1, 2π * rx)
 end

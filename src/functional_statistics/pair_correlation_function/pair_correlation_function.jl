@@ -61,7 +61,7 @@ end
 
 function compute_estimate!(
         ::Type{PairCorrelationFunction{E}}, mem, arg::Spectra; radii, kwargs...) where {E}
-    estimate = sdf2pcf(arg, radii) # TODO: modify to use memory
+    estimate = _sdf2Cpcf!(mem.output_memory, mem.internal_memory, arg, radii)
 
     processinfo = get_process_information(arg)
     estimationinfo = get_estimation_information(arg)
@@ -107,24 +107,51 @@ end
 
 ### from spectra
 
-function sdf2pcf(f, radii::AbstractVector{<:Number})
-    [_sdf2pcf(f, radius) for radius in radii]
+function _sdf2Cpcf!(out, store, spectrum::Spectra, radii)
+    power = get_estimates(spectrum)
+    zero_atom = get_process_information(spectrum).atoms
+    trait = process_trait(spectrum)
+    return _sdf2C_internal!(out, store, power, trait, zero_atom, radii)
 end
 
-function _sdf2pcf(
-        f::Spectra{E, D},
-        radius::Number
-) where {E, D}
-    wavenumber = get_evaluation_points(f)
-    spectra = get_estimates(f)
-    zeroatom = get_process_information(f).atoms
-    mean_prod = get_process_information(f).mean_product
-    pcf_unweighted = prod(step, wavenumber) * real(
-        sum((f - zeroatom) * pcf_weight(radius, k, Val{D}())
-    for
-    (f, k) in zip(spectra, Iterators.product(wavenumber...))
-    ))
-    return pcf_unweighted ./ (mean_prod) .+ 1
+function _sdf2Cpcf_internal!(
+        out, store, power, ::Union{SingleProcessTrait, MultipleTupleTrait},
+        zero_atom, radii::AbstractVector)
+    for i in eachindex(out)
+        out[i] = _sdf2C_sum(selectdim(store, ndims(store), i), power, zero_atom) ./
+                 (mean_prod) .+ 1
+    end
+    return out
+end
+
+function _sdf2Cpcf_internal!(
+        out, store, power::AbstractArray{<:Number, N}, ::MultipleVectorTrait,
+        zero_atom, radii::AbstractVector) where {N}
+    for i in axes(out, ndims(out))
+        store_slice = selectdim(store, ndims(store), i)
+        for idx in CartesianIndices(size(out)[1:2])
+            power_slice = view(power, idx, ntuple(Returns(:), N - 2)...)
+            zero_atom_slice = _slice_zero_atom(zero_atom, idx)
+            out[idx, i] = _sdf2C_sum(store_slice, power_slice, zero_atom_slice) /
+                          mean_prod[idx] + 1
+        end
+    end
+    return out
+end
+
+function precompute_pcf_weights(::Type{<:Spectra{E, D}}, power, wavenumber;
+        radii::AbstractVector, kwargs...) where {E, D}
+    wavenumber_size = length.(wavenumber)
+    wavenumber_spacing = prod(step, wavenumber)
+    T = promote_type(float(eltype(radii)), float(typeof(wavenumber_spacing)))
+    store = zeros(T, wavenumber_size..., length(radii))
+    for (i, radius) in enumerate(radii)
+        for (idx, k) in zip(
+            CartesianIndices(wavenumber_size), Iterators.product(wavenumber...))
+            store[idx, i] = pcf_weight(radius, k, Val{D}()) * wavenumber_spacing
+        end
+    end
+    return store
 end
 
 function pcf_weight(r, u, ::Val{1})

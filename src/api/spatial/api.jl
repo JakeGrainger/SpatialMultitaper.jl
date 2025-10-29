@@ -87,3 +87,20 @@ end
 function partial_centered_l_function(arg; kwargs...)
     compute(CenteredLFunction{PartialTrait, embeddim(arg)}, arg; kwargs...)
 end
+
+## Pair correlation function
+function pair_correlation_function(data, region; kwargs...)
+    return pair_correlation_function(spatial_data(data, region); kwargs...)
+end
+function pair_correlation_function(arg; kwargs...)
+    compute(PairCorrelationFunction{MarginalTrait, embeddim(arg)}, arg; kwargs...)
+end
+function pair_correlation_function(arg::PartialAbstractEstimate; kwargs...)
+    partial_pair_correlation_function(arg; kwargs...)
+end
+function partial_pair_correlation_function(data, region; kwargs...)
+    return partial_pair_correlation_function(spatial_data(data, region); kwargs...)
+end
+function partial_pair_correlation_function(arg; kwargs...)
+    compute(PairCorrelationFunction{PartialTrait, embeddim(arg)}, arg; kwargs...)
+end

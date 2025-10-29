@@ -27,9 +27,15 @@ function resolve_parameters(::Type{T}, arg; kwargs...) where {T}
 
     # Phase 2: Let each estimate type handle its own parameter resolution + defaults
     # This is where Spectra handles dk/nk/kmax constraints, CFunction handles radii, etc.
-    resolved = resolve_missing_parameters(T, arg; previous_resolved...)
+    resolved = resolve_missing_parameters(T, S, arg; previous_resolved...)
 
     return resolved
+end
+
+# Default implementation that delegates to the version without source type
+function resolve_missing_parameters(
+        ::Type{T}, ::Type{S}, arg; previous_resolved...) where {T, S}
+    return resolve_missing_parameters(T, arg; previous_resolved...)
 end
 
 function resolve_parameters(::Type{T}, arg::T; kwargs...) where {T}

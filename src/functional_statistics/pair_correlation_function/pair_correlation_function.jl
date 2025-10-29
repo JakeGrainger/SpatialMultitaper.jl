@@ -14,11 +14,11 @@ end
 
 ## required interface
 function computed_from(::Type{<:PairCorrelationFunction{E, D}}) where {E, D}
-    (KFunction{E, D}, Spectra{E, D})
+    (Spectra{E, D}, KFunction{E, D})
 end
 
 function allocate_estimate_memory(
-        ::Type{<:PairCorrelationFunction}, ::Type{S}, relevant_memory; kwargs...)
+        ::Type{<:PairCorrelationFunction}, ::Type{S}, relevant_memory; kwargs...) where {S}
     mem = relevant_memory[1:2]
     wavenumber = _extract_wavenumber_from_c_mem(relevant_memory[3]; kwargs...)
     spatial_output = preallocate_pcf_output(S, mem...; kwargs...)
@@ -47,20 +47,39 @@ function validate_core_parameters(::Type{<:PairCorrelationFunction}, radii, kwar
 end
 validate_core_parameters(::Type{<:PairCorrelationFunction}; kwargs...) = nothing
 
-function resolve_missing_parameters(::Type{<:PairCorrelationFunction}, arg; kwargs...)
+function resolve_missing_parameters(
+        ::Type{<:PairCorrelationFunction}, ::Type{<:Spectra}, arg; kwargs...)
     radii = get(kwargs, :radii, nothing)
-    return (radii = process_radii(radii, data), kwargs...)
+    return (radii = process_radii(radii, arg), kwargs...)
+end
+
+function resolve_missing_parameters(
+        ::Type{<:PairCorrelationFunction}, ::Type{<:KFunction}, arg; kwargs...)
+    pcf_method = get(kwargs, :pcf_method, nothing)
+    return (pcf_method = process_pcf_method(pcf_method), kwargs...)
+end
+process_pcf_method(::Nothing) = PCFMethodC()
+process_pcf_method(method::PCFMethod) = method
+function process_pcf_method(pcf_method)
+    throw(ArgumentError("Invalid pcf_method provided, should be a `PCFMethod`, but $pcf_method provided."))
 end
 
 function validate_memory_compatibility(
-        ::Type{<:PairCorrelationFunction}, mem, arg; kwargs...)
+        ::Type{<:PairCorrelationFunction}, mem, arg::Spectra; radii, kwargs...)
     validate_pcf_internal(mem.internal_memory, get_estimates(arg), process_trait(arg))
     validate_radial_memory(mem.output_memory, process_trait(arg), radii)
     return nothing
 end
 
+function validate_memory_compatibility(
+        ::Type{<:PairCorrelationFunction}, mem, arg::KFunction; kwargs...)
+    @argcheck size(mem.output_memory) == size(get_estimates(arg))
+    @argcheck eltype(mem.output_memory) == eltype(get_estimates(arg))
+    return nothing
+end
+
 function compute_estimate!(
-        ::Type{PairCorrelationFunction{E}}, mem, arg::Spectra; radii, kwargs...) where {E}
+        ::Type{<:PairCorrelationFunction{E}}, mem, arg::Spectra; radii, kwargs...) where {E}
     estimate = _sdf2Cpcf!(mem.output_memory, mem.internal_memory, arg, radii)
 
     processinfo = get_process_information(arg)
@@ -68,7 +87,7 @@ function compute_estimate!(
     return PairCorrelationFunction{E}(radii, estimate, processinfo, estimationinfo)
 end
 
-function compute_estimate!(::Type{PairCorrelationFunction{E}}, mem,
+function compute_estimate!(::Type{<:PairCorrelationFunction{E}}, mem,
         arg::KFunction; pcf_method, kwargs...) where {E}
     radii = get_evaluation_points(arg)
     estimate = k2paircorrelation(arg, pcf_method) # TODO: modify to use memory
@@ -154,6 +173,8 @@ function precompute_pcf_weights(::Type{<:Spectra{E, D}}, power, wavenumber;
     return store
 end
 
+precompute_pcf_weights(::Type{<:KFunction}, power, wavenumber; kwargs...) = nothing # KFunction-based PCF does not need weights
+
 function pcf_weight(r, u, ::Val{1})
     error("Pair correlation function is not implemented 1D yet.")
 end
@@ -198,7 +219,7 @@ function _post_process_pcf(stacked_pcf, template_est::KFunction)
 end
 
 function _reshape_pcf_output(data, ::AbstractVector{<:SMatrix{P, Q}}) where {P, Q}
-    [SMatrix{P, Q, T, L}(data[:, :, k]) for k in axes(data, 3)]
+    [SMatrix{P, Q, eltype(data), P * Q}(data[k, :, :]) for k in axes(data, 1)]
 end
 
 _reshape_pcf_output(data, ::AbstractArray{<:Number, 3}) = permutedims(data, (2, 3, 1))

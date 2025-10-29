@@ -139,6 +139,7 @@ function validate_core_parameters end
 
 """
     resolve_missing_parameters(::Type{T}, arg; kwargs...)
+    resolve_missing_parameters(::Type{T}, ::Type{S}, arg; kwargs...)
 
 Resolve missing parameters and handle parameter constraints specific to estimate type T.
 This function handles both parameter interdependencies and default values in a single
@@ -155,6 +156,7 @@ For example:
 
 # Arguments
 - `::Type{T}`: The estimate type being computed
+- `::Type{S}`: (Optional) The source type that T is computed from, by default calls the version without S
 - `arg`: The input argument/data (can be used to derive defaults)
 - `kwargs...`: User-provided parameters (already validated by `validate_core_parameters`)
 

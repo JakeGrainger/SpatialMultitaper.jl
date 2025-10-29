@@ -72,8 +72,23 @@ function _extract_wavenumber_from_c_mem(::Nothing; nk, kmax, kwargs...)
 end
 _extract_wavenumber_from_c_mem(wavenumber; kwargs...) = wavenumber
 
+function allocate_estimate_memory(::Type{<:CFunction}, ::Type{S}, relevant_memory;
+        kwargs...) where {S <: NormalOrRotationalSpectra}
+    mem = relevant_memory[1:2]
+    wavenumber = _extract_wavenumber_from_c_mem(relevant_memory[3]; kwargs...)
+    spatial_output = preallocate_c_output(S, mem...; kwargs...)
+    weights = precompute_c_weights(S, mem[1], wavenumber; kwargs...)
+    return spatial_output, weights
+end
+function preallocate_c_output(::Type{<:Spectra}, mem...; kwargs...)
+    return preallocate_radial_output(mem...; kwargs...)
+end
+function preallocate_c_output(::Type{<:RotationalSpectra}, mem...; kwargs...)
+    return mem[1]
+end
+
 function extract_relevant_memory(::Type{<:CFunction}, est::NormalOrRotationalSpectra)
-    return get_estimates(est), process_trait(est), get_evaluation_points(est)
+    return deepcopy(get_estimates(est)), process_trait(est), get_evaluation_points(est)
 end
 function extract_relevant_memory(
         ::Type{<:CFunction}, mem::EstimateMemory{<:NormalOrRotationalSpectra})

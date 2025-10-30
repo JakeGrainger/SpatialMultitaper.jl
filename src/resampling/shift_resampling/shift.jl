@@ -114,23 +114,29 @@ end
 
 ##
 struct ShiftResampler{T, S, R, G, M}
-    data::T
+    data::R
     shift_method::S
-    statistic!::R
     groups::G
     mem::M
+    function ShiftResampler{T}(
+            data::R, shift_method::S, groups::G, mem::M) where {T, S, R, G, M}
+        @argcheck sort(reduce(vcat, groups)) == 1:ncols(data)
+        new{T, S, R, G, M}(data, shift_method, groups, mem)
+    end
 end
 
-function ShiftResampler(
-        data::SpatialData, statistic!, shift_method::ShiftMethod, groups = 1:P; kwargs...)
-    mem = create_storage(statistic!, data; kwargs...)
-    ShiftResampler(data, shift_method, statistic, groups, mem)
+function ShiftResampler(::Type{T}, data::SpatialData, shift_method::ShiftMethod,
+        groups = 1:P; kwargs...) where {T}
+    resolved_kwargs = resolve_parameters(T, arg; kwargs...)
+    mem = preallocate_memory(T, arg; resolved_kwargs...)
+    ShiftResampler{T}(data, shift_method, groups, mem)
 end
 
-function shift_resample!(rng::AbstractRNG, data::ShiftResampler)
-    @assert sort(reduce(vcat, data.groups))==1:P "groups of shifts should partition the space"
-    group_shifts = Dict(group => rand(rng, data.shift_method) for group in data.groups)
-    shifted_data = apply_shifts(data.data, group_shifts, data.groups)
-    result = data.statistic!(data.mem, shifted_data; kwargs...)
+function shift_resample!(rng::AbstractRNG, resampler::ShiftResampler{T}) where {T}
+    groups = resampler.groups
+    group_shifts = Dict(group => rand(rng, resampler.shift_method) for group in groups)
+
+    shifted_data = apply_shifts(resampler.data, group_shifts, groups)
+    result = estimate_function!(T, resampler.mem, shifted_data; resolved_kwargs...)
     return deepcopy(result) # ensure no references to mem
 end

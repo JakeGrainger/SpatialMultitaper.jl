@@ -31,10 +31,9 @@ rot_spec = rotational_spectra(data, region; radii = custom_radii, kmax = 0.5)
 
 See also: [`spectra`](@ref), [`rotational_estimate`](@ref)
 """
-function rotational_spectra(args...; radii = nothing, kwargs...)
+function rotational_spectra(args...; kwargs...)
     spectrum = spectra(args...; kwargs...)
-    radii = _process_rotational_radii(spectrum, radii)
-    real(rotational_estimate(spectrum; radii = radii)) # real valued as isotropic
+    real(rotational_estimate(spectrum; kwargs...)) # real valued as isotropic
 end
 
 """
@@ -70,10 +69,9 @@ rot_partial = rotational_partial_spectra(data, region; radii = custom_radii, kma
 
 See also: [`partial_spectra`](@ref), [`rotational_estimate`](@ref)
 """
-function rotational_partial_spectra(args...; radii = nothing, kwargs...)
+function rotational_partial_spectra(args...; kwargs...)
     spectrum = partial_spectra(args...; kwargs...)
-    radii = _process_rotational_radii(spectrum, radii)
-    real(rotational_estimate(spectrum; radii = radii)) # real valued as isotropic
+    real(rotational_estimate(spectrum; kwargs...)) # real valued as isotropic
 end
 
 """
@@ -109,10 +107,9 @@ rot_coh = rotational_coherence(data, region; radii = custom_radii, kmax = 0.5)
 
 See also: [`coherence`](@ref), [`rotational_estimate`](@ref)
 """
-function rotational_coherence(args...; radii = nothing, kwargs...)
+function rotational_coherence(args...; kwargs...)
     coh = coherence(args...; kwargs...)
-    radii = _process_rotational_radii(coh, radii)
-    real(rotational_estimate(coh; radii = radii)) # real valued as isotropic
+    real(rotational_estimate(coh; kwargs...)) # real valued as isotropic
 end
 
 """
@@ -149,11 +146,7 @@ rot_pcoh = rotational_partial_coherence(data, region; radii = custom_radii, kmax
 
 See also: [`partial_coherence`](@ref), [`rotational_estimate`](@ref)
 """
-function rotational_partial_coherence(args...; radii = nothing, kwargs...)
+function rotational_partial_coherence(args...; kwargs...)
     coh = partial_coherence(args...; kwargs...)
-    radii = _process_rotational_radii(coh, radii)
-    real(rotational_estimate(coh; radii = radii)) # real valued as isotropic
+    real(rotational_estimate(coh; kwargs...)) # real valued as isotropic
 end
-
-_process_rotational_radii(spectrum, ::Nothing) = default_rotational_radii(spectrum)
-_process_rotational_radii(spectrum, radii) = radii

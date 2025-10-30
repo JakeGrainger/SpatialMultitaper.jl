@@ -37,3 +37,14 @@ end
 function partial_coherence(arg; kwargs...)
     return compute(Coherence{PartialTrait, embeddim(arg)}, arg; kwargs...)
 end
+
+## uncorrected partial spectra
+
+function partial_spectra_uncorrected(arg; kwargs...)
+    spectrum = spectra(arg; kwargs...)
+    # Create a modified spectrum with no taper information for uncorrected computation
+    new_spectrum = Spectra{MarginalTrait}(
+        get_evaluation_points(spectrum), get_estimates(spectrum),
+        get_process_information(spectrum), EstimationInformation(nothing))
+    return partial_spectra(new_spectrum)
+end

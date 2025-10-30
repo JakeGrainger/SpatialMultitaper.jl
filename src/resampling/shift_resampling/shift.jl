@@ -157,3 +157,11 @@ end
 function shift_resample!(resampler::ShiftResampler)
     return shift_resample!(Random.default_rng(), resampler)
 end
+
+function shift_resample(args...; kwargs...)
+    shift_resample(Random.default_rng(), args...; kwargs...)
+end
+function shift_resample(rng::AbstractRNG, args...; nreps, kwargs...)
+    resampler = ShiftResampler(args...; kwargs...)
+    return [shift_resample!(rng, resampler) for _ in 1:nreps]
+end

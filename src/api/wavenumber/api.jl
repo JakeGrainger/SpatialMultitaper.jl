@@ -4,16 +4,22 @@ function spectra(data, region::Meshes.Geometry; kwargs...)
     return spectra(spatial_data(data, region); kwargs...)
 end
 
-function spectra(data::SpatialData; kwargs...)
-    return compute(Spectra{MarginalTrait, embeddim(data)}, data; kwargs...)
+functional_statistic_type(::typeof(spectra), arg) = Spectra{MarginalTrait, embeddim(arg)}
+
+function spectra(arg; kwargs...)
+    return compute(functional_statistic_type(spectra, arg), arg; kwargs...)
 end
 
 function partial_spectra(data, region::Meshes.Geometry; kwargs...)
     return partial_spectra(spatial_data(data, region); kwargs...)
 end
 
+function functional_statistic_type(::typeof(partial_spectra), arg)
+    Spectra{PartialTrait, embeddim(arg)}
+end
+
 function partial_spectra(arg; kwargs...)
-    return compute(Spectra{PartialSpectra, embeddim(data)}, arg; kwargs...)
+    return compute(functional_statistic_type(partial_spectra, arg), arg; kwargs...)
 end
 
 ## coherence
@@ -22,8 +28,12 @@ function coherence(data, region::Meshes.Geometry; kwargs...)
     return coherence(spatial_data(data, region); kwargs...)
 end
 
+function functional_statistic_type(::typeof(coherence), arg)
+    Coherence{MarginalTrait, embeddim(arg)}
+end
+
 function coherence(arg; kwargs...)
-    return compute(Coherence{MarginalTrait, embeddim(arg)}, arg; kwargs...)
+    return compute(functional_statistic_type(coherence, arg), arg; kwargs...)
 end
 
 function coherence(arg::PartialAbstractEstimate; kwargs...)
@@ -34,8 +44,12 @@ function partial_coherence(data, region::Meshes.Geometry; kwargs...)
     return partial_coherence(spatial_data(data, region); kwargs...)
 end
 
+function functional_statistic_type(::typeof(partial_coherence), arg)
+    Coherence{PartialTrait, embeddim(arg)}
+end
+
 function partial_coherence(arg; kwargs...)
-    return compute(Coherence{PartialTrait, embeddim(arg)}, arg; kwargs...)
+    return compute(functional_statistic_type(partial_coherence, arg), arg; kwargs...)
 end
 
 ## uncorrected partial spectra

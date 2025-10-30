@@ -125,6 +125,12 @@ struct ShiftResampler{T, S, R, G, M}
     end
 end
 
+function ShiftResampler(statistic, data::SpatialData, shift_method::ShiftMethod,
+        groups = 1:P; kwargs...)
+    T = functional_statistic_type(statistic, data)
+    return ShiftResampler(T, data, shift_method, groups; kwargs...)
+end
+
 function ShiftResampler(::Type{T}, data::SpatialData, shift_method::ShiftMethod,
         groups = 1:P; kwargs...) where {T}
     resolved_kwargs = resolve_parameters(T, arg; kwargs...)

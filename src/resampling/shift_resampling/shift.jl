@@ -48,6 +48,7 @@ function ToroidalShift(box::Box)
         UniformShift(unitless_coords(centered_box.min), unitless_coords(centered_box.max))
     )
 end
+ToroidalShift(data::SpatialData) = ToroidalShift(getregion(data))
 function Base.rand(rng::AbstractRNG, shift::ToroidalShift)
     ToroidalShift(shift.region, rand(rng, shift.shift))
 end
@@ -113,36 +114,46 @@ function apply_shifts(data::SingleProcessData, shifts, groups)
 end
 
 ##
-struct ShiftResampler{T, S, R, G, M}
+struct ShiftResampler{T, S, R, G, M, K}
     data::R
     shift_method::S
     groups::G
     mem::M
+    kwargs::K
     function ShiftResampler{T}(
-            data::R, shift_method::S, groups::G, mem::M) where {T, S, R, G, M}
-        @argcheck sort(reduce(vcat, groups)) == 1:ncols(data)
-        new{T, S, R, G, M}(data, shift_method, groups, mem)
+            data::R, shift_method::S, groups::G, mem::M, kwargs::K) where {T, S, R, G, M, K}
+        @argcheck sort(reduce(vcat, groups)) == 1:ncol(data)
+        new{T, S, R, G, M, K}(data, shift_method, groups, mem, kwargs)
     end
 end
 
-function ShiftResampler(statistic, data::SpatialData, shift_method::ShiftMethod,
-        groups = 1:P; kwargs...)
+function ShiftResampler(statistic, data::SpatialData,
+        shift_method::ShiftMethod = default_shift_method(data),
+        groups = 1:ncol(data); kwargs...)
     T = functional_statistic_type(statistic, data)
     return ShiftResampler(T, data, shift_method, groups; kwargs...)
 end
 
-function ShiftResampler(::Type{T}, data::SpatialData, shift_method::ShiftMethod,
-        groups = 1:P; kwargs...) where {T}
-    resolved_kwargs = resolve_parameters(T, arg; kwargs...)
-    mem = preallocate_memory(T, arg; resolved_kwargs...)
-    ShiftResampler{T}(data, shift_method, groups, mem)
+function ShiftResampler(::Type{T}, data::SpatialData,
+        shift_method::ShiftMethod = default_shift_method(data),
+        groups = 1:ncol(data); kwargs...) where {T}
+    resolved_kwargs = resolve_parameters(T, data; kwargs...)
+    mem = preallocate_memory(T, data; resolved_kwargs...)
+    ShiftResampler{T}(data, shift_method, groups, mem, resolved_kwargs)
 end
+
+default_shift_method(data::SpatialData) = default_shift_method(getregion(data))
+default_shift_method(region::Box) = ToroidalShift(region)
 
 function shift_resample!(rng::AbstractRNG, resampler::ShiftResampler{T}) where {T}
     groups = resampler.groups
     group_shifts = Dict(group => rand(rng, resampler.shift_method) for group in groups)
 
     shifted_data = apply_shifts(resampler.data, group_shifts, groups)
-    result = estimate_function!(T, resampler.mem, shifted_data; resolved_kwargs...)
+    result = estimate_function!(T, resampler.mem, shifted_data; resampler.kwargs...)
     return deepcopy(result) # ensure no references to mem
+end
+
+function shift_resample!(resampler::ShiftResampler)
+    return shift_resample!(Random.default_rng(), resampler)
 end

@@ -42,7 +42,7 @@ function resolve_missing_parameters(
     return resolve_missing_parameters(T, arg; previous_resolved...)
 end
 
-function resolve_parameters(::Type{T}, arg::T; kwargs...) where {T}
+function _resolve_parameters(::Type{T}, arg::T; kwargs...) where {T}
     return kwargs # base case
 end
 

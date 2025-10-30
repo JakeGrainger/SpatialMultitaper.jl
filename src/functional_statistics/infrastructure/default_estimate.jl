@@ -12,15 +12,19 @@ function process_trait(mem::EstimateMemory)
 end
 
 function compute(::Type{T}, arg; kwargs...) where {T <: AbstractEstimate}
-    kwargs = filter(kv -> kv[2] !== nothing, kwargs) # required for the api and R implementation
     resolved_kwargs = resolve_parameters(T, arg; kwargs...)
     mem = preallocate_memory(T, arg; resolved_kwargs...)
     return estimate_function!(T, mem, arg; resolved_kwargs...)
 end
 
 function resolve_parameters(::Type{T}, arg; kwargs...) where {T}
+    kwargs = filter(kv -> kv[2] !== nothing, kwargs) # required for the api and R implementation
+    return _resolve_parameters(T, arg; kwargs...)
+end
+
+function _resolve_parameters(::Type{T}, arg; kwargs...) where {T}
     S = select_source_type(T, arg)
-    previous_resolved = resolve_parameters(S, arg; kwargs...)
+    previous_resolved = _resolve_parameters(S, arg; kwargs...)
 
     # Phase 1: Validate what the user actually provided
     validate_core_parameters(T; previous_resolved...)

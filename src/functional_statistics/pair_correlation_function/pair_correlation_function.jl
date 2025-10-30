@@ -58,11 +58,6 @@ function resolve_missing_parameters(
     pcf_method = get(kwargs, :pcf_method, nothing)
     return (pcf_method = process_pcf_method(pcf_method), kwargs...)
 end
-process_pcf_method(::Nothing) = PCFMethodC()
-process_pcf_method(method::PCFMethod) = method
-function process_pcf_method(pcf_method)
-    throw(ArgumentError("Invalid pcf_method provided, should be a `PCFMethod`, but $pcf_method provided."))
-end
 
 function validate_memory_compatibility(
         ::Type{<:PairCorrelationFunction}, mem, arg::Spectra; radii, kwargs...)
@@ -204,6 +199,12 @@ end
 end
 @kwdef struct PCFMethodD{T} <: PCFMethod
     penalty::T = 0.0
+end
+
+process_pcf_method(::Nothing) = PCFMethodC()
+process_pcf_method(method::PCFMethod) = method
+function process_pcf_method(pcf_method)
+    throw(ArgumentError("Invalid pcf_method provided, should be a `PCFMethod`, but $pcf_method provided."))
 end
 
 function k2paircorrelation(est::KFunction{E, D}, method) where {E, D}

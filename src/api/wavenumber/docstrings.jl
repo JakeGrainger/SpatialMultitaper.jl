@@ -253,3 +253,53 @@ corrected_partial = partial_spectra(marginal_spec)
 See also: [`partial_spectra`](@ref)
 """
 partial_spectra_uncorrected
+
+"""
+    magnitude_coherence(arg; kwargs...)
+    magnitude_coherence(data, region; kwargs...)
+
+Compute magnitude coherence.
+"""
+magnitude_coherence
+
+"""
+    partial_magnitude_coherence(arg; kwargs...)
+    partial_magnitude_coherence(data, region; kwargs...)
+
+Compute partial magnitude coherence.
+"""
+partial_magnitude_coherence
+
+"""
+    magnitude_squared_coherence(arg; kwargs...)
+    magnitude_squared_coherence(data, region; kwargs...)
+
+Compute magnitude-squared coherence from a spectral estimate.
+"""
+magnitude_squared_coherence
+
+"""
+    partial_magnitude_squared_coherence(arg; kwargs...)
+    partial_magnitude_squared_coherence(data, region; kwargs...)
+
+Compute partial magnitude-squared coherence from spectral or coherence estimates.
+"""
+partial_magnitude_squared_coherence
+
+"""
+    phase(arg; kwargs...)
+    phase(data, region; kwargs...)
+
+Compute phase of coherence or cross-spectral estimates.
+
+Returns the phase angle in radians.
+"""
+phase
+
+"""
+    partial_phase(arg; kwargs...)
+    partial_phase(data, region; kwargs...)
+
+Compute phase of partial coherence or cross-spectral estimates.
+"""
+partial_phase

@@ -60,7 +60,7 @@ function allocate_estimate_memory(::Type{<:RotationalEstimate{E, D, S}},
 end
 
 function extract_relevant_memory(::Type{<:RotationalEstimate}, source::AbstractEstimate)
-    return get_estimates(source)
+    return get_estimates(source), process_trait(source)
 end
 
 function extract_relevant_memory(::Type{<:RotationalEstimate}, source::EstimateMemory)
@@ -85,7 +85,7 @@ function resolve_missing_parameters(::Type{<:RotationalEstimate}, arg; kwargs...
     else
         default_rotational_radii(arg; kwargs...)
     end
-    if haskey(kwargs, :kernel)
+    kernel = if haskey(kwargs, :kernel)
         kwargs[:kernel]
     else
         default_rotational_kernel(arg; radii = radii, kwargs...)
@@ -103,7 +103,7 @@ function compute_estimate!(::Type{<:RotationalEstimate{E, D, S}}, mem,
         source::S; radii, kernel, kwargs...) where {E, D, S}
     x = get_evaluation_points(source)
     y = get_estimates(source)
-    _smoothed_rotational!(mem.output_memory, x, y, process_trait(S), radii, kernel)
+    _smoothed_rotational!(mem.output_memory, x, y, process_trait(source), radii, kernel)
 
     processinfo = get_process_information(source)
     estimationinfo = get_estimation_information(source)
@@ -214,7 +214,7 @@ function _smoothed_rotational!(out, x::NTuple{D}, y::AbstractArray{T, D},
     for (i, r) in enumerate(radii)
         num = sum(f * kernel(norm(u) - r) for (u, f) in zip(xitr, y))
         denom = sum(kernel(norm(u) - r) for u in xitr)
-        out[i] = num / denom
+        out[i] = real(num / denom)
     end
     return out
 end

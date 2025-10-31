@@ -1,5 +1,5 @@
 """
-    rotational_spectra(args...; radii = nothing, kwargs...) -> RotationalSpectra
+    rotational_spectra(args...; kwargs...)
 
 Compute rotationally averaged spectral estimates from spatial data.
 
@@ -33,11 +33,11 @@ See also: [`spectra`](@ref), [`rotational_estimate`](@ref)
 """
 function rotational_spectra(args...; kwargs...)
     spectrum = spectra(args...; kwargs...)
-    real(rotational_estimate(spectrum; kwargs...)) # real valued as isotropic
+    return rotational_estimate(spectrum; kwargs...)
 end
 
 """
-    rotational_partial_spectra(args...; radii = nothing, kwargs...) -> RotationalEstimate{PartialTrait}
+    rotational_partial_spectra(args...; kwargs...)
 
 Compute rotationally averaged partial spectral estimates from spatial data.
 
@@ -71,11 +71,11 @@ See also: [`partial_spectra`](@ref), [`rotational_estimate`](@ref)
 """
 function rotational_partial_spectra(args...; kwargs...)
     spectrum = partial_spectra(args...; kwargs...)
-    real(rotational_estimate(spectrum; kwargs...)) # real valued as isotropic
+    return rotational_estimate(spectrum; kwargs...)
 end
 
 """
-    rotational_coherence(args...; radii = nothing, kwargs...) -> RotationalEstimate
+    rotational_coherence(args...; kwargs...)
 
 Compute rotationally averaged coherence estimates from spatial data.
 
@@ -109,11 +109,11 @@ See also: [`coherence`](@ref), [`rotational_estimate`](@ref)
 """
 function rotational_coherence(args...; kwargs...)
     coh = coherence(args...; kwargs...)
-    real(rotational_estimate(coh; kwargs...)) # real valued as isotropic
+    return rotational_estimate(coh; kwargs...)
 end
 
 """
-    rotational_partial_coherence(args...; radii = nothing, kwargs...) -> RotationalEstimate{PartialTrait}
+    rotational_partial_coherence(args...; kwargs...)
 
 Compute rotationally averaged partial coherence estimates from spatial data.
 
@@ -148,5 +148,5 @@ See also: [`partial_coherence`](@ref), [`rotational_estimate`](@ref)
 """
 function rotational_partial_coherence(args...; kwargs...)
     coh = partial_coherence(args...; kwargs...)
-    real(rotational_estimate(coh; kwargs...)) # real valued as isotropic
+    return rotational_estimate(coh; kwargs...)
 end

@@ -31,9 +31,17 @@ rot_spec = rotational_spectra(data, region; radii = custom_radii, kmax = 0.5)
 
 See also: [`spectra`](@ref), [`rotational_estimate`](@ref)
 """
-function rotational_spectra(args...; kwargs...)
-    spectrum = spectra(args...; kwargs...)
-    return rotational_estimate(spectrum; kwargs...)
+function rotational_spectra(data, region; kwargs...)
+    return rotational_spectra(spatial_data(data, region); kwargs...)
+end
+
+function functional_statistic_type(::typeof(rotational_spectra), arg)
+    D = embeddim(arg)
+    return RotationalEstimate{MarginalTrait, D, Spectra{MarginalTrait, D}}
+end
+
+function rotational_spectra(arg; kwargs...)
+    return compute(functional_statistic_type(rotational_spectra, arg), arg; kwargs...)
 end
 
 """
@@ -69,9 +77,18 @@ rot_partial = rotational_partial_spectra(data, region; radii = custom_radii, kma
 
 See also: [`partial_spectra`](@ref), [`rotational_estimate`](@ref)
 """
-function rotational_partial_spectra(args...; kwargs...)
-    spectrum = partial_spectra(args...; kwargs...)
-    return rotational_estimate(spectrum; kwargs...)
+function rotational_partial_spectra(data, region; kwargs...)
+    return rotational_partial_spectra(spatial_data(data, region); kwargs...)
+end
+
+function functional_statistic_type(::typeof(rotational_partial_spectra), arg)
+    D = embeddim(arg)
+    return RotationalEstimate{PartialTrait, D, Spectra{PartialTrait, D}}
+end
+
+function rotational_partial_spectra(arg; kwargs...)
+    return compute(
+        functional_statistic_type(rotational_partial_spectra, arg), arg; kwargs...)
 end
 
 """
@@ -107,9 +124,17 @@ rot_coh = rotational_coherence(data, region; radii = custom_radii, kmax = 0.5)
 
 See also: [`coherence`](@ref), [`rotational_estimate`](@ref)
 """
-function rotational_coherence(args...; kwargs...)
-    coh = coherence(args...; kwargs...)
-    return rotational_estimate(coh; kwargs...)
+function rotational_coherence(data, region; kwargs...)
+    return rotational_coherence(spatial_data(data, region); kwargs...)
+end
+
+function functional_statistic_type(::typeof(rotational_coherence), arg)
+    D = embeddim(arg)
+    return RotationalEstimate{MarginalTrait, D, Coherence{MarginalTrait, D}}
+end
+
+function rotational_coherence(arg; kwargs...)
+    return compute(functional_statistic_type(rotational_coherence, arg), arg; kwargs...)
 end
 
 """
@@ -146,7 +171,16 @@ rot_pcoh = rotational_partial_coherence(data, region; radii = custom_radii, kmax
 
 See also: [`partial_coherence`](@ref), [`rotational_estimate`](@ref)
 """
-function rotational_partial_coherence(args...; kwargs...)
-    coh = partial_coherence(args...; kwargs...)
-    return rotational_estimate(coh; kwargs...)
+function rotational_partial_coherence(data, region; kwargs...)
+    return rotational_partial_coherence(spatial_data(data, region); kwargs...)
+end
+
+function functional_statistic_type(::typeof(rotational_partial_coherence), arg)
+    D = embeddim(arg)
+    return RotationalEstimate{PartialTrait, D, Coherence{PartialTrait, D}}
+end
+
+function rotational_partial_coherence(arg; kwargs...)
+    return compute(
+        functional_statistic_type(rotational_partial_coherence, arg), arg; kwargs...)
 end

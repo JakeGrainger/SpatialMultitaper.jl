@@ -1,6 +1,6 @@
 computed_from(::Type{<:Spectra{PartialTrait, D}}) where {D} = Spectra{MarginalTrait, D}
 function computed_from(::Type{<:RotationalSpectra{PartialTrait, D}}) where {D}
-    RotationalSpectra{MarginalTrait, D}
+    Spectra{PartialTrait, D}
 end
 
 function allocate_estimate_memory(::Type{<:NormalOrRotationalSpectra{PartialTrait}},
@@ -18,18 +18,18 @@ function extract_relevant_memory(::Type{<:NormalOrRotationalSpectra{PartialTrait
 end
 
 function validate_core_parameters(
-        ::Type{<:NormalOrRotationalSpectra{PartialTrait}}; kwargs...)
+        ::Type{<:Spectra{PartialTrait}}; kwargs...)
     # no additional parameters to validate
     return nothing
 end
 
 function resolve_missing_parameters(
-        ::Type{<:NormalOrRotationalSpectra{PartialTrait}}, arg; kwargs...)
+        ::Type{<:Spectra{PartialTrait}}, arg; kwargs...)
     return kwargs
 end
 
 function validate_memory_compatibility(
-        ::Type{<:NormalOrRotationalSpectra{PartialTrait}}, mem, source; kwargs...)
+        ::Type{<:Spectra{PartialTrait}}, mem, source; kwargs...)
     # no additional compatibility checks needed
     @argcheck size(mem.output_memory) == size(get_estimates(source))
     @argcheck eltype(mem.output_memory) == eltype(get_estimates(source))

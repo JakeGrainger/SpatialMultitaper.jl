@@ -1,6 +1,6 @@
 
 """
-    Coherence{E, D, N, A, T, IP, IE} <: AbstractEstimate{E, D, N}
+    Coherence{E, D, N, S, A, T, IP, IE} <: AbstractEstimate{E, D, N}
 
 A coherence estimate structure containing wavenumber information and coherence values.
 
@@ -8,6 +8,7 @@ A coherence estimate structure containing wavenumber information and coherence v
 - `E`: Estimate trait (e.g., `MarginalTrait`, `PartialTrait`)
 - `D`: Spatial dimension
 - `N`: Number of wavenumber dimensions
+- `S`: The source estimate type
 - `A`: Type of wavenumber argument
 - `T`: Type of coherence values
 - `IP`: Type of process information
@@ -19,7 +20,7 @@ A coherence estimate structure containing wavenumber information and coherence v
 - `processinformation`: Information about the processes
 - `estimationinformation`: Information about the estimation procedure
 """
-struct Coherence{E, D, N, A, T, IP, IE} <: AbstractEstimate{E, D, N}
+struct Coherence{E, D, N, S, A, T, IP, IE} <: AbstractEstimate{E, D, N}
     wavenumber::A
     coherence::T
     processinformation::IP
@@ -30,7 +31,7 @@ struct Coherence{E, D, N, A, T, IP, IE} <: AbstractEstimate{E, D, N}
         checkinputs(wavenumber, coherence, processinfo)
         IP = typeof(processinfo)
         A = typeof(wavenumber)
-        return new{E, D, N, A, T, IP, IE}(
+        return new{E, D, N, eltype(coherence), A, T, IP, IE}(
             wavenumber, coherence, processinfo, estimationinfo)
     end
     function Coherence{E}( # for inputs that are rotational
@@ -38,12 +39,13 @@ struct Coherence{E, D, N, A, T, IP, IE} <: AbstractEstimate{E, D, N}
             estimationinfo::IE) where {E <: EstimateTrait, D, A, T, IE}
         checkinputs(wavenumber, coherence, processinfo)
         IP = typeof(processinfo)
-        return new{E, D, 1, A, T, IP, IE}(
+        return new{E, D, 1, eltype(coherence), A, T, IP, IE}(
             wavenumber, coherence, processinfo, estimationinfo)
     end
 end
 const RotationalCoherence{E, D, S <: Coherence} = RotationalEstimate{E, D, S}
-const NormalOrRotationalCoherence{E} = Union{Coherence{E}, RotationalCoherence{E}}
+const CoherenceRotational{E, D, N, S <: RotationalSpectra} = Coherence{E, D, N, S}
+const NormalOrRotationalCoherence{E} = Union{Coherence{E}, CoherenceRotational{E}}
 
 ## required interface
 # preference given to direct computation from marginal spectra in partial case
@@ -54,11 +56,14 @@ computed_from(::Type{<:Coherence{MarginalTrait, D}}) where {D} = Spectra{Margina
 function computed_from(::Type{<:Coherence{PartialTrait, D}}) where {D}
     (Spectra{MarginalTrait, D}, Spectra{PartialTrait, D})
 end
-function computed_from(::Type{<:RotationalCoherence{MarginalTrait, D}}) where {D}
+function computed_from(::Type{<:CoherenceRotational{MarginalTrait, D}}) where {D}
     RotationalSpectra{MarginalTrait, D}
 end
-function computed_from(::Type{<:RotationalCoherence{PartialTrait, D}}) where {D}
+function computed_from(::Type{<:CoherenceRotational{PartialTrait, D}}) where {D}
     (RotationalSpectra{MarginalTrait, D}, RotationalSpectra{PartialTrait, D})
+end
+function computed_from(::Type{<:RotationalCoherence{E, D}}) where {E, D}
+    Coherence{E, D}
 end
 
 function allocate_estimate_memory(::Type{<:NormalOrRotationalCoherence},

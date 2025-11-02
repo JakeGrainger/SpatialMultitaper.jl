@@ -10,7 +10,7 @@ struct Spectra{E, D, A, T, IP, IE} <: AnisotropicEstimate{E, D}
     end
 end
 
-const RotationalSpectra{E, D, S <: Spectra} = RotationalEstimate{E, D, S}
+const RotationalSpectra{E, D, S <: Spectra{E}} = RotationalEstimate{E, D, S}
 const NormalOrRotationalSpectra{E} = Union{Spectra{E}, RotationalSpectra{E}}
 get_short_estimate_name(::Type{<:Spectra}) = "f"
 

@@ -99,8 +99,8 @@ function _extract_wavenumber_from_c_mem(::Type{<:Spectra}, ::Nothing; nk, kmax, 
     _choose_wavenumbers_1d.(nk, kmax)
 end
 function _extract_wavenumber_from_c_mem(
-        ::Type{<:RotationalSpectra}, ::Nothing; radii, kwargs...)
-    radii
+        ::Type{<:RotationalSpectra}, ::Nothing; rotation_radii, kwargs...)
+    rotation_radii
 end
 function _extract_wavenumber_from_c_mem(
         ::Type{<:NormalOrRotationalSpectra}, wavenumber; kwargs...)
@@ -115,11 +115,8 @@ function allocate_estimate_memory(::Type{<:CFunction}, ::Type{S}, relevant_memor
     weights = precompute_c_weights(S, mem[1], wavenumber; kwargs...)
     return spatial_output, weights
 end
-function preallocate_c_output(::Type{<:Spectra}, mem...; kwargs...)
+function preallocate_c_output(::Type{<:NormalOrRotationalSpectra}, mem...; kwargs...)
     return preallocate_radial_output(mem...; kwargs...)
-end
-function preallocate_c_output(::Type{<:RotationalSpectra}, mem...; kwargs...)
-    return mem[1]
 end
 
 function extract_relevant_memory(::Type{<:CFunction}, est::NormalOrRotationalSpectra)
@@ -259,12 +256,11 @@ end
 
 function precompute_c_weights(::Type{<:RotationalSpectra{E, D}}, power,
         wavenumber; radii::AbstractVector, kwargs...) where {E, D}
-    wavenumber_size = length.(wavenumber)
     spacing = step(wavenumber)
     T = promote_type(float(eltype(radii)), float(typeof(spacing)))
-    store = zeros(T, wavenumber_size..., length(radii))
+    store = zeros(T, length(wavenumber), length(radii))
     for (i, radius) in enumerate(radii)
-        for (idx, k) in zip(CartesianIndices(wavenumber_size), wavenumber)
+        for (idx, k) in enumerate(wavenumber)
             store[idx, i] = _isotropic_c_weight(radius, k, spacing, Val{D}())
         end
     end

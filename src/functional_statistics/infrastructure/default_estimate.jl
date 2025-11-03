@@ -107,7 +107,8 @@ function select_source_type(::Type{T}, arg; kwargs...) where {T}
 end
 
 function _preallocate_memory(::Type{T}, ::Type{S}, arg; kwargs...) where {T, S}
-    previous_memory = _preallocate_memory(S, select_source_type(S, arg), arg; kwargs...)
+    previous_memory = _preallocate_memory(
+        S, select_source_type(S, arg; kwargs...), arg; kwargs...)
     relevant_memory = extract_relevant_memory(T, previous_memory)
     output_memory, internal_memory = allocate_estimate_memory(
         T, S, relevant_memory; kwargs...)

@@ -55,8 +55,18 @@ computed_from(::Type{<:RotationalEstimate{E, D, S}}) where {E, D, S} = S
 
 function allocate_estimate_memory(::Type{<:RotationalEstimate{E, D, S}},
         ::Type{<:S}, relevant_memory; kwargs...) where {E, D, S}
-    out = preallocate_radial_output(relevant_memory...; kwargs...)
+    out = preallocate_rotational_radial_output(relevant_memory...; kwargs...)
     return out, nothing
+end
+
+function preallocate_rotational_radial_output(
+        source, ::Union{SingleProcessTrait, MultipleTupleTrait}; rotation_radii, kwargs...)
+    return zeros(real(eltype(source)), length(rotation_radii))
+end
+function preallocate_rotational_radial_output(
+        source, ::MultipleVectorTrait; rotation_radii, kwargs...)
+    return zeros(
+        real(eltype(source)), size(source, 1), size(source, 2), length(rotation_radii))
 end
 
 function extract_relevant_memory(::Type{<:RotationalEstimate}, source::AbstractEstimate)
@@ -108,7 +118,8 @@ function compute_estimate!(::Type{<:RotationalEstimate{E, D, S}}, mem,
 
     processinfo = get_process_information(source)
     estimationinfo = get_estimation_information(source)
-    return RotationalEstimate{E, S}(radii, mem.output_memory, processinfo, estimationinfo)
+    return RotationalEstimate{E, S}(
+        rotation_radii, mem.output_memory, processinfo, estimationinfo)
 end
 
 get_evaluation_points(f::RotationalEstimate) = f.radii

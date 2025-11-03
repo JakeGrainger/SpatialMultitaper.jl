@@ -68,10 +68,10 @@ function extract_relevant_memory(::Type{<:RotationalEstimate}, source::EstimateM
 end
 
 function validate_core_parameters(::Type{<:RotationalEstimate}; kwargs...)
-    if haskey(kwargs, :radii)
-        radii = kwargs[:radii]
-        @argcheck radii isa AbstractVector{<:Real}
-        @argcheck all(r -> r ≥ 0, radii)
+    if haskey(kwargs, :rotation_radii)
+        rotation_radii = kwargs[:rotation_radii]
+        @argcheck rotation_radii isa AbstractVector{<:Real}
+        @argcheck all(r -> r ≥ 0, rotation_radii)
     end
     if haskey(kwargs, :kernel)
         kernel = kwargs[:kernel]
@@ -80,30 +80,31 @@ function validate_core_parameters(::Type{<:RotationalEstimate}; kwargs...)
 end
 
 function resolve_missing_parameters(::Type{<:RotationalEstimate}, arg; kwargs...)
-    radii = if haskey(kwargs, :radii)
-        kwargs[:radii]
+    rotation_radii = if haskey(kwargs, :rotation_radii)
+        kwargs[:rotation_radii]
     else
         default_rotational_radii(arg; kwargs...)
     end
     kernel = if haskey(kwargs, :kernel)
         kwargs[:kernel]
     else
-        default_rotational_kernel(arg; radii = radii, kwargs...)
+        default_rotational_kernel(arg; rotation_radii = rotation_radii, kwargs...)
     end
-    other_kwargs = filter(kv -> kv[1] ∉ (:radii, :kernel), kwargs)
-    return (; radii = radii, kernel = kernel, other_kwargs...)
+    other_kwargs = filter(kv -> kv[1] ∉ (:rotation_radii, :kernel), kwargs)
+    return (; rotation_radii = rotation_radii, kernel = kernel, other_kwargs...)
 end
 
 function validate_memory_compatibility(
-        ::Type{<:RotationalEstimate}, mem, source; radii, kwargs...)
-    validate_radial_memory(mem.output_memory, process_trait(source), radii)
+        ::Type{<:RotationalEstimate}, mem, source; rotation_radii, kwargs...)
+    validate_radial_memory(mem.output_memory, process_trait(source), rotation_radii)
 end
 
 function compute_estimate!(::Type{<:RotationalEstimate{E, D, S}}, mem,
-        source::S; radii, kernel, kwargs...) where {E, D, S}
+        source::S; rotation_radii, kernel, kwargs...) where {E, D, S}
     x = get_evaluation_points(source)
     y = get_estimates(source)
-    _smoothed_rotational!(mem.output_memory, x, y, process_trait(source), radii, kernel)
+    _smoothed_rotational!(
+        mem.output_memory, x, y, process_trait(source), rotation_radii, kernel)
 
     processinfo = get_process_information(source)
     estimationinfo = get_estimation_information(source)
@@ -205,13 +206,13 @@ end
 include("rotational_kernels.jl")
 
 function _smoothed_rotational!(out, x::NTuple{D}, y::AbstractArray{T, D},
-        trait::Union{SingleProcessTrait, MultipleTupleTrait}, radii,
+        trait::Union{SingleProcessTrait, MultipleTupleTrait}, rotation_radii,
         kernel) where {D, T <: Union{<:Number, <:SMatrix}}
     @argcheck length(x) == ndims(y)
     @argcheck size(y) == length.(x)
-    @argcheck length(out) == length(radii)
+    @argcheck length(out) == length(rotation_radii)
     xitr = Iterators.ProductIterator(x)
-    for (i, r) in enumerate(radii)
+    for (i, r) in enumerate(rotation_radii)
         num = sum(f * kernel(norm(u) - r) for (u, f) in zip(xitr, y))
         denom = sum(kernel(norm(u) - r) for u in xitr)
         out[i] = real(num / denom)
@@ -221,14 +222,14 @@ end
 
 function _smoothed_rotational!(
         out::AbstractArray{<:Number, 3}, x::NTuple{D}, y::AbstractArray{<:Number, N},
-        ::MultipleVectorTrait, radii, kernel) where {D, N}
+        ::MultipleVectorTrait, rotation_radii, kernel) where {D, N}
     @argcheck length(x) <= ndims(y)
     @argcheck size(y)[3:end] == length.(x)
 
     _trait = SingleProcessTrait()
     @views for idx in CartesianIndices(size(y)[1:2])
         y_slice = y[idx, ntuple(Returns(:), Val{N - 2}())...]
-        _smoothed_rotational!(out[idx, :], x, y_slice, _trait, radii, kernel)
+        _smoothed_rotational!(out[idx, :], x, y_slice, _trait, rotation_radii, kernel)
     end
     return out
 end

@@ -23,8 +23,19 @@ function resolve_parameters(::Type{T}, arg; kwargs...) where {T}
 end
 
 function _resolve_parameters(::Type{T}, arg; kwargs...) where {T}
-    S = select_source_type(T, arg)
-    previous_resolved = _resolve_parameters(S, arg; kwargs...)
+    # Phase 0: Pre-process algorithm selection parameters that affect source type selection
+    preprocessed_kwargs = preprocess_algorithm_kwargs(T; kwargs...)
+
+    S = select_source_type(T, arg; preprocessed_kwargs...)
+
+    if S <: SpatialData && !(arg isa SpatialData) # If you reach this point without typeof(arg) in the chain, you cant go further as Spatial Data is the base of everything
+        error("Estimates of type $T cannot be computed from $(typeof(arg)).")
+    elseif S === T
+        # this error will only happen if an incorrect extension is made when adding a new statistic
+        error("Estimates of type $T have an incorrectly defined computation chain, you will have missdefined `computed_from` to be circular.")
+    end
+
+    previous_resolved = _resolve_parameters(S, arg; preprocessed_kwargs...)
 
     # Phase 1: Validate what the user actually provided
     validate_core_parameters(T; previous_resolved...)
@@ -35,6 +46,9 @@ function _resolve_parameters(::Type{T}, arg; kwargs...) where {T}
 
     return resolved
 end
+
+# Default implementation - no preprocessing needed
+preprocess_algorithm_kwargs(::Type{T}; kwargs...) where {T} = kwargs
 
 # Default implementation that delegates to the version without source type
 function resolve_missing_parameters(
@@ -48,7 +62,7 @@ end
 
 function estimate_function!(
         ::Type{T}, mem::EstimateMemory{T}, arg; kwargs...) where {T <: AbstractEstimate}
-    S = select_source_type(T, arg)
+    S = select_source_type(T, arg; kwargs...)
     previous_arg = estimate_function!(S, mem.previous_memory, arg; kwargs...)
     check_memory_compatibility(T, mem, previous_arg; kwargs...)
     return compute_estimate!(T, mem, previous_arg; kwargs...)
@@ -69,12 +83,11 @@ function check_memory_compatibility(
 end
 
 function preallocate_memory(::Type{T}, arg; kwargs...) where {T <: AbstractEstimate}
-    validate_computation_chain(T, arg)
-    source_type = select_source_type(T, arg)
+    source_type = select_source_type(T, arg; kwargs...)
     return _preallocate_memory(T, source_type, arg; kwargs...)
 end
 
-function select_source_type(::Type{T}, arg) where {T}
+function select_source_type(::Type{T}, arg; kwargs...) where {T}
     possible_sources = computed_from(T)
 
     # Handle single type
@@ -107,19 +120,4 @@ function _preallocate_memory(::Type{T}, ::Type{S}, arg::S; kwargs...) where {T, 
     output_memory, internal_memory = allocate_estimate_memory(
         T, typeof(arg), relevant_memory; kwargs...)
     return EstimateMemory(T, process_trait(arg), output_memory, internal_memory, nothing)
-end
-
-function validate_computation_chain(T, arg)
-    S = select_source_type(T, arg)
-    if arg isa S
-        return nothing
-    end
-    if S === SpatialData # If you reach this point without typeof(arg) in the chain, you cant go further as Spatial Data is the base of everything
-        error("Estimates of type $T cannot be computed from $(typeof(arg)).")
-    elseif S === T
-        # this error will only happen if an incorrect extension is made when adding a new statistic
-        error("Estimates of type $T have an incorrectly defined computation chain, you will have missdefined `computed_from` to be circular.")
-    else
-        validate_computation_chain(S, arg)
-    end
 end

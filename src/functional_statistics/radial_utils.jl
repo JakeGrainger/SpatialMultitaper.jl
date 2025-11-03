@@ -17,8 +17,9 @@ end
 
 function validate_radii(radii)
     @argcheck all(radii .>= 0)
-    side_length = sides(boundingbox(getregion(data)))
-    @argcheck all(radii .<= Meshes.ustrip(minimum(side_length)))
+    # side_length = sides(boundingbox(getregion(data)))
+    # @argcheck all(radii .<= Meshes.ustrip(minimum(side_length)))
+    nothing
 end
 
 process_radii(radii, ::SpatialData) = radii
@@ -26,4 +27,7 @@ function process_radii(::Nothing, data::SpatialData)
     region = getregion(data)
     short_side = Meshes.ustrip(minimum(sides(boundingbox(region))))
     return range(0, short_side / 3, length = 100)
+end
+function process_radii(::Nothing, ::AbstractEstimate)
+    throw(ArgumentError("Default `radii` only available when computing from `SpatialData`, `radii` keyword argument must be provided."))
 end

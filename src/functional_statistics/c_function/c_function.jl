@@ -55,27 +55,62 @@ get_base_estimate_name(::Type{<:CFunction}) = "C function"
 
 ## required interface
 
-function computed_from(::Type{CFunction{E, D}}) where {E, D}
+function computed_from(::Type{<:CFunction{E, D}}) where {E, D}
     return (Spectra{E, D}, RotationalSpectra{E, D})
 end
 
-function allocate_estimate_memory(
-        ::Type{<:CFunction}, ::Type{S}, relevant_memory; kwargs...) where {S <: Spectra}
-    mem = relevant_memory[1:2]
-    wavenumber = _extract_wavenumber_from_c_mem(relevant_memory[3]; kwargs...)
-    spatial_output = preallocate_radial_output(mem...; kwargs...)
-    weights = precompute_c_weights(S, mem[1], wavenumber; kwargs...)
-    return spatial_output, weights
+function select_source_type(
+        T::Type{<:CFunction}, arg; c_algorithm = CFunctionAutoSelect(), kwargs...)
+    _select_c_source_type(T, c_algorithm, arg; kwargs...)
 end
-function _extract_wavenumber_from_c_mem(::Nothing; nk, kmax, kwargs...)
+
+abstract type CFunctionSelection end
+struct CFunctionFromSpectra <: CFunctionSelection end
+struct CFunctionFromRotationalSpectra <: CFunctionSelection end
+struct CFunctionAutoSelect <: CFunctionSelection end
+function _select_c_source_type(
+        ::Type{<:CFunction{E, D}}, ::CFunctionFromSpectra, arg; kwargs...) where {E, D}
+    return Spectra{E, D}
+end
+function _select_c_source_type(::Type{<:CFunction{E, D}}, ::CFunctionFromRotationalSpectra,
+        arg; kwargs...) where {E, D}
+    return RotationalSpectra{E, D}
+end
+function _select_c_source_type(
+        T::Type{<:CFunction{E, D}}, ::CFunctionAutoSelect, arg; kwargs...) where {E, D}
+    return Spectra{E, D}
+end
+function _select_c_source_type(T::Type{<:CFunction{E, D}}, ::CFunctionAutoSelect,
+        arg::RotationalSpectra{E, D}; kwargs...) where {
+        E, D}
+    return RotationalSpectra{E, D}
+end
+process_c_algorithm(s::String) = process_c_algorithm(Symbol(s))
+process_c_algorithm(s::Symbol) = process_c_algorithm(Val{s}())
+process_c_algorithm(::Nothing) = CFunctionAutoSelect()
+process_c_algorithm(::Val{:auto}) = CFunctionAutoSelect()
+process_c_algorithm(::Val{:from_spectra}) = CFunctionFromSpectra()
+process_c_algorithm(::Val{:from_rotational_spectra}) = CFunctionFromRotationalSpectra()
+function process_c_algorithm(::Val{T}) where {T}
+    throw(ArgumentError("Unknown C function algorithm selection: $T"))
+end
+
+function _extract_wavenumber_from_c_mem(::Type{<:Spectra}, ::Nothing; nk, kmax, kwargs...)
     _choose_wavenumbers_1d.(nk, kmax)
 end
-_extract_wavenumber_from_c_mem(wavenumber; kwargs...) = wavenumber
+function _extract_wavenumber_from_c_mem(
+        ::Type{<:RotationalSpectra}, ::Nothing; radii, kwargs...)
+    radii
+end
+function _extract_wavenumber_from_c_mem(
+        ::Type{<:NormalOrRotationalSpectra}, wavenumber; kwargs...)
+    wavenumber
+end
 
 function allocate_estimate_memory(::Type{<:CFunction}, ::Type{S}, relevant_memory;
         kwargs...) where {S <: NormalOrRotationalSpectra}
     mem = relevant_memory[1:2]
-    wavenumber = _extract_wavenumber_from_c_mem(relevant_memory[3]; kwargs...)
+    wavenumber = _extract_wavenumber_from_c_mem(S, relevant_memory[3]; kwargs...)
     spatial_output = preallocate_c_output(S, mem...; kwargs...)
     weights = precompute_c_weights(S, mem[1], wavenumber; kwargs...)
     return spatial_output, weights
@@ -95,23 +130,30 @@ function extract_relevant_memory(
     return mem.output_memory, process_trait(mem), nothing
 end
 
-function validate_core_parameters(::Type{<:CFunction}, radii, kwargs...)
-    validate_radii(radii)
+function preprocess_algorithm_kwargs(::Type{<:CFunction}; kwargs...)
+    if :c_algorithm in keys(kwargs)
+        c_algorithm = process_c_algorithm(kwargs[:c_algorithm])
+        other_kwargs = filter(kv -> kv[1] != :c_algorithm, kwargs)
+        return (c_algorithm = c_algorithm, other_kwargs...)
+    else
+        return kwargs
+    end
+end
+
+function validate_core_parameters(::Type{<:CFunction}; kwargs...)
+    if :radii in keys(kwargs)
+        radii = kwargs[:radii]
+        validate_radii(radii)
+    end
     return nothing
 end
-# when no radii are provided, defaults will be set in apply_parameter_defaults
-validate_core_parameters(::Type{<:CFunction}; kwargs...) = nothing
 
-function resolve_missing_parameters(::Type{<:CFunction}, spec::Spectra; kwargs...)
-    if !haskey(kwargs, :radii)
-        throw(ArgumentError("When computing C function from spectra, `radii` keyword argument must be provided."))
-    end
-    return kwargs
-end
-
-function resolve_missing_parameters(::Type{<:CFunction}, data::SpatialData; kwargs...)
+function resolve_missing_parameters(::Type{<:CFunction}, arg; kwargs...)
     radii = get(kwargs, :radii, nothing)
-    return (radii = process_radii(radii, data), kwargs...)
+    c_algorithm = get(kwargs, :c_algorithm, CFunctionAutoSelect()) # Already processed, use default if missing
+    other_kwargs = filter(kv -> kv[1] ∉ (:radii, :c_algorithm), kwargs)
+    return (radii = process_radii(radii, arg),
+        c_algorithm = c_algorithm, other_kwargs...)
 end
 
 function validate_memory_compatibility(

@@ -20,7 +20,7 @@ end
 function allocate_estimate_memory(
         ::Type{<:PairCorrelationFunction}, ::Type{S}, relevant_memory; kwargs...) where {S}
     mem = relevant_memory[1:2]
-    wavenumber = _extract_wavenumber_from_c_mem(relevant_memory[3]; kwargs...)
+    wavenumber = _extract_wavenumber_from_c_mem(S, relevant_memory[3]; kwargs...)
     spatial_output = preallocate_pcf_output(S, mem...; kwargs...)
     weights = precompute_pcf_weights(S, mem[1], wavenumber; kwargs...)
     return spatial_output, weights

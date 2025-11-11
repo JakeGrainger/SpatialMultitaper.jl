@@ -37,7 +37,6 @@ include("functional_statistics/infrastructure/misc.jl")
 include("functional_statistics/infrastructure/printing.jl")
 include("functional_statistics/infrastructure/errors.jl")
 include("functional_statistics/infrastructure/spectral_matrix_transforms.jl")
-include("functional_statistics/radial_utils.jl")
 
 include("functional_statistics/rotational_estimate/rotational_estimate.jl")
 include("functional_statistics/marginal_transform/marginal_transform.jl")
@@ -51,6 +50,8 @@ include("functional_statistics/k_function/k_function.jl")
 include("functional_statistics/l_function/l_function.jl")
 include("functional_statistics/centered_l_function/centered_l_function.jl")
 include("functional_statistics/pair_correlation_function/pair_correlation_function.jl")
+
+include("functional_statistics/radial_utils.jl")
 
 include("api/wavenumber/api.jl")
 include("api/spatial/api.jl")

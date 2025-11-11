@@ -75,7 +75,7 @@ end
 
 function compute_estimate!(
         ::Type{<:PairCorrelationFunction{E}}, mem, arg::Spectra; radii, kwargs...) where {E}
-    estimate = _sdf2Cpcf!(mem.output_memory, mem.internal_memory, arg, radii)
+    estimate = _sdf2pcf!(mem.output_memory, mem.internal_memory, arg, radii)
 
     processinfo = get_process_information(arg)
     estimationinfo = get_estimation_information(arg)
@@ -121,14 +121,14 @@ end
 
 ### from spectra
 
-function _sdf2Cpcf!(out, store, spectrum::Spectra, radii)
+function _sdf2pcf!(out, store, spectrum::Spectra, radii)
     power = get_estimates(spectrum)
     zero_atom = get_process_information(spectrum).atoms
     trait = process_trait(spectrum)
-    return _sdf2C_internal!(out, store, power, trait, zero_atom, radii)
+    return _sdf2pcf_internal!(out, store, power, trait, zero_atom, radii)
 end
 
-function _sdf2Cpcf_internal!(
+function _sdf2pcf_internal!(
         out, store, power, ::Union{SingleProcessTrait, MultipleTupleTrait},
         zero_atom, radii::AbstractVector)
     for i in eachindex(out)
@@ -138,7 +138,7 @@ function _sdf2Cpcf_internal!(
     return out
 end
 
-function _sdf2Cpcf_internal!(
+function _sdf2pcf_internal!(
         out, store, power::AbstractArray{<:Number, N}, ::MultipleVectorTrait,
         zero_atom, radii::AbstractVector) where {N}
     for i in axes(out, ndims(out))

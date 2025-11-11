@@ -205,7 +205,7 @@ Ensures all data has the same parameter dimension as the region.
 check_observations(data::PointSet, region) = @argcheck embeddim(data) == embeddim(region)
 function check_observations(data::GeoTable, region)
     @argcheck embeddim(domain(data)) == embeddim(region)
-    @argcheck all(isfinite, values(data)[1])
+    @argcheck all(x -> isfinite(x) || isnan(x), values(data)[1])
 end
 function check_observations(data::Union{Tuple, Vector}, region)
     foreach(d -> check_observations(d, region), data)

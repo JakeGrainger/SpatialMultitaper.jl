@@ -43,6 +43,7 @@ end
 
 function validate_core_parameters(::Type{<:PairCorrelationFunction}, radii, kwargs...)
     validate_radii(radii)
+    @argcheck all(radii .> 0)
     return nothing
 end
 validate_core_parameters(::Type{<:PairCorrelationFunction}; kwargs...) = nothing
@@ -50,7 +51,7 @@ validate_core_parameters(::Type{<:PairCorrelationFunction}; kwargs...) = nothing
 function resolve_missing_parameters(
         ::Type{<:PairCorrelationFunction}, ::Type{<:Spectra}, arg; kwargs...)
     radii = get(kwargs, :radii, nothing)
-    return (radii = process_radii(radii, arg), kwargs...)
+    return (radii = process_pcf_radii(radii, arg), kwargs...)
 end
 
 function resolve_missing_parameters(

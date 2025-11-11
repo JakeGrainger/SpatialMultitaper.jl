@@ -40,23 +40,28 @@ function extract_relevant_memory(
     return mem.output_memory, process_trait(mem), nothing
 end
 
-function validate_core_parameters(::Type{<:PairCorrelationFunction}, radii, kwargs...)
-    validate_radii(radii)
-    @argcheck all(radii .> 0)
+function validate_core_parameters(::Type{<:PairCorrelationFunction}; kwargs...)
+    if :radii in keys(kwargs)
+        radii = kwargs[:radii]
+        validate_radii(radii)
+    end
     return nothing
 end
-validate_core_parameters(::Type{<:PairCorrelationFunction}; kwargs...) = nothing
 
 function resolve_missing_parameters(
         ::Type{<:PairCorrelationFunction}, ::Type{<:Spectra}, arg; kwargs...)
     radii = get(kwargs, :radii, nothing)
-    return (radii = process_pcf_radii(radii, arg), kwargs...)
+    other_kwargs = filter(kv -> kv[1] != :radii, kwargs)
+    return (radii = process_pcf_radii(radii, arg), other_kwargs...)
 end
 
 function resolve_missing_parameters(
         ::Type{<:PairCorrelationFunction}, ::Type{<:KFunction}, arg; kwargs...)
     pcf_method = get(kwargs, :pcf_method, nothing)
-    return (pcf_method = process_pcf_method(pcf_method), kwargs...)
+    radii = get(kwargs, :radii, nothing)
+    other_kwargs = filter(kv -> kv[1] ∉ (:pcf_method, :radii), kwargs)
+    return (pcf_method = process_pcf_method(pcf_method),
+        radii = process_pcf_radii(radii, arg), other_kwargs...)
 end
 
 function validate_memory_compatibility(

@@ -32,7 +32,9 @@ function process_radii(::Nothing, ::AbstractEstimate)
     throw(ArgumentError("Default `radii` only available when computing from `SpatialData`, `radii` keyword argument must be provided."))
 end
 
-process_pcf_radii(radii, data::SpatialData) = radii
+function process_pcf_radii(radii, data::SpatialData)
+    return radii[(iszero(radii[1]) + 1):end]
+end
 function process_pcf_radii(::Nothing, arg)
-    return process_radii[2:end]
+    return process_radii(nothing, arg)[2:end]
 end

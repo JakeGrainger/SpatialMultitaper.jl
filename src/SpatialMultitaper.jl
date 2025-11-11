@@ -63,6 +63,8 @@ include("resampling/partial_resampling/partial_marginal_resampling.jl")
 include("resampling/partial_resampling/partial_resampling.jl")
 include("resampling/shift_resampling/shift.jl")
 
+include("splines/spar_parameter.jl")
+
 export ncol, observations, getregion, spatial_data
 
 export spectra,

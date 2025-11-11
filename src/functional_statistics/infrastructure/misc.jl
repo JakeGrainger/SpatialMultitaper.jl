@@ -23,7 +23,9 @@ function Base.:(==)(a::AbstractEstimate, b::AbstractEstimate)
 end
 
 Meshes.embeddim(::AbstractEstimate{E, D}) where {E, D} = D
-Base.size(est::AbstractEstimate) = size(get_process_information(est).mean_product)
+function Base.size(est::AbstractEstimate, args...)
+    size(get_process_information(est).mean_product, args...)
+end
 function processnames(estimate::AbstractEstimate)
     processinfo = get_process_information(estimate)
     (processinfo.process_indices_1, processinfo.process_indices_2)

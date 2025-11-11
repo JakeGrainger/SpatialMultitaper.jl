@@ -14,22 +14,21 @@ end
 
 ## required interface
 function computed_from(::Type{<:PairCorrelationFunction{E, D}}) where {E, D}
-    (Spectra{E, D}, KFunction{E, D})
+    (KFunction{E, D}, Spectra{E, D})
 end
 
-function allocate_estimate_memory(
-        ::Type{<:PairCorrelationFunction}, ::Type{S}, relevant_memory; kwargs...) where {S}
+function allocate_estimate_memory(::Type{<:PairCorrelationFunction}, ::Type{S},
+        relevant_memory; kwargs...) where {S <: Spectra}
     mem = relevant_memory[1:2]
     wavenumber = _extract_wavenumber_from_c_mem(S, relevant_memory[3]; kwargs...)
-    spatial_output = preallocate_pcf_output(S, mem...; kwargs...)
+    spatial_output = preallocate_radial_output(mem...; kwargs...)
     weights = precompute_pcf_weights(S, mem[1], wavenumber; kwargs...)
     return spatial_output, weights
 end
-function preallocate_pcf_output(::Type{<:Spectra}, mem...; kwargs...)
-    return preallocate_radial_output(mem...; kwargs...)
-end
-function preallocate_pcf_output(::Type{<:KFunction}, mem...; kwargs...)
-    return mem[1]
+function allocate_estimate_memory(
+        ::Type{<:PairCorrelationFunction}, ::Type{S},
+        relevant_memory; kwargs...) where {S <: KFunction}
+    return relevant_memory[1], nothing
 end
 
 function extract_relevant_memory(
@@ -86,7 +85,7 @@ end
 function compute_estimate!(::Type{<:PairCorrelationFunction{E}}, mem,
         arg::KFunction; pcf_method, kwargs...) where {E}
     radii = get_evaluation_points(arg)
-    estimate = k2paircorrelation(arg, pcf_method) # TODO: modify to use memory
+    estimate = k2paircorrelation(arg, process_trait(arg), pcf_method) # TODO: modify to use memory
 
     processinfo = get_process_information(arg)
     estimationinfo = get_estimation_information(arg)
@@ -191,16 +190,16 @@ end
 
 abstract type PCFMethod end
 @kwdef struct PCFMethodA{T} <: PCFMethod
-    penalty::T = 0.0
+    penalty::T = 0.5
 end
 @kwdef struct PCFMethodB{T} <: PCFMethod
-    penalty::T = 0.0
+    penalty::T = 0.5
 end
 @kwdef struct PCFMethodC{T} <: PCFMethod
-    penalty::T = 0.0
+    penalty::T = 0.5
 end
 @kwdef struct PCFMethodD{T} <: PCFMethod
-    penalty::T = 0.0
+    penalty::T = 0.5
 end
 
 process_pcf_method(::Nothing) = PCFMethodC()
@@ -209,11 +208,16 @@ function process_pcf_method(pcf_method)
     throw(ArgumentError("Invalid pcf_method provided, should be a `PCFMethod`, but $pcf_method provided."))
 end
 
-function k2paircorrelation(est::KFunction{E, D}, method) where {E, D}
+function k2paircorrelation(est::KFunction{E, D}, ::SingleProcessTrait, method) where {E, D}
+    radii = get_evaluation_points(est)
+    return _k2paircorrelation(radii, get_estimates(est), Val{D}(), method)
+end
+
+function k2paircorrelation(est::KFunction{E, D}, trait, method) where {E, D}
     radii = get_evaluation_points(est)
     stacked_pcf = stack(_k2paircorrelation(
                             radii, get_estimates(est[i, j]), Val{D}(), method)
-    for i in 1:size(est)[1], j in 1:size(est)[2])
+    for i in 1:size(est, 1), j in 1:size(est, 2))
     return _post_process_pcf(stacked_pcf, est)
 end
 
@@ -228,36 +232,38 @@ end
 _reshape_pcf_output(data, ::AbstractArray{<:Number, 3}) = permutedims(data, (2, 3, 1))
 
 function _k2paircorrelation(radii, k, ::Val{D}, method::PCFMethodA) where {D}
-    penalty = method.penalty
-    A = 2 * (π)^(D / 2) / gamma(D / 2)
+    penalty = spar_to_lambda(BSplineKit.BSplineOrder(4), radii, k, method.penalty)
     kinterp = BSplineKit.fit(BSplineKit.BSplineOrder(4), radii, k, penalty)
+    A = 2 * (π)^(D / 2) / gamma(D / 2)
     ∂k = BSplineKit.Derivative(1) * kinterp
     return ∂k.(radii) ./ (A .* radii .^ (D - 1))
 end
 
 function _k2paircorrelation(radii, k, ::Val{2}, method::PCFMethodA)
-    penalty = method.penalty
+    penalty = spar_to_lambda(BSplineKit.BSplineOrder(4), radii, k, method.penalty)
     kinterp = BSplineKit.fit(BSplineKit.BSplineOrder(4), radii, k, penalty)
     ∂k = BSplineKit.Derivative(1) * kinterp
     return ∂k.(radii) ./ (2pi .* radii)
 end
 
 function _k2paircorrelation(radii, k, ::Val{2}, method::PCFMethodB)
-    penalty = method.penalty
+    penalty = spar_to_lambda(
+        BSplineKit.BSplineOrder(4), radii, k ./ (2π .* radii), method.penalty)
     y = BSplineKit.fit(BSplineKit.BSplineOrder(4), radii, k ./ (2π .* radii), penalty)
     ∂y = BSplineKit.Derivative(1) * y
     return ∂y.(radii) + k ./ (2π .* radii .^ 2)
 end
 
 function _k2paircorrelation(radii, k, ::Val{2}, method::PCFMethodC)
-    penalty = method.penalty
+    penalty = spar_to_lambda(
+        BSplineKit.BSplineOrder(4), radii, k ./ (2π .* radii .^ 2), method.penalty)
     z = BSplineKit.fit(BSplineKit.BSplineOrder(4), radii, k ./ (2π .* radii .^ 2), penalty)
     ∂z = BSplineKit.Derivative(1) * z
     return ∂z.(radii) .* radii + k ./ (π .* radii .^ 2)
 end
 
 function _k2paircorrelation(radii, k, ::Val{2}, method::PCFMethodD)
-    penalty = method.penalty
+    penalty = spar_to_lambda(BSplineKit.BSplineOrder(4), radii, sqrt.(k), method.penalty)
     v = BSplineKit.fit(BSplineKit.BSplineOrder(4), radii, sqrt.(k), penalty)
     ∂v = BSplineKit.Derivative(1) * v
     return ∂v.(radii) .* sqrt.(k) ./ (π .* radii)

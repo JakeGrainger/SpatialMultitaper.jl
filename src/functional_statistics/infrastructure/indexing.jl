@@ -225,7 +225,7 @@ _index_to_vec(i::AbstractVector) = i
 function _get_estimate_index(::MultipleVectorTrait, estimate::AbstractArray{<:Number, N},
         p::Int, q::Int) where {N}
     # Once first is selected, second becomes first
-    estimate[p, q, ntuple(Returns(:), Val{N - 2}())]
+    estimate[p, q, ntuple(Returns(:), Val{N - 2}())...]
 end
 
 function _get_estimate_index(::MultipleVectorTrait, estimate::AbstractArray{<:Number, N},

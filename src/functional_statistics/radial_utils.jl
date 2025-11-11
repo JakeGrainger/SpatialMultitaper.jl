@@ -38,3 +38,10 @@ end
 function process_pcf_radii(::Nothing, arg)
     return process_radii(nothing, arg)[2:end]
 end
+function process_pcf_radii(radii, arg::KFunction)
+    if iszero(radii[1])
+        error("When computing pcf from a K function, you need to not use zero radii.")
+    else
+        return radii
+    end
+end

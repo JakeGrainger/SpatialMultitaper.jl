@@ -124,13 +124,14 @@ end
 function _sdf2pcf!(out, store, spectrum::Spectra, radii)
     power = get_estimates(spectrum)
     zero_atom = get_process_information(spectrum).atoms
+    mean_prod = get_process_information(spectrum).mean_product
     trait = process_trait(spectrum)
-    return _sdf2pcf_internal!(out, store, power, trait, zero_atom, radii)
+    return _sdf2pcf_internal!(out, store, power, trait, zero_atom, mean_prod, radii)
 end
 
 function _sdf2pcf_internal!(
         out, store, power, ::Union{SingleProcessTrait, MultipleTupleTrait},
-        zero_atom, radii::AbstractVector)
+        zero_atom, mean_prod, radii::AbstractVector)
     for i in eachindex(out)
         out[i] = _sdf2C_sum(selectdim(store, ndims(store), i), power, zero_atom) ./
                  (mean_prod) .+ 1
@@ -140,7 +141,7 @@ end
 
 function _sdf2pcf_internal!(
         out, store, power::AbstractArray{<:Number, N}, ::MultipleVectorTrait,
-        zero_atom, radii::AbstractVector) where {N}
+        zero_atom, mean_prod, radii::AbstractVector) where {N}
     for i in axes(out, ndims(out))
         store_slice = selectdim(store, ndims(store), i)
         for idx in CartesianIndices(size(out)[1:2])

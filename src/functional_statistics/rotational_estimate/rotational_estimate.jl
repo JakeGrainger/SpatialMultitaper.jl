@@ -256,11 +256,9 @@ end
 
 function default_rotational_radii(wavenumber::NTuple{D, AbstractVector{<:Real}}) where {D}
     max_wavenumber = minimum(x -> maximum(abs, x), wavenumber)
-    n_wavenumber = maximum(length, wavenumber)
-    zero_range = range(
-        zero(eltype(max_wavenumber)), stop = max_wavenumber, length = n_wavenumber)
+    step_wavenumber = minimum(step, wavenumber)
     # Offset by half step to integrate with endpoints at zero range steps
-    used_range = range(step(zero_range) / 2, stop = max_wavenumber, step = step(zero_range))
+    used_range = range(step_wavenumber / 2, stop = max_wavenumber, step = step_wavenumber)
     return used_range
 end
 

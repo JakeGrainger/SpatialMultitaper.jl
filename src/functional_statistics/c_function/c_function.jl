@@ -56,7 +56,7 @@ get_base_estimate_name(::Type{<:CFunction}) = "C function"
 ## required interface
 
 function computed_from(::Type{<:CFunction{E, D}}) where {E, D}
-    return (Spectra{E, D}, RotationalSpectra{E, D})
+    return (RotationalSpectra{E, D}, Spectra{E, D})
 end
 
 function select_source_type(
@@ -78,7 +78,7 @@ function _select_c_source_type(::Type{<:CFunction{E, D}}, ::CFunctionFromRotatio
 end
 function _select_c_source_type(
         T::Type{<:CFunction{E, D}}, ::CFunctionAutoSelect, arg; kwargs...) where {E, D}
-    return Spectra{E, D}
+    return RotationalSpectra{E, D}
 end
 function _select_c_source_type(T::Type{<:CFunction{E, D}}, ::CFunctionAutoSelect,
         arg::RotationalSpectra{E, D}; kwargs...) where {

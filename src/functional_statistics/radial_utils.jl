@@ -22,7 +22,7 @@ function validate_radii(radii)
     nothing
 end
 
-process_radii(radii, ::SpatialData) = radii
+process_radii(radii, arg) = radii
 function process_radii(::Nothing, data::SpatialData)
     region = getregion(data)
     short_side = Meshes.ustrip(minimum(sides(boundingbox(region))))

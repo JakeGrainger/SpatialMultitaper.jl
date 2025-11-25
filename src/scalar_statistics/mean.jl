@@ -19,7 +19,7 @@ function mean_estimate(data::SpatialData, mean_method)
     mean_estimate(observations(data), getregion(data), mean_method)
 end
 
-function mean_estimate(data::NTuple{D}, region, mean_method) where {D}
+function mean_estimate(data::NTuple{D, Any}, region, mean_method) where {D}
     SVector(ntuple(j -> _mean_estimate(data[j], region, mean_method[j]), Val{D}()))
 end
 

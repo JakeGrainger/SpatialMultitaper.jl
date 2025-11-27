@@ -365,7 +365,7 @@ SL = [0.1]
         @test theoretical≈general atol=1e-6
     end
 end
-@testset "anisotropic integrals" begin
+@testset "isotropic integrals" begin
     @testset "r=$r, ||u||=$u, dim=$dim, sl=$sl" for r in R, u in U, sl in SL, dim in 1:3
         theoretical = _isotropic_c_weight(r, u, sl, Val{dim}())
         general = _isotropic_c_weight_generic(r, u, sl, Val{dim}())

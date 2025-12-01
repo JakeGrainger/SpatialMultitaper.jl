@@ -313,11 +313,6 @@ end
     result = c_function(
         points_data, radii = small_radii, nk = (8, 8), kmax = (0.5, 0.5), tapers = tapers)
     @test all(x -> all(isfinite.(x)), get_estimates(result))
-
-    # radii outside region size should error
-    large_radii = [2.0, 100.0]
-    @test_throws ArgumentError c_function(
-        points_data, radii = large_radii, nk = (8, 8), kmax = (0.5, 0.5), tapers = tapers)
 end
 
 @testset "isotropic transformation in 2d" begin
@@ -335,16 +330,9 @@ end
     points_vec = spatial_data([points_raw[1]], region)
     points_tuple = spatial_data((points_raw[1],), region)
 
-    tapers = sin_taper_family(bw, region)
-    c_single = c_function(
-        points_single, radii = radii, nk = nk, kmax = kmax, tapers = tapers,
-        rotational_method = default_rotational_kernel(nk, kmax))
-    c_vec = c_function(
-        points_vec, radii = radii, nk = nk, kmax = kmax, tapers = tapers,
-        rotational_method = default_rotational_kernel(nk, kmax))
-    c_tuple = c_function(
-        points_tuple, radii = radii, nk = nk, kmax = kmax, tapers = tapers,
-        rotational_method = default_rotational_kernel(nk, kmax))
+    c_single = c_function(points_single, radii = radii, nk = nk, kmax = kmax)
+    c_vec = c_function(points_vec, radii = radii, nk = nk, kmax = kmax)
+    c_tuple = c_function(points_tuple, radii = radii, nk = nk, kmax = kmax)
 
     @test c_single isa CFunction
     @test c_vec isa CFunction

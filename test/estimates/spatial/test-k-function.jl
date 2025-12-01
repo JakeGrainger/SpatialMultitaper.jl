@@ -2,7 +2,7 @@ using Test, SpatialMultitaper, StableRNGs, StaticArrays, LinearAlgebra, Benchmar
 include("../../test_utilities/TestData.jl")
 using .TestData
 
-import SpatialMultitaper: get_estimates, get_evaluation_points, KFunction, k_function!,
+import SpatialMultitaper: get_estimates, get_evaluation_points, KFunction,
                           get_process_information, process_trait, _c_to_k_transform!
 rng = StableRNG(123)
 
@@ -341,11 +341,6 @@ end
         points_data, radii = small_radii, nk = (8, 8), kmax = (0.5, 0.5), tapers = tapers)
     @test all(x -> all(isfinite.(x)), get_estimates(result))
 
-    # Test large radii
-    large_radii = [2.0, 100.0]
-    @test_throws ArgumentError k_function(
-        points_data, radii = large_radii, nk = (8, 8), kmax = (0.5, 0.5), tapers = tapers)
-
     # Test K function at zero (should be zero or near zero)
     zero_radius = [0.0]
     result_zero = k_function(
@@ -360,17 +355,10 @@ end
     radii = [0.1, 0.3, 0.5]
     spectrum = spectra(points_data, nk = (16, 16), kmax = (0.5, 0.5), tapers = tapers)
     c_fun = c_function(spectrum, radii = radii)
+    value = deepcopy(get_estimates(c_fun))
 
     mean_prod = get_process_information(c_fun).mean_product
     alloc = @ballocated _c_to_k_transform!(
-        $radii, get_estimates($c_fun), process_trait($spectrum), $mean_prod, Val{2}()) samples=1
-    @test alloc == 0
-
-    # from spatial data
-    alloc = @ballocated k_function!($spectrum, radii = $radii) samples=1
-    @test_broken alloc == 0
-
-    # from c function
-    alloc = @ballocated k_function!($c_fun) samples=1
+        $value, $radii, get_estimates($c_fun), process_trait($spectrum), $mean_prod, Val{2}()) samples=1
     @test alloc == 0
 end

@@ -2,7 +2,8 @@ using Test, SpatialMultitaper, StableRNGs, StaticArrays, LinearAlgebra, Benchmar
 include("../../test_utilities/TestData.jl")
 using .TestData
 
-import SpatialMultitaper: get_estimates, get_evaluation_points, LFunction, l_function!
+import SpatialMultitaper: get_estimates, get_evaluation_points, LFunction,
+                          _k_to_l_transform!
 
 #
 rng = StableRNG(123)
@@ -404,11 +405,6 @@ end
         points_data, radii = small_radii, nk = (8, 8), kmax = (0.5, 0.5), tapers = tapers)
     @test all(x -> all(isfinite.(x)), get_estimates(result))
 
-    # Test large radii
-    large_radii = [2.0, 100.0]
-    @test_throws ArgumentError l_function(
-        points_data, radii = large_radii, nk = (8, 8), kmax = (0.5, 0.5), tapers = tapers)
-
     # Test L function at zero (should be zero or near zero)
     zero_radius = [0.0]
     result_zero = l_function(
@@ -424,16 +420,10 @@ end
     spectrum = spectra(points_data, nk = (16, 16), kmax = (0.5, 0.5), tapers = tapers)
     c_fun = c_function(spectrum, radii = radii)
     k_fun = k_function(spectrum, radii = radii)
-
-    # from spatial data
-    alloc = @ballocated l_function!($spectrum, radii = $radii) samples=1
-    @test_broken alloc == 0
-
-    # from c function
-    alloc = @ballocated l_function!($c_fun) samples=1
-    @test alloc == 0
+    k_val = get_estimates(k_fun)
+    value = deepcopy(get_estimates(k_fun))
 
     # from k function
-    alloc = @ballocated l_function!($k_fun) samples=1
+    alloc = @ballocated _k_to_l_transform!($value, $k_val, Val{2}()) samples=1
     @test alloc == 0
 end

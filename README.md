@@ -16,6 +16,8 @@
 
 If you use SpatialMultitaper.jl in your work, please cite using the reference given in [CITATION.cff](https://github.com/JakeGrainger/SpatialMultitaper.jl/blob/main/CITATION.cff).
 
+For the spatial multitaper methodology, please cite Grainger, J. P., Rajala, T. A., Murrell, D. J., & Olhede, S. C. (2023). Spectral estimation for spatial point processes and random fields. arXiv preprint arXiv:2312.10176.
+
 ## Contributing
 
 If you want to make contributions of any kind, please first that a look into our [contributing guide directly on GitHub](docs/src/90-contributing.md) or the [contributing page on the website](https://JakeGrainger.github.io/SpatialMultitaper.jl/dev/90-contributing/)

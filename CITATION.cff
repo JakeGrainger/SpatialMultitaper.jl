@@ -5,5 +5,9 @@ message: >-
   If you use this software, please cite it using the
   metadata from this file.
 type: software
-authors: Jake P Grainger
+authors:
+- family-names: "Grainger"
+  given-names: "Jake P"
+  orcid: "https://orcid.org/0000-0002-8808-4821"
+version: 0.0.10
   

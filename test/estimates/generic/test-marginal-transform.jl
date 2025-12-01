@@ -3,7 +3,7 @@ include("../../test_utilities/TestUtils.jl")
 using .TestUtils
 
 import SpatialMultitaper: MarginallyTransformedEstimate, apply_marginal_transform!,
-                          get_estimate_name, getoriginaltype, gettransformname,
+                          get_estimate_name, get_original_type, get_transform_name,
                           get_estimates,
                           get_evaluation_points, Spectra, get_process_information,
                           get_estimation_information
@@ -181,8 +181,8 @@ end
 
     @testset "Type information" begin
         abs_spec = abs(spec)
-        @test getoriginaltype(typeof(abs_spec)) <: Spectra
-        @test gettransformname(typeof(abs_spec)) == "abs"  # Stripped function name
+        @test get_original_type(typeof(abs_spec)) <: Spectra
+        @test get_transform_name(abs_spec) == "abs"  # Stripped function name
     end
 end
 

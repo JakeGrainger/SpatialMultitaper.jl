@@ -119,13 +119,13 @@ get_evaluation_points(est::MarginallyTransformedEstimate) = est.argument
 ## additional interface
 
 function get_estimate_name(T::Type{<:MarginallyTransformedEstimate})::String
-    return "$(get_transform_name(T))($(get_estimate_name(getoriginaltype(T))))"
+    return "$(get_transform_name(T))($(get_estimate_name(get_original_type(T))))"
 end
 function get_short_estimate_name(T::Type{<:MarginallyTransformedEstimate})::String
-    return "$(get_transform_name(T))($(get_short_estimate_name(getoriginaltype(T))))"
+    return "$(get_transform_name(T))($(get_short_estimate_name(get_original_type(T))))"
 end
 function get_short_base_estimate_name(T::Type{<:MarginallyTransformedEstimate})::String
-    return "$(get_transform_name(T))($(get_short_base_estimate_name(getoriginaltype(T))))"
+    return "$(get_transform_name(T))($(get_short_base_estimate_name(get_original_type(T))))"
 end
 
 """
@@ -144,11 +144,11 @@ end
 # Type introspection utilities
 
 """
-    getoriginaltype(::Type{<:MarginallyTransformedEstimate{E, D, N, S}}) where {E, D, N, S}
+    get_original_type(::Type{<:MarginallyTransformedEstimate{E, D, N, S}}) where {E, D, N, S}
 
 Extract the original estimate type before transformation.
 """
-function getoriginaltype(::Type{<:MarginallyTransformedEstimate{
+function get_original_type(::Type{<:MarginallyTransformedEstimate{
         E, D, S}}) where {E, D, S}
     return S
 end

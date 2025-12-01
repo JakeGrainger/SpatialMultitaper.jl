@@ -129,11 +129,11 @@ get_estimates(f::RotationalEstimate) = f.estimate
 ## additional interface
 
 """
-    getoriginaltype(::Type{<:RotationalEstimate{E, D, S}}) where {E, D, S}
+    get_original_type(::Type{<:RotationalEstimate{E, D, S}}) where {E, D, S}
 
 Extract the original estimate type before rotational averaging.
 """
-getoriginaltype(::Type{<:RotationalEstimate{E, D, S}}) where {E, D, S} = S
+get_original_type(::Type{<:RotationalEstimate{E, D, S}}) where {E, D, S} = S
 
 """
     get_estimate_name(::Type{<:RotationalEstimate{E, D, S}}) where {E, D, S}

@@ -66,7 +66,7 @@ import SpatialMultitaper: partial_spectra, partial_spectra_uncorrected, get_esti
     end
 end
 
-@testset "partial_spectra from Spectra" begin
+@testset "partial_spectra computation" begin
     rng = StableRNG(123)
 
     @testset "Basic functionality" begin
@@ -111,11 +111,9 @@ end
         data = make_points_example(
             rng, n_processes = 2, return_type = :tuple, point_number = 30)
         region = getregion(data)
-        spec = spectra(data, nk = (4, 4), kmax = (0.2, 0.2),
-            tapers = sin_taper_family((2, 2), region))
 
-        partial_corrected = partial_spectra(spec)
-        partial_uncorrected = partial_spectra_uncorrected(spec)
+        partial_corrected = partial_spectra(data, kmax = 0.2)
+        partial_uncorrected = partial_spectra_uncorrected(data, kmax = 0.2)
 
         @test partial_uncorrected isa Spectra
         @test is_partial(partial_uncorrected) == true

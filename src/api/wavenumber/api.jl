@@ -54,7 +54,7 @@ end
 
 ## uncorrected partial spectra
 
-function partial_spectra_uncorrected(arg; kwargs...)
+function partial_spectra_uncorrected(arg::SpatialData; kwargs...)
     spectrum = spectra(arg; kwargs...)
     # Create a modified spectrum with no taper information for uncorrected computation
     new_spectrum = Spectra{MarginalTrait}(

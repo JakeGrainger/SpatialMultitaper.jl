@@ -3,7 +3,7 @@ include("../../test_utilities/TestData.jl")
 using .TestData
 
 import SpatialMultitaper: get_estimates, get_evaluation_points, CenteredLFunction,
-                          _l_to_centered_l_transform!
+                          _l_to_centered_l_transform!, process_trait
 
 #
 rng = StableRNG(123)

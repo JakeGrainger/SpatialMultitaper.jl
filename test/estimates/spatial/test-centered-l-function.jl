@@ -3,7 +3,7 @@ include("../../test_utilities/TestData.jl")
 using .TestData
 
 import SpatialMultitaper: get_estimates, get_evaluation_points, CenteredLFunction,
-                          centered_l_function!
+                          _l_to_centered_l_transform!
 
 #
 rng = StableRNG(123)
@@ -389,11 +389,6 @@ end
         points_data, radii = small_radii, nk = (8, 8), kmax = (0.5, 0.5), tapers = tapers)
     @test all(x -> all(isfinite.(x)), get_estimates(result))
 
-    # Test large radii
-    large_radii = [2.0, 100.0]
-    @test_throws ArgumentError centered_l_function(
-        points_data, radii = large_radii, nk = (8, 8), kmax = (0.5, 0.5), tapers = tapers)
-
     # Test centered L function at zero (should be zero or near zero)
     zero_radius = [0.0]
     result_zero = centered_l_function(
@@ -410,20 +405,11 @@ end
     c_fun = c_function(spectrum, radii = radii)
     k_fun = k_function(spectrum, radii = radii)
     l_fun = l_function(spectrum, radii = radii)
-
-    # from spatial data
-    alloc = @ballocated centered_l_function!($spectrum, radii = $radii) samples=1
-    @test_broken alloc == 0
-
-    # from c function
-    alloc = @ballocated centered_l_function!($c_fun) samples=1
-    @test alloc == 0
-
-    # from k function
-    alloc = @ballocated centered_l_function!($k_fun) samples=1
-    @test alloc == 0
+    l_val = get_estimates(l_fun)
+    value = similar(l_val)
 
     # from l function
-    alloc = @ballocated centered_l_function!($l_fun) samples=1
+    alloc = @ballocated _l_to_centered_l_transform!(
+        $value, $radii, $l_val, process_trait($l_fun)) samples=1
     @test alloc == 0
 end

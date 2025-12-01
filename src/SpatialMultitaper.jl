@@ -8,7 +8,7 @@ using Distributions, FFTW, FINUFFT, Interpolations, InvertedIndices, LinearAlgeb
       HypergeometricFunctions, GeoStatsProcesses, Random, ArgCheck, CircularArrays
 
 import DataAPI: ncol
-
+import Interpolations: Periodic
 import BSplineKit
 
 include("SlepianSolver/SlepianSolver.jl")

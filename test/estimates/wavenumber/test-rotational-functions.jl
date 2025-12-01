@@ -15,7 +15,8 @@ data = make_points_example(rng, n_processes = 3, dim = 2,
 
     # With custom radii
     radii = range(0, 0.5, length = 20)
-    result_custom = rotational_spectra(data, nk = 100, kmax = 1.0, radii = radii)
+    result_custom = rotational_spectra(data, nk = 100, kmax = 1.0, rotation_radii = radii)
+    println(size(get_estimates(result_custom)))
     @test size(get_estimates(result_custom), 3) == length(radii)
 end
 

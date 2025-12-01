@@ -65,34 +65,83 @@ end
 
 ## other transforms
 
-magnitude_coherence(arg; kwargs...) = abs(coherence(arg; kwargs...))
-function magnitude_coherence(data, region; kwargs...)
-    magnitude_coherence(spatial_data(data, region); kwargs...)
+function magnitude_coherence(data, region::Meshes.Geometry; kwargs...)
+    return magnitude_coherence(spatial_data(data, region); kwargs...)
+end
+
+function functional_statistic_type(::typeof(magnitude_coherence), arg)
+    MarginallyTransformedEstimate{
+        MarginalTrait, embeddim(arg), Coherence{MarginalTrait, embeddim(arg)}, typeof(abs)}
+end
+
+function magnitude_coherence(arg; kwargs...)
+    return compute(functional_statistic_type(magnitude_coherence, arg), arg; kwargs...)
+end
+
+function partial_magnitude_coherence(data, region::Meshes.Geometry; kwargs...)
+    return partial_magnitude_coherence(spatial_data(data, region); kwargs...)
+end
+
+function functional_statistic_type(::typeof(partial_magnitude_coherence), arg)
+    MarginallyTransformedEstimate{
+        PartialTrait, embeddim(arg), Coherence{PartialTrait, embeddim(arg)}, typeof(abs)}
 end
 
 function partial_magnitude_coherence(arg; kwargs...)
-    abs(partial_coherence(arg; kwargs...))
-end
-function partial_magnitude_coherence(data, region; kwargs...)
-    partial_magnitude_coherence(spatial_data(data, region); kwargs...)
+    return compute(
+        functional_statistic_type(partial_magnitude_coherence, arg), arg; kwargs...)
 end
 
-magnitude_squared_coherence(arg; kwargs...) = abs2(coherence(arg; kwargs...))
-function magnitude_squared_coherence(data, region; kwargs...)
-    magnitude_squared_coherence(spatial_data(data, region); kwargs...)
+function magnitude_squared_coherence(data, region::Meshes.Geometry; kwargs...)
+    return magnitude_squared_coherence(spatial_data(data, region); kwargs...)
 end
 
-function partial_magnitude_squared_coherence(arg; kwargs...)
-    return abs2(partial_coherence(arg; kwargs...))
+function functional_statistic_type(::typeof(magnitude_squared_coherence), arg)
+    MarginallyTransformedEstimate{
+        MarginalTrait, embeddim(arg), Coherence{MarginalTrait, embeddim(arg)}, typeof(abs2)}
 end
-function partial_magnitude_squared_coherence(data, region; kwargs...)
+
+function magnitude_squared_coherence(arg; kwargs...)
+    return compute(
+        functional_statistic_type(magnitude_squared_coherence, arg), arg; kwargs...)
+end
+
+function partial_magnitude_squared_coherence(data, region::Meshes.Geometry; kwargs...)
     return partial_magnitude_squared_coherence(spatial_data(data, region); kwargs...)
 end
 
-phase(arg; kwargs...) = angle(coherence(arg; kwargs...))
-phase(data, region; kwargs...) = phase(spatial_data(data, region); kwargs...)
+function functional_statistic_type(::typeof(partial_magnitude_squared_coherence), arg)
+    MarginallyTransformedEstimate{
+        PartialTrait, embeddim(arg), Coherence{PartialTrait, embeddim(arg)}, typeof(abs2)}
+end
 
-partial_phase(arg; kwargs...) = angle(partial_coherence(arg; kwargs...))
-function partial_phase(data, region; kwargs...)
-    partial_phase(spatial_data(data, region); kwargs...)
+function partial_magnitude_squared_coherence(arg; kwargs...)
+    return compute(
+        functional_statistic_type(partial_magnitude_squared_coherence, arg), arg; kwargs...)
+end
+
+function phase(data, region::Meshes.Geometry; kwargs...)
+    return phase(spatial_data(data, region); kwargs...)
+end
+
+function functional_statistic_type(::typeof(phase), arg)
+    MarginallyTransformedEstimate{
+        MarginalTrait, embeddim(arg), Coherence{MarginalTrait, embeddim(arg)}, typeof(angle)}
+end
+
+function phase(arg; kwargs...)
+    return compute(functional_statistic_type(phase, arg), arg; kwargs...)
+end
+
+function partial_phase(data, region::Meshes.Geometry; kwargs...)
+    return partial_phase(spatial_data(data, region); kwargs...)
+end
+
+function functional_statistic_type(::typeof(partial_phase), arg)
+    MarginallyTransformedEstimate{
+        PartialTrait, embeddim(arg), Coherence{PartialTrait, embeddim(arg)}, typeof(angle)}
+end
+
+function partial_phase(arg; kwargs...)
+    return compute(functional_statistic_type(partial_phase, arg), arg; kwargs...)
 end

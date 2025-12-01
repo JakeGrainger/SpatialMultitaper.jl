@@ -25,7 +25,7 @@ log_est = apply_marginal_transform(x -> log(x + 1e-10), spectrum)
 """
 function apply_marginal_transform(
         transform::F, est::AbstractEstimate{E, D, N}; kwargs...) where {F, E, D, N}
-    compute(MarginallyTransformedEstimate{E, D, N, typeof(est), F}, est; kwargs...)
+    compute(MarginallyTransformedEstimate{E, D, typeof(est), F}, est; kwargs...)
 end
 
 # Standard mathematical transformations

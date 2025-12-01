@@ -1,5 +1,5 @@
 """
-    MarginallyTransformedEstimate{E, D, N, S, F, A, T, IP, IE} <: AbstractEstimate{E, D, N}
+    MarginallyTransformedEstimate{E, D, S, F, N, A, T, IP, IE} <: AbstractEstimate{E, D, N}
 
 A wrapper for estimates that have undergone element-wise transformations.
 
@@ -10,9 +10,9 @@ Common examples include taking the real part, magnitude, phase, or logarithm of 
 # Type Parameters
 - `E`: Estimate trait (e.g., `MarginalTrait`, `PartialTrait`)
 - `D`: Spatial dimension
-- `N`: Number of wavenumber dimensions
 - `S`: Type of the original estimate before transformation
 - `F`: Type of the transformation function
+- `N`: Number of wavenumber dimensions
 - `A`: Type of the argument (e.g., wavenumber grid)
 - `T`: Type of the transformed estimate values
 - `IP`: Type of process information
@@ -36,7 +36,7 @@ real_spec = real(cross_spectrum)
 log_spec = log(abs(spectrum))
 ```
 """
-struct MarginallyTransformedEstimate{E, D, N, S, F, A, T, IP, IE} <:
+struct MarginallyTransformedEstimate{E, D, S, F, N, A, T, IP, IE} <:
        AbstractEstimate{E, D, N}
     argument::A
     estimate::T
@@ -47,7 +47,7 @@ struct MarginallyTransformedEstimate{E, D, N, S, F, A, T, IP, IE} <:
             E, S, N, F, A, T, D, IE}
         checkinputs(argument, estimate, processinfo)
         IP = typeof(processinfo)
-        return new{E, D, N, S, F, A, T, IP, IE}(
+        return new{E, D, S, F, N, A, T, IP, IE}(
             argument, estimate, processinfo, estimationinfo)
     end
 end
@@ -55,12 +55,12 @@ end
 ## required interface
 
 function computed_from(::Type{<:MarginallyTransformedEstimate{
-        E, D, N, S, F}}) where {E, D, N, S, F}
+        E, D, S, F}}) where {E, D, S, F}
     S
 end
 
-function allocate_estimate_memory(T::Type{<:MarginallyTransformedEstimate{E, D, N, S}},
-        ::Type{S}, relevant_memory; kwargs...) where {E, D, N, S}
+function allocate_estimate_memory(T::Type{<:MarginallyTransformedEstimate{E, D, S}},
+        ::Type{<:S}, relevant_memory; kwargs...) where {E, D, S}
     transform = get_transform(T)
     possible_storetypes = Base.return_types(x -> transform.(x), (eltype(relevant_memory),))
     storetype = if length(possible_storetypes) == 1
@@ -99,7 +99,7 @@ function validate_memory_compatibility(
 end
 
 function compute_estimate!(
-        ::Type{T}, mem::BaseEstimateMemory{T}, arg::AbstractEstimate{E, D, N};
+        ::Type{T}, mem, arg::AbstractEstimate{E, D, N};
         kwargs...) where {T <: MarginallyTransformedEstimate, E, D, N}
     transform = get_transform(T)
     estimate = apply_marginal_transform!(transform, mem.output_memory, get_estimates(arg))
@@ -134,10 +134,10 @@ end
 Internal constructor for creating estimate subsets with different traits.
 """
 function _construct_estimate_subset(
-        ::Type{<:MarginallyTransformedEstimate{E, D, N, S, F}},
+        ::Type{<:MarginallyTransformedEstimate{E, D, S, F, N}},
         trait::Type{<:EstimateTrait},
         args...
-)::MarginallyTransformedEstimate where {E, D, N, S, F}
+)::MarginallyTransformedEstimate where {E, D, S, F, N}
     return MarginallyTransformedEstimate{trait, S, N, F}(args...)
 end
 
@@ -149,7 +149,7 @@ end
 Extract the original estimate type before transformation.
 """
 function getoriginaltype(::Type{<:MarginallyTransformedEstimate{
-        E, D, N, S}}) where {E, D, N, S}
+        E, D, S}}) where {E, D, S}
     return S
 end
 
@@ -161,7 +161,7 @@ Get the transformation function applied to the estimate.
 get_transform(est::MarginallyTransformedEstimate) = get_transform(typeof(est))
 
 function get_transform(::Type{<:MarginallyTransformedEstimate{
-        E, D, N, S, F}}) where {E, D, N, S, F}
+        E, D, S, F}}) where {E, D, S, F}
     return F.instance
 end
 

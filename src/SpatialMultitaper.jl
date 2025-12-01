@@ -8,7 +8,7 @@ using Distributions, FFTW, FINUFFT, Interpolations, InvertedIndices, LinearAlgeb
       HypergeometricFunctions, GeoStatsProcesses, Random, ArgCheck, CircularArrays
 
 import DataAPI: ncol
-
+import Interpolations: Periodic
 import BSplineKit
 
 include("SlepianSolver/SlepianSolver.jl")
@@ -22,36 +22,49 @@ include("dft_interface/fft_interface.jl")
 
 include("input_data.jl")
 include("tapers/tapers.jl")
-include("mean.jl")
+include("scalar_statistics/mean.jl")
+include("scalar_statistics/covariance_zero_atom.jl")
+
 include("tapered_dft.jl")
-include("covariance_zero_atom.jl")
 
-include("estimates/process_traits.jl")
-include("estimates/processinfo.jl")
-include("estimates/estimate_types.jl")
-include("estimates/printing.jl")
-include("estimates/errors.jl")
-include("estimates/parameter_inputs.jl")
+include("functional_statistics/infrastructure/process_traits.jl")
+include("functional_statistics/infrastructure/processinfo.jl")
+include("functional_statistics/infrastructure/interface.jl")
+include("functional_statistics/infrastructure/default_estimate.jl")
+include("functional_statistics/infrastructure/indexing.jl")
+include("functional_statistics/infrastructure/names.jl")
+include("functional_statistics/infrastructure/misc.jl")
+include("functional_statistics/infrastructure/printing.jl")
+include("functional_statistics/infrastructure/errors.jl")
+include("functional_statistics/infrastructure/spectral_matrix_transforms.jl")
 
-include("estimates/generic/rotational_estimate.jl")
-include("estimates/generic/marginal_transform.jl")
+include("functional_statistics/rotational_estimate/rotational_estimate.jl")
+include("functional_statistics/marginal_transform/marginal_transform.jl")
 
-include("estimates/wavenumber/spectra.jl")
-include("estimates/wavenumber/partial_spectra.jl")
-include("estimates/wavenumber/spectral_matrix_transforms.jl")
-include("estimates/wavenumber/coherence.jl")
-include("estimates/wavenumber/rotational_functions.jl")
+include("functional_statistics/spectra/spectra.jl")
+include("functional_statistics/partial_spectra/partial_spectra.jl")
+include("functional_statistics/coherence/coherence.jl")
 
-include("estimates/spatial/c_function.jl")
-include("estimates/spatial/k_function.jl")
-include("estimates/spatial/l_function.jl")
-include("estimates/spatial/centered_l_function.jl")
-include("estimates/spatial/pair_correlation_function.jl")
+include("functional_statistics/c_function/c_function.jl")
+include("functional_statistics/k_function/k_function.jl")
+include("functional_statistics/l_function/l_function.jl")
+include("functional_statistics/centered_l_function/centered_l_function.jl")
+include("functional_statistics/pair_correlation_function/pair_correlation_function.jl")
 
-include("resampling/partial_cross_resampling.jl")
-include("resampling/partial_marginal_resampling.jl")
-include("resampling/partial_resampling.jl")
-include("resampling/resampling.jl")
+include("functional_statistics/radial_utils.jl")
+
+include("api/wavenumber/api.jl")
+include("api/spatial/api.jl")
+include("api/general.jl")
+include("api/marginal_transforms.jl")
+include("api/rotational_spectra.jl")
+
+include("resampling/partial_resampling/partial_cross_resampling.jl")
+include("resampling/partial_resampling/partial_marginal_resampling.jl")
+include("resampling/partial_resampling/partial_resampling.jl")
+include("resampling/shift_resampling/shift.jl")
+
+include("splines/spar_parameter.jl")
 
 export ncol, observations, getregion, spatial_data
 
@@ -90,11 +103,13 @@ export spectra,
        partial_k_function,
        partial_l_function,
        partial_centered_l_function,
-       paircorrelation_function,
+       pair_correlation_function,
        pair_correlation_function_direct,
-       partial_paircorrelation_function,
+       partial_pair_correlation_function,
        partial_pair_correlation_function_direct,
        shift_resample,
+       shift_resample!,
+       ShiftResampler,
        ToroidalShift,
        partial_shift_resample,
        make_tapers,

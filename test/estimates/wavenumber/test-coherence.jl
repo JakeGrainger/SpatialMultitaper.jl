@@ -2,9 +2,9 @@ using SpatialMultitaper, Test, StableRNGs, LinearAlgebra, StaticArrays
 include("../../test_utilities/TestUtils.jl")
 using .TestUtils
 
-import SpatialMultitaper: Coherence, MarginallyTransformedEstimate, getestimate,
-                          getargument, gettransformtype, getprocessinformation,
-                          getestimationinformation
+import SpatialMultitaper: Coherence, MarginallyTransformedEstimate, get_estimates,
+                          get_evaluation_points, get_transform, get_process_information,
+                          get_estimation_information
 
 @testset "coherence matrix function" begin
     @testset "2x2 matrix" begin
@@ -55,11 +55,11 @@ end
         coh = coherence(spec)
 
         @test coh isa Coherence
-        @test getargument(coh) == getargument(spec)  # Same wavenumbers
+        @test get_evaluation_points(coh) == get_evaluation_points(spec)  # Same wavenumbers
         @test size(coh) == size(spec)
         @test embeddim(coh) == embeddim(spec)
-        @test getprocessinformation(coh) == getprocessinformation(spec)
-        @test getestimationinformation(coh) == getestimationinformation(spec)
+        @test get_process_information(coh) == get_process_information(spec)
+        @test get_estimation_information(coh) == get_estimation_information(spec)
     end
 
     @testset "Direct from data" begin
@@ -120,7 +120,7 @@ end
 
         # For partial spectra, partial_coherence should equal coherence
         coh_regular = coherence(spec_partial)
-        @test getestimate(coh_from_partial) ≈ getestimate(coh_regular)
+        @test get_estimates(coh_from_partial) ≈ get_estimates(coh_regular)
     end
 end
 
@@ -129,16 +129,11 @@ end
         rng = StableRNG(123)
         data = make_points_example(
             rng, n_processes = 2, return_type = :tuple, point_number = 40)
-        nk = (6, 6)
-        kmax = (0.3, 0.3)
-        region = getregion(data)
-        tapers = sin_taper_family((2, 2), region)
-
-        spec = spectra(data, nk = nk, kmax = kmax, tapers = tapers)
+        spec = spectra(data, kmax = 0.2)
         mag_coh = magnitude_coherence(spec)
 
         # Should be real and positive
-        estimate = getestimate(mag_coh)
+        estimate = get_estimates(mag_coh)
         @test all(x -> all(real(x) ≥ 0 for x in x), estimate)  # All elements ≥ 0
         @test all(x -> all(imag(x) ≈ 0 for x in x), estimate)  # All elements real
     end
@@ -146,25 +141,21 @@ end
     @testset "From Coherence" begin
         rng = StableRNG(123)
         data = make_points_example(rng, n_processes = 2, return_type = :tuple)
-        region = getregion(data)
-        spec = spectra(data, nk = (4, 4), kmax = (0.2, 0.2),
-            tapers = sin_taper_family((2, 2), region))
-        coh = coherence(spec)
+        coh = coherence(data, kmax = 0.2)
         mag_coh = magnitude_coherence(coh)
 
         # Test that it's the absolute value
-        expected = map(x -> abs.(x), getestimate(coh))
-        @test getestimate(mag_coh) ≈ expected
+        expected = map(x -> abs.(x), get_estimates(coh))
+        @test get_estimates(mag_coh) ≈ expected
     end
 
     @testset "Direct from data" begin
         rng = StableRNG(123)
         data = make_points_example(rng, n_processes = 2, return_type = :tuple)
         region = getregion(data)
-        mag_coh = magnitude_coherence(data, nk = (4, 4), kmax = (0.2, 0.2),
-            tapers = sin_taper_family((2, 2), region))
+        mag_coh = magnitude_coherence(data, kmax = 0.2)
         @test mag_coh isa MarginallyTransformedEstimate
-        @test gettransformtype(mag_coh) === typeof(abs)
+        @test get_transform(mag_coh) === abs
     end
 end
 
@@ -178,7 +169,7 @@ end
 
     @testset "From Spectra" begin
         mag2_coh = magnitude_squared_coherence(spec)
-        estimate = getestimate(mag2_coh)
+        estimate = get_estimates(mag2_coh)
         @test all(x -> all(real(x) ≥ 0 for x in x), estimate)  # All elements ≥ 0
         @test all(x -> all(imag(x) ≈ 0 for x in x), estimate)  # All elements real
     end
@@ -186,8 +177,8 @@ end
     @testset "From Coherence" begin
         coh = coherence(spec)
         mag2_coh = magnitude_squared_coherence(coh)
-        expected = map(x -> abs2.(x), getestimate(coh))
-        @test getestimate(mag2_coh) ≈ expected
+        expected = map(x -> abs2.(x), get_estimates(coh))
+        @test get_estimates(mag2_coh) ≈ expected
     end
 end
 
@@ -201,7 +192,7 @@ end
             tapers = sin_taper_family((2, 2), region))
 
         phase_est = phase(spec)
-        estimate = getestimate(phase_est)
+        estimate = get_estimates(phase_est)
 
         # Phase should be real and between -π and π
         @test all(x -> all(imag(x) ≈ 0 for x in x), estimate)  # All elements real
@@ -220,7 +211,7 @@ end
         phase_from_spec = phase(spec)
 
         # Should give same result (both use angle)
-        @test getestimate(phase_from_coh) ≈ getestimate(phase_from_spec)
+        @test get_estimates(phase_from_coh) ≈ get_estimates(phase_from_spec)
     end
 
     @testset "Direct from data" begin
@@ -230,7 +221,7 @@ end
         phase_direct = phase(data, nk = (4, 4), kmax = (0.2, 0.2),
             tapers = sin_taper_family((2, 2), region))
         @test phase_direct isa MarginallyTransformedEstimate
-        @test gettransformtype(phase_direct) === typeof(angle)
+        @test get_transform(phase_direct) === angle
     end
 end
 
@@ -267,10 +258,10 @@ end
         mag2_coh = magnitude_squared_coherence(spec)
 
         # |coherence|^2 should equal magnitude_squared_coherence
-        @test map(x -> abs2.(x), getestimate(coh)) ≈ getestimate(mag2_coh)
+        @test map(x -> abs2.(x), get_estimates(coh)) ≈ get_estimates(mag2_coh)
 
         # |coherence| should equal magnitude_coherence
-        @test map(x -> abs.(x), getestimate(coh)) ≈ getestimate(mag_coh)
+        @test map(x -> abs.(x), get_estimates(coh)) ≈ get_estimates(mag_coh)
     end
 end
 
@@ -296,7 +287,7 @@ end
         @test size(coh) == ()
 
         # Single process coherence should be 1 everywhere
-        estimate = getestimate(coh)
+        estimate = get_estimates(coh)
         @test all(x[1] ≈ 1.0 for x in estimate)
     end
 end

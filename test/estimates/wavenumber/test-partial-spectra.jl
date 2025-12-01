@@ -3,9 +3,11 @@ using LinearAlgebra: SingularException, LAPACKException
 include("../../test_utilities/TestUtils.jl")
 using .TestUtils
 
-import SpatialMultitaper: partial_spectra, partial_spectra_uncorrected, getestimate,
-                          getargument, is_partial, MarginallyTransformedEstimate, Spectra,
-                          getprocessinformation, getestimationinformation, partial_spectra!
+import SpatialMultitaper: partial_spectra, partial_spectra_uncorrected, get_estimates,
+                          get_evaluation_points, is_partial, MarginallyTransformedEstimate,
+                          Spectra,
+                          get_process_information, get_estimation_information,
+                          partial_spectra!
 
 @testset "partial_spectra matrix function" begin
     @testset "2x2 SMatrix" begin
@@ -64,7 +66,7 @@ import SpatialMultitaper: partial_spectra, partial_spectra_uncorrected, getestim
     end
 end
 
-@testset "partial_spectra from Spectra" begin
+@testset "partial_spectra computation" begin
     rng = StableRNG(123)
 
     @testset "Basic functionality" begin
@@ -85,9 +87,9 @@ end
         @test is_partial(partial_spec) == true  # Should have PartialTrait
         @test size(partial_spec) == size(spec)
         @test embeddim(partial_spec) == embeddim(spec)
-        @test getargument(partial_spec) == getargument(spec)  # Same wavenumbers
-        @test getprocessinformation(partial_spec) == getprocessinformation(spec)
-        @test getestimationinformation(partial_spec) == getestimationinformation(spec)
+        @test get_evaluation_points(partial_spec) == get_evaluation_points(spec)  # Same wavenumbers
+        @test get_process_information(partial_spec) == get_process_information(spec)
+        @test get_estimation_information(partial_spec) == get_estimation_information(spec)
     end
 
     @testset "Direct from data" begin
@@ -109,17 +111,15 @@ end
         data = make_points_example(
             rng, n_processes = 2, return_type = :tuple, point_number = 30)
         region = getregion(data)
-        spec = spectra(data, nk = (4, 4), kmax = (0.2, 0.2),
-            tapers = sin_taper_family((2, 2), region))
 
-        partial_corrected = partial_spectra(spec)
-        partial_uncorrected = partial_spectra_uncorrected(spec)
+        partial_corrected = partial_spectra(data, kmax = 0.2)
+        partial_uncorrected = partial_spectra_uncorrected(data, kmax = 0.2)
 
         @test partial_uncorrected isa Spectra
         @test is_partial(partial_uncorrected) == true
 
         # Results should be different (uncorrected should be smaller in magnitude typically)
-        @test getestimate(partial_corrected) ≢ getestimate(partial_uncorrected)
+        @test get_estimates(partial_corrected) ≢ get_estimates(partial_uncorrected)
     end
 end
 
@@ -312,8 +312,8 @@ end
         @test is_partial(partial_spec) == true
 
         # For single process, partial spectrum should equal to the original
-        estimate = getestimate(partial_spec)
-        original_estimate = getestimate(spec)
+        estimate = get_estimates(partial_spec)
+        original_estimate = get_estimates(spec)
         @test original_estimate ≈ estimate
     end
 end

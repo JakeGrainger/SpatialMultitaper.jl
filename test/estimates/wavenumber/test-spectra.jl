@@ -2,12 +2,13 @@ using SpatialMultitaper, Test, StableRNGs, StaticArrays
 include("../../test_utilities/TestData.jl")
 using .TestData
 
-import SpatialMultitaper: Spectra, getargument, getestimate, _dft_to_spectral_matrix,
-                          _compute_spectral_matrix, _make_wavenumber_grid,
-                          getestimationinformation, ProcessInformation,
-                          EstimationInformation, MarginalTrait, MultipleVectorTrait,
-                          SingleProcessTrait, MultipleTupleTrait, _compute_spectral_matrix!,
-                          _validate_tapers
+import SpatialMultitaper: Spectra, get_evaluation_points, get_estimates,
+                          _dft_to_spectral_matrix!, SingleProcessTrait, MultipleVectorTrait,
+                          MultipleTupleTrait, _compute_spectral_matrix,
+                          get_estimation_information,
+                          ProcessInformation, EstimationInformation, MarginalTrait,
+                          MultipleVectorTrait, SingleProcessTrait, MultipleTupleTrait,
+                          _compute_spectral_matrix!
 
 @testset "Spectra Construction" begin
     rng = StableRNG(123)
@@ -21,8 +22,8 @@ import SpatialMultitaper: Spectra, getargument, getestimate, _dft_to_spectral_ma
         estimationinfo = EstimationInformation(5)
 
         spec = Spectra{MarginalTrait}(wavenumber, power, processinfo, estimationinfo)
-        @test getargument(spec) == wavenumber
-        @test getestimate(spec) == power
+        @test get_evaluation_points(spec) == wavenumber
+        @test get_estimates(spec) == power
         @test embeddim(spec) == 2
         @test size(spec) == (2, 2)
     end
@@ -53,12 +54,12 @@ end
 
         spec = spectra(data, nk = nk, kmax = kmax, tapers = tapers)
 
-        @test getargument(spec) isa Tuple{AbstractVector, AbstractVector}
-        @test length(getargument(spec)[1]) == 8
-        @test length(getargument(spec)[2]) == 8
+        @test get_evaluation_points(spec) isa Tuple{AbstractVector, AbstractVector}
+        @test length(get_evaluation_points(spec)[1]) == 8
+        @test length(get_evaluation_points(spec)[2]) == 8
         @test embeddim(spec) == 2
         @test size(spec) == (2, 2)
-        @test getestimationinformation(spec).ntapers == length(tapers)
+        @test get_estimation_information(spec).ntapers == length(tapers)
     end
 
     @testset "Grid data" begin
@@ -94,7 +95,8 @@ end
         J_n = rand(rng, ComplexF64, 3, 10, 8, 8)  # 3 processes, 10 tapers, 8x8 wavenumbers
         data = make_points_example(
             rng, n_processes = 3, return_type = :vector, point_number = 50)
-        S_mat = _dft_to_spectral_matrix(data, J_n, (8, 8))
+        S_mat = zeros(ComplexF64, 3, 3, 8, 8)
+        S_mat = _dft_to_spectral_matrix!(S_mat, J_n, MultipleVectorTrait())
 
         @test size(S_mat) == (3, 3, 8, 8)  # Should be spatial dimensions only
         @test eltype(S_mat) <: ComplexF64
@@ -105,7 +107,8 @@ end
         J_n = rand(rng, ComplexF64, 8, 8, 10)  # 8x8 wavenumbers, 10 tapers
         data = make_points_example(
             rng, n_processes = 1, return_type = :single, point_number = 50)
-        S_mat = _dft_to_spectral_matrix(data, J_n, (8, 8))
+        S_mat = zeros(Float64, 8, 8)
+        S_mat = _dft_to_spectral_matrix!(S_mat, J_n, SingleProcessTrait())
 
         @test size(S_mat) == (8, 8)
         @test eltype(S_mat) == Float64  # Should be real-valued for single process
@@ -117,17 +120,19 @@ end
         J_2 = rand(rng, ComplexF64, 8, 8, 10)
         J_n = [SVector{2, ComplexF64}((J_1[i], J_2[i]))
                for i in CartesianIndices(size(J_1))]
+        S_mat = Array{SMatrix{2, 2, ComplexF64, 4}}(undef, 8, 8)
         data = make_points_example(
             rng, n_processes = 2, return_type = :tuple, point_number = 50)
 
-        S_mat = _dft_to_spectral_matrix(data, J_n, (8, 8))
+        S_mat = _dft_to_spectral_matrix!(S_mat, J_n, MultipleTupleTrait())
         @test size(S_mat) == (8, 8)
         @test eltype(S_mat) <: SMatrix{2, 2}
 
         # Single process case
         J_single = getindex.(J_n, Ref(SOneTo(1)))
         data_single = spatial_data((observations(data)[1],), getregion(data))
-        S_single = _dft_to_spectral_matrix(data_single, J_single, (8, 8))
+        S_single = Array{SMatrix{1, 1, ComplexF64, 1}}(undef, 8, 8)
+        S_single = _dft_to_spectral_matrix!(S_single, J_single, MultipleTupleTrait())
         @test size(S_single) == (8, 8)
         @test eltype(S_single) <: SMatrix{1, 1}
     end
@@ -153,27 +158,6 @@ end
     end
 end
 
-@testset "_make_wavenumber_grid function" begin
-    @testset "Single wavenumber per dimension" begin
-        wavenumber = _make_wavenumber_grid((10,), (0.5,))
-        @test length(wavenumber) == 1
-        @test length(wavenumber[1]) == 10
-        @test maximum(abs, wavenumber[1]) ≤ 0.5
-    end
-
-    @testset "Different wavenumbers per dimension" begin
-        nk = (8, 12)
-        kmax = (0.4, 0.6)
-        wavenumber = _make_wavenumber_grid(nk, kmax)
-
-        @test length(wavenumber) == 2
-        @test length(wavenumber[1]) == 8
-        @test length(wavenumber[2]) == 12
-        @test maximum(abs, wavenumber[1]) ≤ 0.4
-        @test maximum(abs, wavenumber[2]) ≤ 0.6
-    end
-end
-
 @testset "Spectra Indexing and Access" begin
     rng = StableRNG(123)
     data = make_points_example(
@@ -188,13 +172,13 @@ end
     @testset "Process indexing" begin
         spec_sub = spec[1, 2]
         @test size(spec_sub) == ()  # Single process pair
-        @test getargument(spec_sub) == getargument(spec)  # Same wavenumbers
+        @test get_evaluation_points(spec_sub) == get_evaluation_points(spec)  # Same wavenumbers
     end
 
     @testset "Wavenumber indexing" begin
         spec_wavenumber = spec[1, 1, 3, 4]  # specific wavenumber bin
         @test size(spec_wavenumber) == ()
-        wavenumber_arg = getargument(spec_wavenumber)
+        wavenumber_arg = get_evaluation_points(spec_wavenumber)
         @test length(wavenumber_arg[1]) == 1  # Single wavenumber
         @test length(wavenumber_arg[2]) == 1
     end

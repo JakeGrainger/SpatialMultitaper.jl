@@ -1,13 +1,14 @@
 name = "SpatialMultitaper"
 uuid = "9e2dbb0b-aeb4-47f9-9d40-f5da6e8cc913"
-authors = ["Jake Grainger"]
 version = "0.0.10"
+authors = ["Jake Grainger"]
 
 [deps]
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
 ArgCheck = "dce04be8-c92d-5529-be00-80e4d2c0e197"
 Arpack = "7d9fca2a-8960-54d3-9f78-7d1dccf2cb97"
 BSplineKit = "093aae92-e908-43d7-9660-e50ee39d5a0a"
+BandedMatrices = "aae01518-5342-5314-be14-df237901396f"
 CircularArrays = "7a955b69-7140-5f4e-a0ed-f168c5e2e749"
 ConstructionBase = "187b0558-2788-49d3-abe0-74a17ed4e7c9"
 DSP = "717857b8-e6f2-59f4-9121-6e50c889abd2"
@@ -30,14 +31,15 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 
 [weakdeps]
-RCall = "6f49c342-dc21-5d91-9882-a32aef131414"
 Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
+RCall = "6f49c342-dc21-5d91-9882-a32aef131414"
 
 [extensions]
 MakieExt = "Makie"
 RCallExt = "RCall"
 
 [compat]
+BandedMatrices = "1.10.1"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"

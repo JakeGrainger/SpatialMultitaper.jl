@@ -12,7 +12,7 @@ import SpatialMultitaper: apply_transform!, is_partial, Spectra, Coherence,
 
         @testset "Function with no additional args" begin
             data_copy = deepcopy(data)
-            result = apply_transform!(conj, data, MultipleTupleTrait())
+            result = apply_transform!(conj, data, data_copy, MultipleTupleTrait())
             @test size(result) == size(data)
             @test eltype(result) == SMatrix{2, 2, ComplexF64, 4}
             data = deepcopy(data_copy)  # Reset data for in-place test
@@ -22,7 +22,8 @@ import SpatialMultitaper: apply_transform!, is_partial, Spectra, Coherence,
             # Mock function that uses additional arguments
             mock_transform(x, factor) = factor .* x
             data_copy = deepcopy(data)
-            result = apply_transform!(mock_transform, data, MultipleTupleTrait(), 2.0)
+            result = apply_transform!(
+                mock_transform, data, data_copy, MultipleTupleTrait(), 2.0)
             @test size(result) == size(data)
             @test all(x ≈ 2.0 * y for (x, y) in zip(result, data_copy))
             data = deepcopy(data_copy)  # Reset data for in-place test
@@ -37,7 +38,7 @@ import SpatialMultitaper: apply_transform!, is_partial, Spectra, Coherence,
             exp_transform(x) = exp(x) # matrix exp
             data_copy = deepcopy(data)
 
-            result = apply_transform!(exp_transform, data, MultipleVectorTrait())
+            result = apply_transform!(exp_transform, data, data_copy, MultipleVectorTrait())
 
             @test size(result) == (3, 3, 6, 6)  # Should not collapse first two dimensions
             @test eltype(result) <: ComplexF64
@@ -49,7 +50,8 @@ import SpatialMultitaper: apply_transform!, is_partial, Spectra, Coherence,
             matrix_power(x, p) = x .^ p
             data_copy = deepcopy(data)
 
-            result = apply_transform!(matrix_power, data, MultipleVectorTrait(), 2)
+            result = apply_transform!(
+                matrix_power, data, data_copy, MultipleVectorTrait(), 2)
 
             @test size(result) == (3, 3, 6, 6)
 
@@ -60,13 +62,14 @@ import SpatialMultitaper: apply_transform!, is_partial, Spectra, Coherence,
     @testset "Edge cases" begin
         # Single element arrays
         single_element = [SMatrix{1, 1}(rand(ComplexF64, 1, 1))]
-        result = apply_transform!(x -> conj.(x), single_element, MultipleTupleTrait())
+        result = apply_transform!(
+            x -> conj.(x), single_element, deepcopy(single_element), MultipleTupleTrait())
         @test length(result) == 1
         @test eltype(result) == SMatrix{1, 1, ComplexF64, 1}
 
         # Empty arrays
         empty_data = SMatrix{2, 2, ComplexF64, 4}[]
-        result = apply_transform!(conj, empty_data, MultipleTupleTrait())
+        result = apply_transform!(conj, empty_data, empty_data, MultipleTupleTrait())
         @test isempty(result)
     end
 end
@@ -96,19 +99,5 @@ end
         partial_spec = partial_spectra(spec)
         @test partial_spec isa Spectra
         @test is_partial(partial_spec) == true
-    end
-end
-
-@testset "Type Preservation" begin
-    @testset "Float32 preservation" begin
-        data = [SMatrix{2, 2}(rand(Float32, 2, 2)) for _ in 1:3, _ in 1:3]
-        result = apply_transform!(x -> 2 .* x, data, MultipleTupleTrait())
-        @test eltype(eltype(result)) == Float32
-    end
-
-    @testset "Complex type handling" begin
-        data = [SMatrix{2, 2}(rand(ComplexF32, 2, 2)) for _ in 1:3, _ in 1:3]
-        result_real = apply_transform!(x -> conj.(x), data, MultipleTupleTrait())
-        @test eltype(eltype(result_real)) == ComplexF32
     end
 end

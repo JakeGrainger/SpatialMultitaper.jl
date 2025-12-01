@@ -1,6 +1,6 @@
 using SpatialMultitaper, Test
 import SpatialMultitaper: intensity_index, PoissonProcess, PartialResampler, StandardShift,
-                          UniformShift, getestimate
+                          UniformShift, get_estimates
 import Random
 
 @testset "ToroidalShift" begin
@@ -103,8 +103,8 @@ end
             nk = nk,
             kmax = kmax
         )
-        @test getestimate(results1) == getestimate(results2)
-        @test getestimate(results2) !== getestimate(results3)
+        @test get_estimates(results1) == get_estimates(results2)
+        @test get_estimates(results2) !== get_estimates(results3)
 
         rng = Random.MersenneTwister(1234)
         results1 = partial_shift_resample(
@@ -126,7 +126,7 @@ end
             resampler;
             radii = radii
         )
-        @test getestimate(results1) == getestimate(results2)
-        @test getestimate(results2) !== getestimate(results3)
+        @test get_estimates(results1) == get_estimates(results2)
+        @test get_estimates(results2) !== get_estimates(results3)
     end
 end
